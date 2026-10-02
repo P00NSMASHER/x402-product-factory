@@ -74,12 +74,31 @@ jobs:
 
           manifest_path = Path('MIGRATION_MANIFEST.json')
           manifest = json.loads(manifest_path.read_text())
+          registry = json.loads(Path('product-registry.json').read_text())
           manifest['copy_roots'] = ['.']
           manifest['classification_source'] = 'product-registry.json'
           manifest['github_workflows'] = [
               '.github/workflows/factory-pa-vendor-gate-ci.yml',
               '.github/workflows/factory-product-003-live-smoke.yml',
           ]
+          manifest['products'] = [product['number'] for product in registry['products']]
+
+          production, staging, design = [], [], []
+          for product in registry['products']:
+              status = product['status']
+              number = product['number']
+              if status in ('reference-production', 'production-reference'):
+                  production.append(number)
+              elif status.endswith('staging'):
+                  staging.append(number)
+              elif status == 'design':
+                  design.append(number)
+              else:
+                  raise RuntimeError(f'unclassified registry status {number} {status}')
+
+          manifest['production_products'] = production
+          manifest['staging_products'] = staging
+          manifest['design_products'] = design
           manifest['migration_source_commit'] = subprocess.check_output(
               ['git','-C','/tmp/factory-source','rev-parse','HEAD'],
               text=True
