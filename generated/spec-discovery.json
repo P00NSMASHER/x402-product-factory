@@ -18,6 +18,12 @@
         "census-geocoder",
         "rdap"
       ],
+      "openapi_tags": [
+        "Vendor Identity",
+        "Pennsylvania Business Registry",
+        "Address Consistency",
+        "Domain Identity"
+      ],
       "method": "GET",
       "path": "/api/pa-vendor-identity-match",
       "price_usdc": "0.005",
@@ -126,6 +132,11 @@
         "census-geocoder",
         "human-review"
       ],
+      "openapi_tags": [
+        "Business Address",
+        "Pennsylvania Business Registry",
+        "Vendor Identity"
+      ],
       "method": "GET",
       "path": "/api/pa-business-address-match",
       "price_usdc": "0.003",
@@ -219,6 +230,12 @@
         "rdap",
         "human-review"
       ],
+      "openapi_tags": [
+        "Business Domain",
+        "Pennsylvania Business Registry",
+        "RDAP",
+        "Vendor Identity"
+      ],
       "method": "GET",
       "path": "/api/pa-business-domain-match",
       "price_usdc": "0.003",
@@ -311,6 +328,12 @@
         "filing-freshness",
         "company-data",
         "agent-decision"
+      ],
+      "openapi_tags": [
+        "SEC",
+        "EDGAR",
+        "Filing Freshness",
+        "Company Data"
       ],
       "method": "GET",
       "path": "/api/sec-filing-freshness",
@@ -415,6 +438,11 @@
         "registration-age",
         "vendor-check",
         "human-review"
+      ],
+      "openapi_tags": [
+        "Domain",
+        "RDAP",
+        "Registration Age"
       ],
       "method": "GET",
       "path": "/api/domain-registration-age",
