@@ -4,12 +4,20 @@
 const {createStandardPaidHandler,standardPaymentDocument}=require("../packages/x402/standard-paid-handler");
 const METADATA=require("./spec-metadata");
 
+const SERVICE_MODULES=Object.freeze({
+  "pa-vendor-identity-match":require("../products/pa-vendor-identity-match/service"),
+  "pa-business-address-match":require("../products/pa-business-address-match/service"),
+  "pa-business-domain-match":require("../products/pa-business-domain-match/service"),
+  "sec-filing-freshness":require("../products/sec-filing-freshness/service"),
+  "domain-registration-age":require("../products/domain-registration-age/service")
+});
+
 const VALIDATORS=Object.freeze({
-  "pa-vendor-identity-match":require("../products/pa-vendor-identity-match/service")["validateVendorIdentityInput"],
-  "pa-business-address-match":require("../products/pa-business-address-match/service")["validateBusinessAddressInput"],
-  "pa-business-domain-match":require("../products/pa-business-domain-match/service")["validateBusinessDomainInput"],
-  "sec-filing-freshness":require("../products/sec-filing-freshness/service")["validateFilingFreshnessInput"],
-  "domain-registration-age":require("../products/domain-registration-age/service")["validateDomainAgeInput"]
+  "pa-vendor-identity-match":SERVICE_MODULES["pa-vendor-identity-match"]["validateVendorIdentityInput"],
+  "pa-business-address-match":SERVICE_MODULES["pa-business-address-match"]["validateBusinessAddressInput"],
+  "pa-business-domain-match":SERVICE_MODULES["pa-business-domain-match"]["validateBusinessDomainInput"],
+  "sec-filing-freshness":SERVICE_MODULES["sec-filing-freshness"]["validateFilingFreshnessInput"],
+  "domain-registration-age":SERVICE_MODULES["domain-registration-age"]["validateDomainAgeInput"]
 });
 
 function moduleFor(productId){
@@ -38,4 +46,4 @@ const PAID_HANDLER_MODULES=Object.freeze({
   "domain-registration-age":moduleFor("domain-registration-age")
 });
 
-module.exports={VALIDATORS,moduleFor,PAID_HANDLER_MODULES};
+module.exports={SERVICE_MODULES,VALIDATORS,moduleFor,PAID_HANDLER_MODULES};
