@@ -1,0 +1,38 @@
+{
+  "id": "domain-last-changed-recency",
+  "version": "0.1.0",
+  "purpose": "Determine whether an authoritative RDAP last-changed event falls within a caller-selected recent window.",
+  "proposed_price_usdc": "0.002",
+  "input": {
+    "required": [
+      "domain"
+    ],
+    "optional": [
+      "maxAgeDays"
+    ],
+    "properties": {
+      "domain": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253
+      },
+      "maxAgeDays": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 90
+      }
+    }
+  },
+  "decisions": {
+    "recently_changed": "The authoritative RDAP last-changed date is within the selected recent window.",
+    "stable_since_window": "The authoritative RDAP last-changed date is older than the selected window.",
+    "unregistered": "Authoritative RDAP reports the domain is not registered.",
+    "human_review": "Registration state or last-changed evidence cannot support a completed recency decision."
+  },
+  "claim_boundaries": [
+    "recently_changed is a domain-registration metadata signal only",
+    "a recent change does not by itself establish compromise, fraud, ownership change, malicious activity, or business risk",
+    "registry event semantics and update behavior vary by TLD"
+  ]
+}

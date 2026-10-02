@@ -1,0 +1,69 @@
+{
+  "id": "pa-vendor-domain-continuity-review",
+  "version": "0.1.0",
+  "purpose": "Review whether a prospective Pennsylvania vendor's legal-name-aligned domain has sufficient expiration runway and has not changed too recently for automated continuation.",
+  "proposed_price_usdc": "0.006",
+  "input": {
+    "required": [
+      "company",
+      "domain"
+    ],
+    "properties": {
+      "company": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120
+      },
+      "domain": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253
+      },
+      "minExpirationDays": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 180
+      },
+      "minStableDays": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 30
+      }
+    }
+  },
+  "checks": [
+    "pa_registry_identity",
+    "authoritative_rdap_registration",
+    "legal_name_domain_alignment",
+    "domain_expiration_runway",
+    "domain_last_changed_stability"
+  ],
+  "decision_policy": {
+    "stable_domain": "Unique strong Pennsylvania legal-entity match, registered aligned domain, days until expiration at/above minExpirationDays, and days since authoritative lastChanged at/above minStableDays.",
+    "human_review": "Any failed, unavailable, uncertain, ambiguous, unregistered, misaligned, expiring-soon, recently-changed, or incomplete authoritative-date condition.",
+    "automatic_reject": false
+  },
+  "output": {
+    "required": [
+      "decision",
+      "reasonCodes",
+      "matchedEntity",
+      "daysUntilExpiration",
+      "daysSinceLastChanged",
+      "checkedAt"
+    ],
+    "decision": [
+      "stable_domain",
+      "human_review"
+    ]
+  },
+  "claim_boundaries": [
+    "stable_domain is a continuity/timing workflow signal only",
+    "expiration runway does not guarantee renewal or uninterrupted service",
+    "lastChanged recency does not by itself establish compromise, ownership transfer, malicious activity, or fraud",
+    "legal-name/domain alignment does not prove domain ownership or control",
+    "a Pennsylvania registry match does not prove good standing, ownership, authority, creditworthiness, or legal compliance"
+  ]
+}

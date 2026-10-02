@@ -1,0 +1,38 @@
+{
+  "id": "domain-expiration-horizon",
+  "version": "0.1.0",
+  "purpose": "Determine whether an authoritative RDAP registration expiration date falls within a caller-selected future horizon.",
+  "proposed_price_usdc": "0.002",
+  "input": {
+    "required": [
+      "domain"
+    ],
+    "optional": [
+      "horizonDays"
+    ],
+    "properties": {
+      "domain": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253
+      },
+      "horizonDays": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 60
+      }
+    }
+  },
+  "decisions": {
+    "expiring_soon": "The authoritative RDAP expiration date is on or before the future horizon cutoff.",
+    "not_expiring_soon": "The authoritative RDAP expiration date is after the cutoff.",
+    "unregistered": "Authoritative RDAP reports the domain is not registered.",
+    "human_review": "Registration state or expiration date cannot support a completed horizon decision."
+  },
+  "claim_boundaries": [
+    "expiration horizon is a domain-registration timing signal only",
+    "registry renewal/grace/redemption policies vary and can change actual lifecycle outcomes",
+    "it does not prove domain ownership, control, legitimacy, security, fraud risk, or business identity"
+  ]
+}

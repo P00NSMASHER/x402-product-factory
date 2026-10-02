@@ -1,0 +1,38 @@
+{
+  "id": "pa-business-formation-age",
+  "version": "0.1.0",
+  "purpose": "Determine whether a uniquely resolved Pennsylvania business entity is at least a caller-selected age using Pennsylvania Department of State creation-date evidence.",
+  "proposed_price_usdc": "0.002",
+  "input": {
+    "required": [
+      "company"
+    ],
+    "optional": [
+      "minAgeDays"
+    ],
+    "properties": {
+      "company": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120
+      },
+      "minAgeDays": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 36500,
+        "default": 365
+      }
+    }
+  },
+  "decisions": {
+    "established_entity": "The selected Pennsylvania entity creation date is on or before the age cutoff.",
+    "recent_entity": "The selected entity creation date is after the age cutoff.",
+    "company_not_found": "No Pennsylvania entity candidate resolved for the supplied company name.",
+    "human_review": "The registry result is ambiguous/weak or a trustworthy creation date is unavailable."
+  },
+  "claim_boundaries": [
+    "formation age is an identity/history signal only",
+    "it does not prove current good standing, ownership, authority, legitimacy, fraud risk, sanctions status, creditworthiness, or legal compliance",
+    "creation date is taken from Pennsylvania public registry data and may be unavailable for some records"
+  ]
+}

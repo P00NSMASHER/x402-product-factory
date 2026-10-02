@@ -1,0 +1,51 @@
+{
+  "id": "pa-business-domain-match",
+  "version": "0.1.0",
+  "purpose": "Check whether a supplied domain is a plausible identity match for a uniquely resolved Pennsylvania registry entity using public registry and authoritative RDAP evidence.",
+  "proposed_price_usdc": "0.003",
+  "input": {
+    "required": [
+      "company",
+      "domain"
+    ],
+    "properties": {
+      "company": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120
+      },
+      "domain": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253
+      }
+    }
+  },
+  "checks": [
+    "pa_registry_identity",
+    "domain_rdap_registration",
+    "company_domain_name_alignment"
+  ],
+  "decision_policy": {
+    "match": "Unique strong PA registry identity, registered domain, and plausible company/domain name alignment.",
+    "human_review": "Any failed, unavailable, uncertain, ambiguous, unregistered, or misaligned evidence.",
+    "automatic_reject": false
+  },
+  "output": {
+    "required": [
+      "decision",
+      "reasonCodes",
+      "checks",
+      "matchedEntity",
+      "checkedAt"
+    ],
+    "decision": [
+      "match",
+      "human_review"
+    ]
+  },
+  "claim_boundaries": [
+    "match does not prove domain ownership or control",
+    "match does not establish good standing, ownership, authority, fraud/sanctions/credit status, or legal compliance"
+  ]
+}

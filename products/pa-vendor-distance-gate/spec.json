@@ -1,0 +1,41 @@
+{
+  "id": "pa-vendor-distance-gate",
+  "version": "0.1.0",
+  "purpose": "Resolve a Pennsylvania business to one strong registry entity, geocode a caller-supplied origin address and the source-published registry address, and compare straight-line Census-coordinate distance with a caller-supplied radius.",
+  "proposed_price_usdc": "0.004",
+  "input": {
+    "required": [
+      "company",
+      "originAddress",
+      "maxDistanceMiles"
+    ],
+    "properties": {
+      "company": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120
+      },
+      "originAddress": {
+        "type": "string",
+        "minLength": 6,
+        "maxLength": 240
+      },
+      "maxDistanceMiles": {
+        "type": "number",
+        "minimum": 0.1,
+        "maximum": 1000
+      }
+    }
+  },
+  "decision_policy": {
+    "within_radius": "Both addresses Census-match and straight-line coordinate distance is at or below maxDistanceMiles.",
+    "outside_radius": "Both addresses Census-match and straight-line coordinate distance is above maxDistanceMiles.",
+    "company_not_found": "No Pennsylvania registry entity candidate was found.",
+    "human_review": "Registry/address evidence is unavailable, uncertain, incomplete, or cannot be geocoded."
+  },
+  "claim_boundaries": [
+    "distance is straight-line great-circle distance between Census geocoder coordinates, not driving distance or travel time",
+    "the registry address is source-published public registration data and does not prove current operations or physical control",
+    "within_radius is only a caller-defined geographic policy result and does not prove local ownership, service area, residency, tax situs, good standing, authority, or legal compliance"
+  ]
+}

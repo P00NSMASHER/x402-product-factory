@@ -1,0 +1,56 @@
+{
+  "id": "treasury-average-rate-trend",
+  "version": "0.1.0",
+  "purpose": "Compare the latest official monthly average interest rate for one Treasury security description with the prior month's rate and return a bounded directional signal.",
+  "proposed_price_usdc": "0.003",
+  "input": {
+    "required": [
+      "security"
+    ],
+    "properties": {
+      "security": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 100
+      },
+      "minChangeBps": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 1
+      }
+    }
+  },
+  "checks": [
+    "treasury_security_resolution",
+    "two_month_rate_history",
+    "minimum_basis_point_change"
+  ],
+  "decision_policy": {
+    "rising": "Latest rate minus prior-month rate is at least minChangeBps.",
+    "falling": "Latest rate minus prior-month rate is at most negative minChangeBps.",
+    "unchanged": "Absolute change is smaller than minChangeBps.",
+    "human_review": "Security is unavailable, ambiguous, lacks two monthly observations, or has unusable rate data."
+  },
+  "output": {
+    "required": [
+      "decision",
+      "reasonCodes",
+      "latest",
+      "previous",
+      "changeBps",
+      "checkedAt"
+    ],
+    "decision": [
+      "rising",
+      "falling",
+      "unchanged",
+      "human_review"
+    ]
+  },
+  "claim_boundaries": [
+    "the result is a mechanical comparison of official monthly average-interest-rate records",
+    "it is not an interest-rate forecast, investment advice, monetary-policy prediction, or recommendation",
+    "a two-month directional comparison is not a long-term trend determination"
+  ]
+}

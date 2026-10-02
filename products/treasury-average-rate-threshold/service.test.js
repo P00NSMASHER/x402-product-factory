@@ -1,0 +1,6 @@
+"use strict";
+const test=require("node:test");const assert=require("node:assert/strict");
+const {validateTreasuryThresholdInput,createTreasuryRateThresholdService}=require("./service");
+test("validates input",()=>{assert.deepEqual(validateTreasuryThresholdInput({security:"Total Marketable",thresholdPercent:"4.25"}),{security:"Total Marketable",thresholdPercent:4.25,operator:"gte"});assert.throws(()=>validateTreasuryThresholdInput({security:"x",thresholdPercent:"4"}),/2-100/);});
+test("completed threshold result is chargeable",async()=>{const s=createTreasuryRateThresholdService({treasury:{async lookup(){return{available:true,found:true,ambiguous:false,matchCount:1,recordDate:"2026-09-30",selected:{securityDescription:"Total Marketable",averageInterestRatePercent:3.75}};}},now:()=>"2026-10-02T12:00:00Z"});const r=await s.check({security:"Total Marketable",thresholdPercent:3.5});assert.equal(r.decision,"threshold_met");assert.equal(r.chargeable,true);});
+test("Treasury outage is non-chargeable",async()=>{const s=createTreasuryRateThresholdService({treasury:{async lookup(){const e=new Error("down");e.code="SOURCE_HTTP_ERROR";throw e;}}});const r=await s.check({security:"Total Marketable",thresholdPercent:3.5});assert.equal(r.chargeable,false);assert.equal(r.decision,"human_review");});

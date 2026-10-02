@@ -1,0 +1,48 @@
+{
+  "id": "sec-filing-freshness",
+  "version": "0.1.0",
+  "purpose": "Determine whether a U.S. public filer has an SEC EDGAR filing matching the requested form within a caller-selected freshness window.",
+  "proposed_price_usdc": "0.005",
+  "input": {
+    "oneOf": [
+      "ticker",
+      "cik"
+    ],
+    "optional": [
+      "form",
+      "maxAgeDays"
+    ],
+    "properties": {
+      "ticker": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 12
+      },
+      "cik": {
+        "type": "string",
+        "pattern": "1-10 digits"
+      },
+      "form": {
+        "type": "string",
+        "maxLength": 20
+      },
+      "maxAgeDays": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 365,
+        "default": 30
+      }
+    }
+  },
+  "decisions": {
+    "recent_filing": "At least one matching filing has filingDate on or after the freshness cutoff.",
+    "no_recent_filing": "The company resolved successfully, but no matching filing falls inside the requested freshness window.",
+    "company_not_found": "The ticker/CIK did not resolve to an SEC submissions record."
+  },
+  "claim_boundaries": [
+    "freshness is based on SEC filingDate metadata only",
+    "the result does not interpret filing contents",
+    "the result is not an investment recommendation",
+    "no_recent_filing does not mean the company made no disclosures outside EDGAR or outside the requested form filter"
+  ]
+}

@@ -1,0 +1,389 @@
+{
+  "version": 1,
+  "products": [
+    {
+      "id": "pa-entity-lookup",
+      "number": "001",
+      "status": "reference-production",
+      "method": "GET",
+      "path": "/_api/pa-entity-one",
+      "price_usdc": "0.001"
+    },
+    {
+      "id": "pa-vendor-intake-gate",
+      "number": "002",
+      "status": "production-reference",
+      "method": "GET",
+      "path": "/api/vendor-intake-gate",
+      "price_usdc": "0.020",
+      "production_origin": "https://api-v2.appdeploy.ai/app/pa-entity-lookup-x402-4fbm4s",
+      "decision_values": [
+        "proceed",
+        "human_review"
+      ]
+    },
+    {
+      "id": "pa-vendor-identity-match",
+      "number": "003",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/pa-vendor-identity-match",
+      "price_usdc": "0.005",
+      "decision_values": [
+        "consistent",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-003.js",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z"
+    },
+    {
+      "id": "pa-business-address-match",
+      "number": "004",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/pa-business-address-match",
+      "price_usdc": "0.003",
+      "decision_values": [
+        "match",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-004.js",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z"
+    },
+    {
+      "id": "pa-business-domain-match",
+      "number": "005",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/pa-business-domain-match",
+      "price_usdc": "0.003",
+      "decision_values": [
+        "match",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-005.js",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z"
+    },
+    {
+      "id": "sec-filing-freshness",
+      "number": "006",
+      "status": "source-contract-verified-staging",
+      "method": "GET",
+      "path": "/api/sec-filing-freshness",
+      "price_usdc": "0.005",
+      "decision_values": [
+        "recent_filing",
+        "no_recent_filing",
+        "company_not_found"
+      ],
+      "release_gate": "scripts/validate-product-006.js",
+      "live_source_status": "transport_verified_with_production_style_user_agent; factory deployment requires SEC_USER_AGENT with contact email",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z",
+      "required_env": [
+        "SEC_USER_AGENT"
+      ],
+      "deployment_requirements": [
+        "SEC_USER_AGENT must contain a declared client identity and contact email before enabling live SEC EDGAR calls"
+      ]
+    },
+    {
+      "id": "domain-registration-age",
+      "number": "007",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/domain-registration-age",
+      "price_usdc": "0.002",
+      "decision_values": [
+        "established",
+        "recent_registration",
+        "unregistered",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-007.js",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z"
+    },
+    {
+      "id": "treasury-average-rate-threshold",
+      "number": "008",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-threshold",
+      "price_usdc": "0.003",
+      "decision_values": [
+        "threshold_met",
+        "threshold_not_met",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-008.js",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z"
+    },
+    {
+      "id": "ofac-name-review-gate",
+      "number": "009",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/ofac-name-review-gate",
+      "price_usdc": "0.003",
+      "decision_values": [
+        "candidate_found",
+        "no_candidate",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-009.js",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z",
+      "live_source_status": "current OFAC SDN/ALT CSV smoke verified no_candidate for OpenAI OpCo at minScore 90"
+    },
+    {
+      "id": "pa-business-formation-age",
+      "number": "010",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/pa-business-formation-age",
+      "price_usdc": "0.002",
+      "decision_values": [
+        "established_entity",
+        "recent_entity",
+        "company_not_found",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-010.js",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z",
+      "live_source_status": "PA Department of State live smoke verified OpenAI OpCo creationDate 2025-09-29; established_entity for minAgeDays 30"
+    },
+    {
+      "id": "domain-expiration-horizon",
+      "number": "011",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/domain-expiration-horizon",
+      "price_usdc": "0.002",
+      "decision_values": [
+        "expiring_soon",
+        "not_expiring_soon",
+        "unregistered",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-011.js",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z",
+      "live_source_status": "authoritative RDAP smoke verified openai.com expiration 2029-01-19; not_expiring_soon for horizonDays 180"
+    },
+    {
+      "id": "domain-last-changed-recency",
+      "number": "012",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/domain-last-changed-recency",
+      "price_usdc": "0.002",
+      "decision_values": [
+        "recently_changed",
+        "stable_since_window",
+        "unregistered",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-012.js",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z",
+      "live_source_status": "authoritative RDAP smoke verified openai.com lastChanged 2024-10-17; recently_changed for maxAgeDays 730"
+    },
+    {
+      "id": "sec-company-identity-match",
+      "number": "013",
+      "status": "source-contract-verified-staging",
+      "method": "GET",
+      "path": "/api/sec-company-identity-match",
+      "price_usdc": "0.003",
+      "decision_values": [
+        "match",
+        "human_review",
+        "company_not_found"
+      ],
+      "required_env": [
+        "SEC_USER_AGENT"
+      ],
+      "deployment_requirements": [
+        "SEC_USER_AGENT must contain a declared client identity and contact email before enabling live SEC EDGAR calls"
+      ],
+      "release_gate": "scripts/validate-product-013.js",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z plus SEC_USER_AGENT contact identity",
+      "live_source_status": "SEC adapter transport is intentionally blocked until SEC_USER_AGENT contains a real contact email; deterministic/source-contract tests are required meanwhile"
+    },
+    {
+      "id": "treasury-average-rate-trend",
+      "number": "014",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-trend",
+      "price_usdc": "0.003",
+      "decision_values": [
+        "rising",
+        "falling",
+        "unchanged",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-014.js",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z",
+      "live_source_status": "Treasury Fiscal Data smoke verified Total Marketable 2026-08-31 3.475% vs 2026-07-31 3.443%; +3.2 bps => rising at minChangeBps 1"
+    },
+    {
+      "id": "treasury-average-rate-spread",
+      "number": "015",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-spread",
+      "price_usdc": "0.003",
+      "decision_values": [
+        "left_higher",
+        "right_higher",
+        "within_tolerance",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-015.js",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z",
+      "live_source_status": "Treasury Fiscal Data smoke verified Treasury Bills 3.788% vs Treasury Notes 3.345% on 2026-08-31; +44.3 bps => left_higher at toleranceBps 2"
+    },
+    {
+      "id": "pa-entity-ofac-review",
+      "number": "016",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/pa-entity-ofac-review",
+      "price_usdc": "0.005",
+      "decision_values": [
+        "candidate_found",
+        "no_candidate",
+        "company_not_found",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-016.js",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z",
+      "live_source_status": "Live PA Department of State + current OFAC SDN/ALT smoke resolved OpenAI OpCo to legal name Openai Opco, Llc, screened that legal name at minScore 90, and returned no_candidate with zero source failures"
+    },
+    {
+      "id": "pa-vendor-new-domain-review",
+      "number": "017",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/pa-vendor-new-domain-review",
+      "price_usdc": "0.005",
+      "decision_values": [
+        "established_domain_match",
+        "recent_domain_review",
+        "domain_mismatch",
+        "unregistered_domain",
+        "company_not_found",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-017.js",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z",
+      "live_source_status": "PA Department of State + authoritative RDAP smoke resolved OpenAI OpCo to Openai Opco, Llc and openai.com registration 2007-01-19; established_domain_match at minDomainAgeDays 90 with zero source failures"
+    },
+    {
+      "id": "pa-vendor-counterparty-review",
+      "number": "018",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/pa-vendor-counterparty-review",
+      "price_usdc": "0.010",
+      "decision_values": [
+        "proceed",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-018.js",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z",
+      "live_source_status": "PA Department of State + current OFAC SDN/ALT + authoritative RDAP smoke resolved OpenAI OpCo to Openai Opco, Llc; zero OFAC candidates at minScore 90; openai.com aligned and 7196 days old; proceed with zero source failures"
+    },
+    {
+      "id": "pa-vendor-maturity-review",
+      "number": "019",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/pa-vendor-maturity-review",
+      "price_usdc": "0.007",
+      "decision_values": [
+        "established_vendor",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-019.js",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z",
+      "live_source_status": "PA Department of State + authoritative RDAP smoke resolved OpenAI OpCo to Openai Opco, Llc; entity age 368 days; openai.com aligned and 7196 days old; established_vendor with zero source failures"
+    },
+    {
+      "id": "pa-vendor-domain-continuity-review",
+      "number": "020",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/pa-vendor-domain-continuity-review",
+      "price_usdc": "0.006",
+      "decision_values": [
+        "stable_domain",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-020.js",
+      "deployment_blocker": "AppDeploy weekly credit reset 2026-10-05T00:00:00Z",
+      "live_source_status": "PA Department of State + authoritative RDAP smoke resolved OpenAI OpCo to Openai Opco, Llc; openai.com aligned; expiration runway 840 days; lastChanged age 715 days; stable_domain with zero source failures"
+    },
+    {
+      "id": "pa-entity-type-policy",
+      "number": "021",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/pa-entity-type-policy",
+      "price_usdc": "0.002",
+      "decision_values": [
+        "policy_match",
+        "policy_mismatch",
+        "company_not_found",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-021.js",
+      "deployment_blocker": "AppDeploy deployment unavailable under current Free-tier limit",
+      "live_source_status": "PA Department of State smoke resolved OpenAI OpCo to Foreign Limited Liability Company; normalized llc; policy_match for allowedKinds=llc,corporation with zero source failures"
+    },
+    {
+      "id": "pa-registered-county-policy",
+      "number": "022",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/pa-registered-county-policy",
+      "price_usdc": "0.002",
+      "decision_values": [
+        "policy_match",
+        "policy_mismatch",
+        "company_not_found",
+        "human_review"
+      ],
+      "release_gate": "scripts/validate-product-022.js",
+      "deployment_blocker": "AppDeploy deployment unavailable under current Free-tier limit",
+      "live_source_status": "PA Department of State smoke resolved OpenAI OpCo to Dauphin County; policy_match for allowedCounties=Dauphin,Schuylkill with zero source failures"
+    },
+    {
+      "id": "pa-local-vendor-policy-gate",
+      "number": "023",
+      "status": "live-source-verified-staging",
+      "method": "GET",
+      "path": "/api/pa-local-vendor-policy-gate",
+      "price_usdc": "0.004",
+      "decision_values": [
+        "proceed",
+        "human_review",
+        "company_not_found"
+      ],
+      "release_gate": "scripts/validate-product-023.js",
+      "deployment_blocker": "AppDeploy deployment unavailable under current Free-tier limit",
+      "live_source_status": "PA Department of State smoke resolved OpenAI OpCo once; llc allowed; Dauphin allowed; entity age 368 days >= minAgeDays 30; proceed with zero source failures"
+    },
+    {
+      "id": "pa-vendor-distance-gate",
+      "number": "024",
+      "status": "design",
+      "method": "GET",
+      "path": "/api/pa-vendor-distance-gate",
+      "price_usdc": "0.004",
+      "decision_values": [
+        "within_radius",
+        "outside_radius",
+        "company_not_found",
+        "human_review"
+      ]
+    }
+  ]
+}

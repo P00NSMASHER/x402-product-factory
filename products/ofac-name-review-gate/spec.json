@@ -1,0 +1,38 @@
+{
+  "id": "ofac-name-review-gate",
+  "version": "0.1.0",
+  "purpose": "Perform deterministic first-pass name/alias screening against the current OFAC SDN list and return whether one or more review candidates meet a caller-selected similarity threshold.",
+  "proposed_price_usdc": "0.003",
+  "input": {
+    "required": [
+      "name"
+    ],
+    "optional": [
+      "minScore"
+    ],
+    "properties": {
+      "name": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 160
+      },
+      "minScore": {
+        "type": "integer",
+        "minimum": 70,
+        "maximum": 100,
+        "default": 90
+      }
+    }
+  },
+  "decisions": {
+    "candidate_found": "At least one current SDN primary name or alias scores at or above minScore.",
+    "no_candidate": "No current SDN primary name or alias scores at or above minScore.",
+    "human_review": "Required OFAC evidence is unavailable or cannot support a completed screening result."
+  },
+  "claim_boundaries": [
+    "candidate_found is a review signal, not a legal sanctions determination",
+    "no_candidate is not sanctions clearance",
+    "the product does not perform OFAC 50 Percent Rule ownership analysis",
+    "identity resolution requires human review of identifiers and context"
+  ]
+}

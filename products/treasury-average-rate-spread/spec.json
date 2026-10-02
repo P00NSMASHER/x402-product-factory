@@ -1,0 +1,47 @@
+{
+  "id": "treasury-average-rate-spread",
+  "version": "0.1.0",
+  "purpose": "Compare the latest official monthly weighted-average interest rates for two U.S. Treasury security categories from the same record date and classify their spread.",
+  "proposed_price_usdc": "0.003",
+  "input": {
+    "required": [
+      "leftSecurity",
+      "rightSecurity"
+    ],
+    "properties": {
+      "leftSecurity": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 100
+      },
+      "rightSecurity": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 100
+      },
+      "toleranceBps": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1000,
+        "default": 2
+      }
+    }
+  },
+  "decisions": [
+    "left_higher",
+    "right_higher",
+    "within_tolerance",
+    "human_review"
+  ],
+  "policy": {
+    "spread_bps_formula": "(left averageInterestRatePercent - right averageInterestRatePercent) * 100",
+    "within_tolerance": "absolute spreadBps <= toleranceBps",
+    "same_latest_record_date_required": true,
+    "automatic_reject": false
+  },
+  "claim_boundaries": [
+    "the source values are monthly weighted-average rates on outstanding Treasury securities",
+    "the spread is not a live market yield spread",
+    "the result is not a forecast, curve-trading signal, or investment recommendation"
+  ]
+}

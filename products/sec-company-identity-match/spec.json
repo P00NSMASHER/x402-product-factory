@@ -1,0 +1,59 @@
+{
+  "id": "sec-company-identity-match",
+  "version": "0.1.0",
+  "purpose": "Check whether a supplied expected company name matches the authoritative SEC EDGAR company identity resolved from exactly one ticker or CIK.",
+  "proposed_price_usdc": "0.003",
+  "input": {
+    "required": [
+      "company"
+    ],
+    "oneOf": [
+      "ticker",
+      "cik"
+    ],
+    "properties": {
+      "company": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 160
+      },
+      "ticker": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 12
+      },
+      "cik": {
+        "type": "string",
+        "pattern": "^\\d{1,10}$"
+      }
+    }
+  },
+  "checks": [
+    "sec_company_resolution",
+    "canonical_company_name_match"
+  ],
+  "decision_policy": {
+    "match": "SEC resolves the ticker/CIK and the canonical supplied company name exactly matches the canonical SEC company name after common corporate suffix normalization.",
+    "human_review": "SEC resolves the company but the supplied expected company name does not exactly match the canonical SEC company name.",
+    "company_not_found": "The SEC lookup completed but the ticker/CIK did not resolve to a company.",
+    "automatic_reject": false
+  },
+  "output": {
+    "required": [
+      "decision",
+      "reasonCodes",
+      "company",
+      "checkedAt"
+    ],
+    "decision": [
+      "match",
+      "human_review",
+      "company_not_found"
+    ]
+  },
+  "claim_boundaries": [
+    "match is only an SEC identity-consistency result",
+    "it does not establish investment quality, current good standing, ownership, authority, fraud risk, sanctions status, creditworthiness, or legal compliance",
+    "company_not_found means the queried identifier did not resolve in the checked SEC public data; it is not proof that the business does not exist"
+  ]
+}

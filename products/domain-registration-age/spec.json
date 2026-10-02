@@ -1,0 +1,38 @@
+{
+  "id": "domain-registration-age",
+  "version": "0.1.0",
+  "purpose": "Determine whether a domain's authoritative RDAP registration date is at least a caller-selected age, recently registered, unregistered, or unavailable for a safe conclusion.",
+  "proposed_price_usdc": "0.002",
+  "input": {
+    "required": [
+      "domain"
+    ],
+    "optional": [
+      "minAgeDays"
+    ],
+    "properties": {
+      "domain": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253
+      },
+      "minAgeDays": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 90
+      }
+    }
+  },
+  "decisions": {
+    "established": "Authoritative RDAP reports a registration date on or before the age cutoff.",
+    "recent_registration": "Authoritative RDAP reports a registration date after the age cutoff.",
+    "unregistered": "Authoritative RDAP returns a valid unregistered result.",
+    "human_review": "The domain is registered but a trustworthy registration date is unavailable."
+  },
+  "claim_boundaries": [
+    "domain age is one identity signal and is not a fraud or safety verdict",
+    "registration age does not prove ownership, control, legitimacy, or business history",
+    "RDAP data completeness varies by registry"
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "id": "pa-business-address-match",
+  "version": "0.1.0",
+  "purpose": "Check whether a supplied Pennsylvania business address is consistent with the selected Pennsylvania registry entity using official registry and Census geocoding evidence.",
+  "proposed_price_usdc": "0.003",
+  "input": {
+    "required": [
+      "company",
+      "address"
+    ],
+    "properties": {
+      "company": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120
+      },
+      "address": {
+        "type": "string",
+        "minLength": 5,
+        "maxLength": 240
+      }
+    }
+  },
+  "checks": [
+    "pa_registry_identity",
+    "census_address_consistency"
+  ],
+  "thresholds": {
+    "registry_strong_match_required": true,
+    "census_same_primary_street_number_required": true,
+    "census_same_zip_required": true,
+    "census_max_distance_miles": 0.25
+  },
+  "decision_policy": {
+    "match": "A unique strong PA registry identity match is available and both addresses Census-match with the same primary street number and ZIP within 0.25 miles.",
+    "human_review": "Any identity/address evidence is failed, unavailable, uncertain, ambiguous, or contradictory.",
+    "automatic_reject": false
+  },
+  "output": {
+    "required": [
+      "decision",
+      "reasonCodes",
+      "checks",
+      "matchedEntity",
+      "checkedAt"
+    ],
+    "decision": [
+      "match",
+      "human_review"
+    ]
+  },
+  "claim_boundaries": [
+    "match means only that the supplied address is consistent with the selected public registry address under the configured Census comparison",
+    "it does not prove physical presence or control of the address",
+    "it does not establish good standing, ownership, authority to contract, fraud risk, sanctions status, creditworthiness, or legal compliance"
+  ]
+}

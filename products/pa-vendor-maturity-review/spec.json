@@ -1,0 +1,69 @@
+{
+  "id": "pa-vendor-maturity-review",
+  "version": "0.1.0",
+  "purpose": "Review whether a prospective Pennsylvania vendor has both an established legal-entity history and an established legal-name-aligned domain history before an automated workflow continues.",
+  "proposed_price_usdc": "0.007",
+  "input": {
+    "required": [
+      "company",
+      "domain"
+    ],
+    "properties": {
+      "company": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120
+      },
+      "domain": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253
+      },
+      "minEntityAgeDays": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 36500,
+        "default": 30
+      },
+      "minDomainAgeDays": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 90
+      }
+    }
+  },
+  "checks": [
+    "pa_registry_identity",
+    "pa_entity_formation_age",
+    "authoritative_rdap_registration",
+    "legal_name_domain_alignment",
+    "domain_registration_age"
+  ],
+  "decision_policy": {
+    "established_vendor": "Unique strong Pennsylvania registry match, entity age at/above minEntityAgeDays, registered domain aligned with the resolved legal name, and domain age at/above minDomainAgeDays.",
+    "human_review": "Any failed, unavailable, uncertain, ambiguous, recent-entity, recent-domain, unregistered-domain, or identity-mismatch condition.",
+    "automatic_reject": false
+  },
+  "output": {
+    "required": [
+      "decision",
+      "reasonCodes",
+      "matchedEntity",
+      "entityAgeDays",
+      "domainAgeDays",
+      "checkedAt"
+    ],
+    "decision": [
+      "established_vendor",
+      "human_review"
+    ]
+  },
+  "claim_boundaries": [
+    "established_vendor is a maturity/history workflow signal only",
+    "entity age does not establish current good standing, ownership, authority, legitimacy, creditworthiness, or legal compliance",
+    "domain age and legal-name alignment do not prove domain ownership or control",
+    "older entity/domain history is not proof a vendor is safe or trustworthy",
+    "recent entity or domain registration is a review signal, not proof of fraud"
+  ]
+}

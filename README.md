@@ -1,6 +1,6 @@
 # x402 Product Factory
 
-Canonical repository for the x402 Product Factory.
+Migration-ready scaffold for a future dedicated `x402-product-factory` repository.
 
 ## Mission
 
@@ -341,6 +341,12 @@ AppDeploy reported an account-wide Free tier pause with weekly reset at:
 
 No upgrade/payment has been authorized. Products 003–020 therefore remain staging candidates rather than production claims.
 
-## Repository
+## Branch isolation
 
-This repository is the canonical home of the factory. Product code, shared packages, runtime wiring, release gates, and workflows all live at repository root.
+All factory development in this workspace is isolated to:
+
+`x402-product-factory-bootstrap`
+
+The existing production `main` branch is not the integration target for unfinished factory products.
+
+See each product's `DEPLOYMENT_PLAN.md` and release gate before any production change.

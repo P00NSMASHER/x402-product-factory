@@ -1,0 +1,46 @@
+{
+  "id": "treasury-average-rate-threshold",
+  "version": "0.1.0",
+  "purpose": "Compare the latest official monthly weighted-average interest rate for one Treasury security category to a caller threshold.",
+  "proposed_price_usdc": "0.003",
+  "input": {
+    "required": [
+      "security",
+      "thresholdPercent"
+    ],
+    "optional": [
+      "operator"
+    ],
+    "properties": {
+      "security": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 100
+      },
+      "thresholdPercent": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 100
+      },
+      "operator": {
+        "type": "string",
+        "enum": [
+          "gte",
+          "lte"
+        ],
+        "default": "gte"
+      }
+    }
+  },
+  "decisions": {
+    "threshold_met": "The uniquely selected Treasury average rate satisfies the requested comparison.",
+    "threshold_not_met": "The uniquely selected Treasury average rate does not satisfy the requested comparison.",
+    "human_review": "The security description is missing/ambiguous or the published rate is unavailable."
+  },
+  "claim_boundaries": [
+    "the source is the monthly weighted average interest rate on outstanding Treasury securities",
+    "the result is not a live Treasury market yield",
+    "the result is not a forecast or investment recommendation",
+    "the result does not represent the rate on a specific new Treasury issuance"
+  ]
+}

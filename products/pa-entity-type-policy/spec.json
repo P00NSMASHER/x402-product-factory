@@ -1,0 +1,41 @@
+{
+  "id": "pa-entity-type-policy",
+  "version": "0.1.0",
+  "purpose": "Resolve a Pennsylvania business to one strong registry entity, normalize its registration type to a stable policy kind, and compare that kind with a caller-supplied allowed set.",
+  "proposed_price_usdc": "0.002",
+  "input": {
+    "required": [
+      "company",
+      "allowedKinds"
+    ],
+    "properties": {
+      "company": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120
+      },
+      "allowedKinds": {
+        "type": "string",
+        "description": "Comma-separated subset of llc, corporation, limited_partnership, llp, professional_corporation, other"
+      }
+    }
+  },
+  "allowed_kinds": [
+    "llc",
+    "corporation",
+    "limited_partnership",
+    "llp",
+    "professional_corporation",
+    "other"
+  ],
+  "decision_policy": {
+    "policy_match": "A unique strong PA registry entity was found and its normalized entity kind is in allowedKinds.",
+    "policy_mismatch": "A unique strong PA registry entity was found and its normalized entity kind is not in allowedKinds.",
+    "company_not_found": "No Pennsylvania registry entity candidate was found.",
+    "human_review": "Registry evidence is unavailable, ambiguous, incomplete, or the source registration type cannot be normalized confidently."
+  },
+  "claim_boundaries": [
+    "policy_match only evaluates the caller-supplied entity-type policy",
+    "it is not legal advice or proof of good standing, ownership, authority, tax treatment, liability protection, fraud risk, sanctions status, creditworthiness, or regulatory compliance"
+  ]
+}

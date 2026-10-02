@@ -1,0 +1,4 @@
+"use strict";const test=require("node:test"),assert=require("node:assert/strict");const {catalogResource,openApiPath,llmsText}=require("./metadata");
+test("Product 024 catalog has resource-level accepts",()=>{const r=catalogResource("https://example.test");assert.equal(r.price,"$0.004");assert.equal(r.accepts[0].amount,"4000");assert.equal(r.accepts[0].network,"eip155:8453");});
+test("OpenAPI exposes distance policy inputs and failure states",()=>{const p=openApiPath().get;assert.equal(p["x-payment-info"].price.amount,"0.004000");assert.deepEqual(p.parameters.map(x=>x.name),["company","originAddress","maxDistanceMiles"]);assert.ok(p.responses[502]);assert.ok(p.responses[503]);});
+test("agent text states straight-line distance boundary",()=>{const t=llmsText("https://example.test");assert.match(t,/straight-line great-circle distance/i);assert.match(t,/same PAYMENT-SIGNATURE/i);});

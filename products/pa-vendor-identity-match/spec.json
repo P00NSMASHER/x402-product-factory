@@ -1,0 +1,67 @@
+{
+  "id": "pa-vendor-identity-match",
+  "version": "0.2.0",
+  "purpose": "Check whether a supplied Pennsylvania vendor name, street address, and domain are mutually consistent with bounded public identity evidence.",
+  "proposed_price_usdc": "0.005",
+  "input": {
+    "required": [
+      "company",
+      "address",
+      "domain"
+    ],
+    "properties": {
+      "company": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120
+      },
+      "address": {
+        "type": "string",
+        "minLength": 5,
+        "maxLength": 240
+      },
+      "domain": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253
+      }
+    }
+  },
+  "checks": [
+    "pa_registry_identity",
+    "census_address_consistency",
+    "domain_rdap_registration_and_name_alignment"
+  ],
+  "thresholds": {
+    "registry_strong_match_required": true,
+    "census_same_primary_street_number_required": true,
+    "census_same_zip_required": true,
+    "census_max_distance_miles": 0.25,
+    "rdap_registered_required": true,
+    "domain_vendor_name_alignment_required": true
+  },
+  "decision_policy": {
+    "consistent": "All three identity checks pass, including address identity and vendor-name/domain alignment.",
+    "human_review": "Any required check is failed, unavailable, uncertain, or contradictory.",
+    "automatic_reject": false
+  },
+  "output": {
+    "required": [
+      "decision",
+      "reasonCodes",
+      "checks",
+      "matchedEntity",
+      "checkedAt"
+    ],
+    "decision": [
+      "consistent",
+      "human_review"
+    ]
+  },
+  "claim_boundaries": [
+    "consistent means only that the supplied identifiers agree with the configured public evidence checks",
+    "it does not prove domain ownership or control",
+    "it does not prove control of a physical address",
+    "it does not establish good standing, authority to contract, fraud risk, sanctions status, creditworthiness, or legal compliance"
+  ]
+}

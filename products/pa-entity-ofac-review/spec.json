@@ -1,0 +1,46 @@
+{
+  "id": "pa-entity-ofac-review",
+  "version": "0.1.0",
+  "purpose": "Resolve a prospective Pennsylvania company to a unique legal entity, then run deterministic current OFAC SDN primary-name and alias screening against the resolved legal name.",
+  "proposed_price_usdc": "0.005",
+  "input": {
+    "required": [
+      "company"
+    ],
+    "properties": {
+      "company": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120
+      },
+      "minScore": {
+        "type": "integer",
+        "minimum": 70,
+        "maximum": 100,
+        "default": 90
+      }
+    }
+  },
+  "checks": [
+    "pa_registry_identity",
+    "ofac_resolved_legal_name_screen"
+  ],
+  "decisions": [
+    "candidate_found",
+    "no_candidate",
+    "company_not_found",
+    "human_review"
+  ],
+  "policy": {
+    "unique_strong_pa_entity_required_before_ofac": true,
+    "default_ofac_min_score": 90,
+    "ofac_limit": 3,
+    "automatic_reject": false
+  },
+  "claim_boundaries": [
+    "candidate-name screening only; a candidate is not a legal sanctions determination",
+    "no_candidate is not sanctions clearance",
+    "OFAC 50 Percent Rule ownership analysis is not included",
+    "a Pennsylvania registry match does not prove good standing, ownership, or authority to contract"
+  ]
+}

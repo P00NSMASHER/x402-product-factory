@@ -1,0 +1,72 @@
+{
+  "id": "pa-vendor-counterparty-review",
+  "version": "0.1.0",
+  "purpose": "Give an autonomous agent a bounded proceed or human_review decision for a prospective Pennsylvania vendor using legal-entity identity, OFAC SDN candidate-name screening, and domain registration/name/age evidence.",
+  "proposed_price_usdc": "0.010",
+  "input": {
+    "required": [
+      "company",
+      "domain"
+    ],
+    "properties": {
+      "company": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120
+      },
+      "domain": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253
+      },
+      "minScore": {
+        "type": "integer",
+        "minimum": 70,
+        "maximum": 100,
+        "default": 90
+      },
+      "minDomainAgeDays": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 90
+      }
+    }
+  },
+  "checks": [
+    "pa_registry_identity",
+    "ofac_sdn_candidate_name_screen",
+    "authoritative_rdap_registration",
+    "legal_name_domain_alignment",
+    "domain_registration_age"
+  ],
+  "decision_policy": {
+    "proceed": "Unique strong Pennsylvania registry match, no OFAC name candidate at/above minScore, registered domain aligned with the resolved legal name, and domain age at/above minDomainAgeDays.",
+    "human_review": "Any failed, ambiguous, contradictory, incomplete, recent-domain, or candidate-name condition. Source transport/contract failures are non-chargeable.",
+    "automatic_reject": false
+  },
+  "output": {
+    "required": [
+      "decision",
+      "reasonCodes",
+      "checks",
+      "matchedEntity",
+      "screenedLegalName",
+      "domain",
+      "domainAgeDays",
+      "checkedAt"
+    ],
+    "decision": [
+      "proceed",
+      "human_review"
+    ]
+  },
+  "claim_boundaries": [
+    "proceed is only a workflow signal that configured review triggers were not hit",
+    "a no-candidate OFAC name result is not sanctions clearance",
+    "OFAC 50 Percent Rule ownership analysis is not included",
+    "domain registration/name alignment does not prove domain ownership or control",
+    "recent domain registration is a review signal, not proof of fraud",
+    "a Pennsylvania registry match does not prove good standing, ownership, authority to contract, creditworthiness, or legal compliance"
+  ]
+}

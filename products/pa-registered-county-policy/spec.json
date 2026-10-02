@@ -1,0 +1,33 @@
+{
+  "id": "pa-registered-county-policy",
+  "version": "0.1.0",
+  "purpose": "Resolve a Pennsylvania business to one strong registry entity and compare its source-published registered county with a caller-supplied allowed Pennsylvania county set.",
+  "proposed_price_usdc": "0.002",
+  "input": {
+    "required": [
+      "company",
+      "allowedCounties"
+    ],
+    "properties": {
+      "company": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120
+      },
+      "allowedCounties": {
+        "type": "string",
+        "description": "Comma-separated Pennsylvania county names; optional County suffix accepted."
+      }
+    }
+  },
+  "decision_policy": {
+    "policy_match": "Unique strong entity and registered county is allowed.",
+    "policy_mismatch": "Unique strong entity and registered county is not allowed.",
+    "company_not_found": "No PA registry entity found.",
+    "human_review": "Registry unavailable/uncertain or county missing."
+  },
+  "claim_boundaries": [
+    "policy_match evaluates only source-published registered county against caller policy",
+    "it does not prove physical operations, headquarters, service area, residency, local ownership, tax situs, good standing, authority, or legal compliance"
+  ]
+}
