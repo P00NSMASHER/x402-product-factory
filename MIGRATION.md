@@ -112,3 +112,20 @@ Expand the existing Floot PA seller **additively**:
 - Therefore the $0.001 and $0.005 SKUs can be tried before they meet the full settlement-history floor.
 - The $0.020 vendor-intake gate is above the unproven ceiling and needs independent settlement history/direct discovery.
 
+
+
+## Distribution status — 2026-10-02
+
+- Agent402 currently ranks the Floot PA seller first for both `Pennsylvania business registry lookup` and `Pennsylvania vendor verification` route queries.
+- The PA $0.001 and $0.005 route rows carry `base.unprovenTier: true`, `unprovenMaxUsd: 0.01`, and an `executeVia` route despite the seller-level `settlement_required` label.
+- Agent402 confirmed the first $0.001 settlement was from an outside buyer, not its own router.
+- BotMarket dry-run validation passed for all six seller/product landing origins with the intended Base USDC prices.
+- BotMarket manual-review submissions:
+  - #30 PA Entity Lookup — $0.001 USDC
+  - #31 SEC Recent Filings — $0.005 USDC
+  - #32 OFAC SDN Name Screen — $0.005 USDC
+  - #33 US Census Address Geocoder — $0.005 USDC
+  - #34 Domain RDAP Lookup — $0.005 USDC
+  - #35 Treasury Average Interest Rates — $0.005 USDC
+- BotMarket accepted each submission with HTTP 200 and `status=queued`. Its automatic registry-PR step currently fails internally with `[SHA]: Required`, so all six are awaiting manual review; the maintainer was notified with the submission IDs.
+- The AppDeploy copies remain unsuitable for Agent402 routing while platform-level credit gating causes their discovery files to return HTTP 402. Do not confuse AppDeploy deployment status `ready` with crawler availability.
