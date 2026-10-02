@@ -12,26 +12,14 @@ jobs:
   submit:
     runs-on: ubuntu-latest
     steps:
-      - name: Submit SEC OFAC and Census to BotMarket
+      - name: Submit OFAC to BotMarket
         shell: bash
         run: |
           set -u
-          services=(
-            'SEC Recent Filings|https://sec-recent-filings-x402-f9qatj.v2.appdeploy.ai/'
-            'OFAC SDN Name Screen|https://ofac-sdn-name-screen-x402-m9ko96.v2.appdeploy.ai/'
-            'US Census Address Geocoder|https://us-census-address-geocoder-x402-23mj4x.v2.appdeploy.ai/'
-          )
-          failed=0
-          for item in "${services[@]}"; do
-            name="${item%%|*}"
-            url="${item#*|}"
-            payload=$(jq -nc --arg url "$url" --arg price '0.005' '{kind:"service",url:$url,price:$price,dry_run:false}')
-            tmp=$(mktemp)
-            status=$(curl -sS -o "$tmp" -w '%{http_code}' https://botmarket.bot/v1/submit -H 'Content-Type: application/json' -d "$payload")
-            echo "=== $name ==="
-            echo "HTTP $status"
-            cat "$tmp" | jq . || cat "$tmp"
-            if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then failed=1; fi
-            sleep 1
-          done
-          exit "$failed"
+          url='https://ofac-sdn-name-screen-x402-m9ko96.v2.appdeploy.ai/'
+          payload=$(jq -nc --arg url "$url" --arg price '0.005' '{kind:"service",url:$url,price:$price,dry_run:false}')
+          tmp=$(mktemp)
+          status=$(curl -sS -o "$tmp" -w '%{http_code}' https://botmarket.bot/v1/submit -H 'Content-Type: application/json' -d "$payload")
+          echo "HTTP $status"
+          cat "$tmp" | jq . || cat "$tmp"
+          test "$status" -ge 200 -a "$status" -lt 300
