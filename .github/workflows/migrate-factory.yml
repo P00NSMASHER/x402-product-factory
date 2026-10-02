@@ -136,6 +136,13 @@ jobs:
           set -euo pipefail
           git config user.name 'x402 Factory Migration'
           git config user.email 'actions@users.noreply.github.com'
+
+          # The repository GITHUB_TOKEN can write contents but cannot create or
+          # replace workflow files. Preserve the current workflow directory in
+          # this migration commit; ChatGPT's connected GitHub app installs the
+          # final factory workflows in a separate follow-up commit.
+          git restore --source=HEAD --staged --worktree .github/workflows
+
           git add -A
           if git diff --cached --quiet; then
             echo 'No migration changes to commit.'
