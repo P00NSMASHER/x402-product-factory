@@ -26,6 +26,12 @@ const PRODUCTS=Object.freeze({
       "census-geocoder",
       "rdap"
     ],
+    "openapi_tags": [
+      "Vendor Identity",
+      "Pennsylvania Business Registry",
+      "Address Consistency",
+      "Domain Identity"
+    ],
     "method": "GET",
     "path": "/api/pa-vendor-identity-match",
     "price_usdc": "0.005",
@@ -78,6 +84,11 @@ const PRODUCTS=Object.freeze({
       "census-geocoder",
       "human-review"
     ],
+    "openapi_tags": [
+      "Business Address",
+      "Pennsylvania Business Registry",
+      "Vendor Identity"
+    ],
     "method": "GET",
     "path": "/api/pa-business-address-match",
     "price_usdc": "0.003",
@@ -122,6 +133,12 @@ const PRODUCTS=Object.freeze({
       "rdap",
       "human-review"
     ],
+    "openapi_tags": [
+      "Business Domain",
+      "Pennsylvania Business Registry",
+      "RDAP",
+      "Vendor Identity"
+    ],
     "method": "GET",
     "path": "/api/pa-business-domain-match",
     "price_usdc": "0.003",
@@ -165,6 +182,12 @@ const PRODUCTS=Object.freeze({
       "filing-freshness",
       "company-data",
       "agent-decision"
+    ],
+    "openapi_tags": [
+      "SEC",
+      "EDGAR",
+      "Filing Freshness",
+      "Company Data"
     ],
     "method": "GET",
     "path": "/api/sec-filing-freshness",
@@ -224,6 +247,11 @@ const PRODUCTS=Object.freeze({
       "registration-age",
       "vendor-check",
       "human-review"
+    ],
+    "openapi_tags": [
+      "Domain",
+      "RDAP",
+      "Registration Age"
     ],
     "method": "GET",
     "path": "/api/domain-registration-age",
@@ -310,7 +338,7 @@ function openApiPath(id){
     operationId:item.operation_id,
     summary:item.summary,
     description:item.description,
-    tags:item.search_tags,
+    tags:item.openapi_tags,
     parameters:item.inputs.map(input=>openApiParameter(input,item.example_query)),
     "x-payment-info":{price:{mode:"fixed",currency:"USD",amount:fixedSix(item.price_usdc)},protocols:[{x402:{}}],network:PAYMENT.network,payTo:PAYMENT.payTo},
     responses:{
