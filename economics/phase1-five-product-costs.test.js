@@ -8,7 +8,7 @@ const costs=require("./phase1-five-product-costs.json");
 function toMicros(value){
   const match=String(value).match(/^(-?)(\d+)\.(\d{3,6})$/);
   assert.ok(match,"expected fixed decimal amount: "+value);
-  const sign=match[1]==="-"?-1:1;
+  const sign=match[1]==="-"?-1n:1n;
   const whole=BigInt(match[2]);
   const fraction=(match[3]+"000000").slice(0,6);
   return sign*(whole*1000000n+BigInt(fraction));
