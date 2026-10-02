@@ -6,6 +6,13 @@ const test=require("node:test");
 const assert=require("node:assert/strict");
 const registry=require("../product-registry.json");
 const {buildIndex,check:checkGeneratedIndex}=require("../scripts/generate-product-spec-index");
+const {
+  PAYMENT,
+  buildDiscovery,
+  buildContractCases,
+  renderDocs,
+  check:checkGeneratedSpecArtifacts
+}=require("../scripts/generate-spec-artifacts");
 
 const ROOT=path.resolve(__dirname,"..");
 const SPEC_FILES=[
@@ -105,4 +112,40 @@ test("generated product spec index is current",()=>{
   assert.equal(index.schema_version,1);
   assert.deepEqual(index.products.map(product=>product.number),["003","004","005","006","007"]);
   assert.doesNotThrow(()=>checkGeneratedIndex());
+});
+
+
+test("spec compiler generates discovery docs and standard contract cases without drift",()=>{
+  const discovery=buildDiscovery();
+  assert.equal(discovery.schema_version,1);
+  assert.equal(discovery.products.length,5);
+  assert.deepEqual(discovery.products.map(product=>product.number),["003","004","005","006","007"]);
+
+  for(const product of discovery.products){
+    assert.equal(product.payment.x402_version,2);
+    assert.equal(product.payment.network,PAYMENT.network);
+    assert.equal(product.payment.asset,PAYMENT.asset);
+    assert.equal(product.payment.payTo,PAYMENT.payTo);
+    assert.equal(product.payment.scheme,"exact");
+    assert.deepEqual(product.payment.extra,{name:"USD Coin",version:"2"});
+    assert.match(product.payment.amount_atomic_usdc,/^\d+$/);
+    assert.ok(Array.isArray(product.inputs)&&product.inputs.length>0);
+    assert.ok(Array.isArray(product.sources)&&product.sources.length>0);
+  }
+
+  const contracts=buildContractCases();
+  assert.equal(contracts.cases.length,25);
+  for(const number of ["003","004","005","006","007"]){
+    const spec=loadSpecs().find(item=>item.number===number);
+    const cases=contracts.cases.filter(item=>item.path===spec.api.path);
+    assert.deepEqual(cases.map(item=>item.expected_status).sort((a,b)=>a-b),[200,400,402,502,503]);
+    const success=cases.find(item=>item.kind==="paid_success");
+    assert.deepEqual(success.allowed_decisions,spec.api.outputs.decisions);
+  }
+
+  const docs=renderDocs();
+  assert.match(docs,/003 pa-vendor-identity-match/);
+  assert.match(docs,/007 domain-registration-age/);
+  assert.match(docs,/Purchase frequency: \*\*unmeasured\*\*/);
+  assert.doesNotThrow(()=>checkGeneratedSpecArtifacts());
 });
