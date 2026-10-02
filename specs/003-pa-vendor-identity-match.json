@@ -2,6 +2,15 @@
   "schema_version": 1,
   "number": "003",
   "id": "pa-vendor-identity-match",
+  "buyer": {
+    "task": "Determine whether a prospective Pennsylvania vendor's submitted company name, address, and domain are mutually consistent with authoritative public identity evidence.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure independent settled purchases and repeat buyers per product after launch; do not infer demand from tests or crawler probes."
+    }
+  },
   "discovery": {
     "operation_id": "matchPennsylvaniaVendorIdentity",
     "service_name": "PA Vendor Identity Match",
@@ -21,15 +30,6 @@
       "Address Consistency",
       "Domain Identity"
     ]
-  },
-  "buyer": {
-    "task": "Determine whether a prospective Pennsylvania vendor's submitted company name, address, and domain are mutually consistent with authoritative public identity evidence.",
-    "expected_purchase_frequency": {
-      "status": "unmeasured",
-      "value": null,
-      "unit": null,
-      "measurement_plan": "Measure independent settled purchases and repeat buyers per product after launch; do not infer demand from tests or crawler probes."
-    }
   },
   "api": {
     "method": "GET",
@@ -107,6 +107,12 @@
       "freshness_limit_seconds": null
     }
   ],
+  "implementation": {
+    "service_module": "products/pa-vendor-identity-match/service.js",
+    "service_factory_export": "createVendorIdentityService",
+    "validator_export": "validateVendorIdentityInput",
+    "paid_handler_template": "standard_get_v1"
+  },
   "decision": {
     "implementation": "products/pa-vendor-identity-match/decision.js",
     "parameters": {
