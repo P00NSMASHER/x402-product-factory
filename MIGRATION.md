@@ -189,3 +189,61 @@ Cutover verification:
 8. AppDeploy copies remain fallback/reference only while their platform-level discovery paths are credit-gated.
 
 x402scan currently canonicalizes this path-prefixed Supabase seller to the bare host and therefore does not discover it. Agent402 supports path-prefixed sellers, so this does not block Agent402 routing.
+
+
+## Cutover verification — Agent402 and BotMarket
+
+### Agent402
+
+The Supabase seller was registered through Agent402's supported registration endpoint and returned:
+
+- `listed: true`
+- display name: `Agent Data Tools x402`
+- tool count: `5`
+- network: `eip155:8453`
+- `routable: true`
+- `health: 1`
+
+Live Agent402 seller inspection shows all five $0.005 routes declared and priced, with `base.unprovenTier: true` and `unprovenMaxUsd: 0.01`.
+
+Focused live resolver checks confirmed the migrated SEC, OFAC, and RDAP routes already expose:
+
+- `executeVia.tool: route-execute`
+- buyer price: `$0.01`
+- underlying seller price: `$0.005`
+- `executeViaLane: unproven`
+- `executeViaCallableNow: true`
+
+The seller-level `routerDispatchReason: settlement_required` is expected until the proven threshold is met; it does not block the per-route unproven lane.
+
+### BotMarket
+
+- New canonical consolidated seller submission: **#36**
+- URL: `https://bvjtimsalbzkmulyinpg.supabase.co/functions/v1/x402-data-tools`
+- Parsed price/network: `0.005 USDC`, `eip155:8453`
+- Status: `queued` for manual review
+- Older AppDeploy submissions **#31-#35** were reported to the maintainer as superseded by #36.
+- PA submission **#30** remains current on the Floot seller.
+- BotMarket's automatic registry-PR path still reports its internal `[SHA]: Required` error and falls back to manual review.
+
+### Live protocol verification
+
+A public unpaid route probe returned HTTP 402 and exposed:
+
+- `PAYMENT-REQUIRED`
+- `x402-price: $0.005`
+- `x402-asset: USDC`
+- `x402-network: eip155:8453`
+- `x402-pay-to: 0x708f7b52b56eafd7fc7752ed732914021`
+
+The decoded challenge contains:
+
+- x402 version 2
+- HTTPS resource URL under the Supabase seller
+- amount `5000`
+- Base USDC contract
+- seller wallet
+- EIP-712 `USD Coin` / version `2`
+- Bazaar extension metadata
+
+Temporary cutover/registration/probe workflows were removed after completion.
