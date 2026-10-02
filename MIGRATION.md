@@ -247,3 +247,14 @@ The decoded challenge contains:
 - Bazaar extension metadata
 
 Temporary cutover/registration/probe workflows were removed after completion.
+
+
+## Supabase distribution cutover — 2026-10-02
+
+- Unified production catalog: `https://bvjtimsalbzkmulyinpg.supabase.co/functions/v1/x402-data-tools`
+- Agent402 self-registration succeeded with `listed=true`, 5 tools, health 1, and routable true.
+- Each migrated route ranks #1 for its exact tool description in Agent402 and carries the Base unproven tier (`unprovenTier=true`, `unprovenMaxUsd=0.01`) plus `executeVia`.
+- BotMarket submission #37 is the replacement listing for the unified Supabase origin.
+- BotMarket submissions #31-#35 are superseded AppDeploy listings; the maintainer was notified.
+- BotMarket #30 for PA Entity on Floot remains current.
+- The current live Supabase function source is preserved under `deploy/supabase-x402-data-tools/`.
