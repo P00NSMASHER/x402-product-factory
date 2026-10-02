@@ -9,7 +9,25 @@
     "transfer_method": "eip3009",
     "usd_per_successful_settlement": "0.002310",
     "rate_id": "3d1394f6-cae6-4a75-ae3b-1a3c29d428cb",
-    "pricing_snapshot_as_of": "2026-10-02T14:09:15.615Z"
+    "pricing_snapshot_as_of": "2026-10-02T20:28:31.618Z",
+    "credit_usd": "0.001000",
+    "credits_per_successful_settlement": "2.31",
+    "free_allowance_terms": {
+      "current_default_credits_per_receiving_wallet": 1000,
+      "allowance_scope": "lifetime",
+      "current_base_eip3009_full_settlement_ceiling_if_entire_default_allowance_is_available": 432,
+      "exact_fractional_settlement_equivalent": "432.9004329004329",
+      "shared_pool_can_exhaust_earlier": true,
+      "legacy_wallet_allowance_may_be_credits": 10000,
+      "seller_wallet_specific_entitlement_verified": false,
+      "seller_wallet_remaining_free_credits": null,
+      "notes": [
+        "Current PayAI documentation says new receiving wallets receive 1,000 free credits lifetime, not a monthly reset.",
+        "Shared hosts or IP addresses also draw from a shared pool and can reach the applicable limit sooner.",
+        "Some older receiving wallets retain a 10,000-credit legacy allowance.",
+        "Wallet-specific entitlement and remaining free credits require account-specific evidence and are intentionally not inferred from public documentation."
+      ]
+    }
   },
   "source_fee_method": {
     "configured_direct_source_fee_usd_per_request": "0.000000",
