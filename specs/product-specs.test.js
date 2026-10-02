@@ -84,6 +84,11 @@ test("product specs 003-007 are registry-bound and structurally complete",()=>{
     assert.ok(Array.isArray(spec.decision.rules)&&spec.decision.rules.length>0);
     assert.ok(fs.existsSync(path.join(ROOT,spec.decision.implementation)),spec.id+" decision implementation missing");
     assert.ok(Array.isArray(spec.launch.criteria)&&spec.launch.criteria.length>0);
+    assert.equal(spec.implementation.paid_handler_template,"standard_get_v1");
+    assert.match(spec.implementation.service_module,/^products\/[a-z0-9-]+\/service\.js$/);
+    assert.match(spec.implementation.service_factory_export,/^create[A-Za-z0-9]+Service$/);
+    assert.match(spec.implementation.validator_export,/^validate[A-Za-z0-9]+Input$/);
+    assert.ok(fs.existsSync(path.join(ROOT,spec.implementation.service_module)),spec.id+" service module missing");
 
     for(const source of spec.sources){
       assert.equal(typeof source.authority,"string");
