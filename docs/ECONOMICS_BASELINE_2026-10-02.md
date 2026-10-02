@@ -1,6 +1,6 @@
 # Factory economics baseline — 2026-10-02
 
-This completes the first small increment of Phase 1: a registry-wide settlement-cost screen. Full unit economics and profitability remain unmeasured.
+This records the first two increments of Phase 1: a registry-wide settlement-cost screen plus a source/hosting measurement pass for five canonical factory-managed products. Full unit economics and profitability remain unmeasured.
 
 ## Evidence and assumptions
 
@@ -46,6 +46,32 @@ This completes the first small increment of Phase 1: a registry-wide settlement-
 The seven settlement-negative products are 001, 007, 010, 011, 012, 021, 022.
 Only Products 002 and 018 exceed 70% on this fee-only calculation; neither is certified profitable by this screen.
 
+## Five-product source and hosting measurement — increment 2
+
+Machine-readable evidence: `economics/phase1-five-product-costs.json`. Its arithmetic and registry binding are enforced by `economics/phase1-five-product-costs.test.js`.
+
+The measured scope is Products **003–007**, the first five products whose complete decision/source paths are canonical modules in this repository. Products 001 and 002 remain production/reference routes and are not used to infer the generated factory runtime's source-call profile.
+
+| Product | Normal source requests, cold | Normal source requests, warm | Configured direct source fee | Incremental hosting cost | Lower-bound contribution after settlement + configured source fees |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 003 PA Vendor Identity Match | 5–6 | 4–5 | $0.000000 | unknown | $0.002690 |
+| 004 PA Business Address Match | 3–4 | 3–4 | $0.000000 | unknown | $0.000690 |
+| 005 PA Business Domain Match | 3–4 | 2–3 | $0.000000 | unknown | $0.000690 |
+| 006 SEC Filing Freshness | 1–2 | 1–2 | $0.000000 | unknown | $0.002690 |
+| 007 Domain Registration Age | 2 | 1 | $0.000000 | unknown | -$0.000310 |
+
+Request-count details:
+
+- The PA registry adapter normally performs one prefix search and performs a second contains search when fewer than three prefix rows are returned. Retryable timeout/429/5xx errors can raise those PA calls to four before failure.
+- Census address comparison performs two geocoder calls: supplied address and registry address.
+- RDAP performs one IANA bootstrap fetch plus one authoritative registry request on a cold adapter. Only the IANA bootstrap document is cached in memory; authoritative domain results are not cached.
+- SEC freshness performs one submissions request when CIK is supplied, or a ticker-map request plus submissions request when ticker is supplied. The adapter has no response cache.
+- A configured direct source fee of $0 means these implementations contain no paid source credential or source-billing path. It does **not** assert unlimited upstream capacity, immunity from rate limits, or a permanent provider pricing guarantee.
+
+Hosting remains intentionally fail-closed. Products 003–007 are staging candidates and are not currently deployed through the factory because the AppDeploy free-tier pause prevents a live runtime cost measurement. The existing reference seller at `https://pa-entity-x402.floot.app` is currently published on Floot's free plan, but that fact is not used to assume zero-cost capacity for Products 003–007.
+
+Therefore the table's contribution values are lower bounds, not complete margins. They subtract the current PayAI settlement rate and configured direct source fees, but **not** unknown incremental hosting, retries/failures, refunds, development, maintenance, or distribution.
+
 ## Pricing floor and next evidence
 
 Contribution per settled sale = collected price minus settlement, source, incremental hosting, and expected failed-request/retry/refund costs.
@@ -53,7 +79,7 @@ Contribution per settled sale = collected price minus settlement, source, increm
 For a 70% contribution target, required price = measured variable cost / 0.30.
 Settlement alone implies **$0.007700** at this snapshot. Actual required prices will be higher when other costs are included. Development, shared hosting, maintenance, and distribution costs must additionally be covered before claiming total profit.
 
-Next small increment: record source request counts, caching/freshness behavior, hosting cost assumptions, and unknown costs for five existing products. Then verify applicable seller credit/account terms and calculate complete unit economics.
+Next small increment: verify the seller wallet's applicable PayAI free allowance/account terms, then measure live shared-host request/capacity behavior when Products 003–007 have a non-credit-gated origin. Keep retry/failure/refund cost fail-closed until observed.
 
 ## Progress
 
