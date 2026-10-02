@@ -153,11 +153,25 @@ test("spec compiler generates discovery docs and standard contract cases without
   }
 
   const contracts=buildContractCases();
-  assert.equal(contracts.cases.length,25);
+  assert.equal(contracts.cases.length,45);
   for(const number of ["003","004","005","006","007"]){
     const spec=loadSpecs().find(item=>item.number===number);
     const cases=contracts.cases.filter(item=>item.path===spec.api.path);
-    assert.deepEqual(cases.map(item=>item.expected_status).sort((a,b)=>a-b),[200,400,402,502,503]);
+    assert.equal(cases.length,9);
+    assert.deepEqual(
+      cases.map(item=>item.kind).sort(),
+      [
+        "invalid_input",
+        "malformed_payment",
+        "paid_success",
+        "payment_required",
+        "payment_unresolved",
+        "required_source_failure",
+        "settlement_terminal",
+        "source_exception",
+        "verification_terminal"
+      ].sort()
+    );
     const success=cases.find(item=>item.kind==="paid_success");
     assert.deepEqual(success.allowed_decisions,spec.api.outputs.decisions);
   }
