@@ -1,0 +1,34 @@
+name: Temporary BotMarket readback
+
+on:
+  push:
+    paths:
+      - '.github/workflows/tmp-botmarket-readback.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  readback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Check submitted service slugs
+        shell: bash
+        run: |
+          set -u
+          slugs=(
+            'pa-entity-x402-floot-app'
+            'ofac-sdn-name-screen-x402-m9ko96-v2-appdeploy-ai'
+            'us-census-address-geocoder-x402-23mj4x-v2-appdeploy-ai'
+            'domain-rdap-lookup-x402-spdfnq-v2-appdeploy-ai'
+            'treasury-average-interest-rates-x402-xeqftl-v2-appdeploy-ai'
+          )
+          for slug in "${slugs[@]}"; do
+            tmp=$(mktemp)
+            code=$(curl -sS -o "$tmp" -w '%{http_code}' "https://botmarket.bot/v1/service/$slug" || true)
+            echo "=== $slug ==="
+            echo "HTTP=$code"
+            head -c 2500 "$tmp" || true
+            echo
+          done
