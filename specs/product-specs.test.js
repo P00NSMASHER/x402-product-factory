@@ -14,6 +14,7 @@ const {
   check:checkGeneratedSpecArtifacts
 }=require("../scripts/generate-spec-artifacts");
 const {METADATA_MODULES}=require("../generated/product-modules");
+const GENERATED_SPEC_METADATA=require("../generated/spec-metadata");
 
 const ROOT=path.resolve(__dirname,"..");
 const SPEC_FILES=[
@@ -49,6 +50,14 @@ test("product specs 003-007 are registry-bound and structurally complete",()=>{
 
   for(const spec of specs){
     assert.equal(spec.schema_version,1);
+    assert.match(spec.discovery.operation_id,/^[A-Za-z][A-Za-z0-9]+$/);
+    assert.ok(spec.discovery.service_name.length>=3&&spec.discovery.service_name.length<=32);
+    assert.ok(spec.discovery.summary.length>=10);
+    assert.ok(spec.discovery.description.length>=30);
+    assert.ok(spec.discovery.resource_description.length>=30);
+    assert.ok(Array.isArray(spec.discovery.search_tags));
+    assert.ok(spec.discovery.search_tags.length>=1&&spec.discovery.search_tags.length<=5);
+    assert.equal(new Set(spec.discovery.search_tags).size,spec.discovery.search_tags.length);
     const product=registry.products.find(item=>item.number===spec.number);
     assert.ok(product,"registry entry missing for "+spec.number);
 
@@ -183,5 +192,43 @@ test("spec discovery stays at parity with current hand-written runtime metadata"
     const actualNames=(operation.parameters||[]).map(parameter=>parameter.name);
     const specNames=spec.api.inputs.map(input=>input.name);
     assert.deepEqual(actualNames,specNames,spec.id+" OpenAPI input order");
+  }
+});
+
+
+test("generated spec metadata matches current runtime metadata core contract",()=>{
+  const base="https://candidate.example";
+  for(const spec of loadSpecs()){
+    const currentMetadata=METADATA_MODULES[spec.id];
+    const currentResource=currentMetadata.catalogResource(base);
+    const generatedResource=GENERATED_SPEC_METADATA.catalogResource(spec.id,base);
+
+    assert.equal(generatedResource.resource,currentResource.resource);
+    assert.equal(generatedResource.method,currentResource.method);
+    assert.equal(generatedResource.description,currentResource.description);
+    assert.equal(generatedResource.price,currentResource.price);
+    assert.ok(generatedResource.tags.length>=1&&generatedResource.tags.length<=5);
+
+    const currentAccept=currentResource.accepts[0];
+    const generatedAccept=generatedResource.accepts[0];
+    for(const key of ["scheme","network","amount","asset","payTo","maxTimeoutSeconds"]){
+      assert.equal(generatedAccept[key],currentAccept[key],spec.id+" "+key);
+    }
+    assert.deepEqual(generatedAccept.extra,currentAccept.extra);
+
+    const currentOperation=currentMetadata.openApiPath()[spec.api.method.toLowerCase()];
+    const generatedOperation=GENERATED_SPEC_METADATA.openApiPath(spec.id)[spec.api.method.toLowerCase()];
+    assert.equal(generatedOperation.operationId,currentOperation.operationId);
+    assert.equal(generatedOperation.summary,currentOperation.summary);
+    assert.equal(generatedOperation.description,currentOperation.description);
+    assert.deepEqual(
+      generatedOperation.parameters.map(parameter=>parameter.name),
+      currentOperation.parameters.map(parameter=>parameter.name)
+    );
+    assert.deepEqual(generatedOperation["x-payment-info"],currentOperation["x-payment-info"]);
+    if(spec.api.input_rule){
+      assert.equal(generatedOperation["x-input-rule"],spec.api.input_rule);
+      assert.equal(generatedOperation["x-input-rule"],currentOperation["x-input-rule"]);
+    }
   }
 });
