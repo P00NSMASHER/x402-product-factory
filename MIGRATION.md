@@ -91,24 +91,42 @@ The x402 challenge resource metadata should use a printable ASCII `serviceName` 
 - Replit publication is currently blocked by an account-level usage restriction.
 - The existing `pa-entity-x402.floot.app` origin is live, healthy, already discoverable, and has received the confirmed independent purchase.
 
-## Preferred cutover
+## Production cutover
 
-Expand the existing Floot PA seller **additively**:
+The durable split is now:
 
-1. Preserve the existing PA best-match and PA search routes unchanged.
-2. Add vendor-intake, SEC, Census, OFAC, RDAP, and Treasury implementations directly on the same Floot origin.
-3. Update OpenAPI and `/.well-known/x402` to the 8-route catalog.
-4. Run unpaid 402 probes for every paid route.
-5. Verify discovery paths remain 200.
-6. Publish.
-7. Re-run x402scan discovery against the unique Floot origin.
-8. Let Agent402's crawler pick up the expanded origin.
-9. Keep AppDeploy copies as fallback/reference until the new seller has proven live traffic.
+1. **Keep PA on Floot** at `https://pa-entity-x402.floot.app` so its existing outside settlement and Agent402 route history remain attached to the proven seller.
+2. **Run SEC, OFAC, Census, RDAP, and Treasury on Supabase** at:
+   `https://bvjtimsalbzkmulyinpg.supabase.co/functions/v1/x402-data-tools`
+3. The Supabase seller is an ACTIVE public Edge Function (`verify_jwt=false` because x402 is the payment/auth layer), with no AppDeploy runtime dependency.
+4. Free discovery endpoints return HTTP 200:
+   - `/.well-known/x402`
+   - `/.well-known/x402.json`
+   - `/openapi.json`
+   - `/llms.txt`
+   - `/skill.md`
+   - `/health`
+5. All five paid routes return HTTP 402 when unpaid and preserve the existing $0.005 Base USDC x402 v2 contract:
+   - `/api/sec-filings`
+   - `/api/ofac-sdn-screen`
+   - `/api/us-address-geocode`
+   - `/api/domain-rdap`
+   - `/api/treasury-average-rates`
+6. The Supabase implementation fetches the authoritative public sources directly and only settles after a source result is available.
+7. Agent402 was asked to crawl/index the new path-prefixed Supabase seller as the replacement for the five AppDeploy sellers.
+8. Keep the AppDeploy copies only as fallback/reference; they are not the durable production origin while platform credit gating can paywall discovery.
+
+### Registry compatibility note
+
+- Agent402 explicitly supports path-prefixed sellers, so the Supabase function origin is compatible with its crawler/router model.
+- x402scan currently canonicalizes a submitted URL to the bare host and therefore reports `No discovery document found` for this path-prefixed Supabase seller. That is a registry limitation, not a failure of the seller: direct public checks confirm the Supabase discovery files return 200 and all five paid routes return 402.
+- Do not move the PA Floot seller merely to unify hosting; retaining its seller identity preserves the outside-settlement and unproven-routing history already attached to it.
 
 ## Agent402 routing facts
 
 - Base proven-seller threshold currently requires 20 outside settlements and 3 distinct payers.
-- The confirmed 2026-10-02 outside $0.001 settlement counts toward that proven threshold.\n- The unproven Base lane is enabled for routes priced at or below $0.01.
+- The confirmed 2026-10-02 outside $0.001 settlement counts toward that proven threshold.
+- The unproven Base lane is enabled for routes priced at or below $0.01.
 - Therefore the $0.001 and $0.005 SKUs can be tried before they meet the full settlement-history floor.
 - The $0.020 vendor-intake gate is above the unproven ceiling and needs independent settlement history/direct discovery.
 
@@ -129,3 +147,17 @@ Expand the existing Floot PA seller **additively**:
   - #35 Treasury Average Interest Rates — $0.005 USDC
 - BotMarket accepted each submission with HTTP 200 and `status=queued`. Its automatic registry-PR step currently fails internally with `[SHA]: Required`, so all six are awaiting manual review; the maintainer was notified with the submission IDs.
 - The AppDeploy copies remain unsuitable for Agent402 routing while platform-level credit gating causes their discovery files to return HTTP 402. Do not confuse AppDeploy deployment status `ready` with crawler availability.
+
+
+## Supabase replacement seller — 2026-10-02
+
+- Supabase project: `bvjtimsalbzkmulyinpg` (`Facility Bid Watch Validation`, us-east-1)
+- Edge Function: `x402-data-tools`
+- Deployment status: `ACTIVE`
+- Verified function version: `3`
+- Public seller origin: `https://bvjtimsalbzkmulyinpg.supabase.co/functions/v1/x402-data-tools`
+- Seller root returns the five production route paths and Base network.
+- `/.well-known/x402` and `/openapi.json` were independently fetched over public HTTPS and advertise the correct HTTPS seller origin.
+- All five unpaid production routes were independently probed and returned HTTP 402.
+- Payment requirements advertise Base USDC with EIP-712 `extra.name = "USD Coin"`, `extra.version = "2"`, amount `5000`, and the existing seller wallet.
+- The first deployment exposed Supabase's internal rewritten HTTP URL in generated metadata; version 3 fixed the public base to the external HTTPS `/functions/v1/x402-data-tools` origin and was re-verified.
