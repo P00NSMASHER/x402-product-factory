@@ -2,6 +2,20 @@
   "schema_version": 1,
   "number": "003",
   "id": "pa-vendor-identity-match",
+  "discovery": {
+    "operation_id": "matchPennsylvaniaVendorIdentity",
+    "service_name": "PA Vendor Identity Match",
+    "summary": "Check Pennsylvania vendor identity consistency",
+    "description": "Compare a prospective Pennsylvania vendor company name, address, and domain against Pennsylvania Department of State registry data, U.S. Census address normalization, and authoritative RDAP. Returns consistent or human_review. This is an identity-consistency check, not legal/compliance approval, sanctions screening, fraud scoring, credit analysis, good-standing certification, proof of address control, or proof of domain ownership.",
+    "resource_description": "Check whether a supplied Pennsylvania vendor company name, address, and domain are mutually consistent with public registry, Census, and authoritative RDAP evidence. Returns consistent or human_review; it does not make a legal, sanctions, fraud, or credit determination.",
+    "search_tags": [
+      "vendor-identity",
+      "company-identity",
+      "pennsylvania-business-registry",
+      "census-geocoder",
+      "rdap"
+    ]
+  },
   "buyer": {
     "task": "Determine whether a prospective Pennsylvania vendor's submitted company name, address, and domain are mutually consistent with authoritative public identity evidence.",
     "expected_purchase_frequency": {
