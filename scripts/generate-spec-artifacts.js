@@ -1,0 +1,244 @@
+"use strict";
+
+const fs=require("node:fs");
+const path=require("node:path");
+
+const ROOT=path.resolve(__dirname,"..");
+const SPEC_DIR=path.join(ROOT,"specs");
+const GENERATED_DIR=path.join(ROOT,"generated");
+
+const PAYMENT=Object.freeze({
+  network:"eip155:8453",
+  asset:"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  payTo:"0x708f7b52b56eafd7fc1de65fc7752ed732914021",
+  scheme:"exact",
+  extra:Object.freeze({name:"USD Coin",version:"2"})
+});
+
+function discoverSpecFiles(){
+  return fs.readdirSync(SPEC_DIR)
+    .filter(name=>/^\d{3}-.+\.json$/.test(name))
+    .sort();
+}
+
+function loadSpecs(){
+  return discoverSpecFiles().map(name=>
+    JSON.parse(fs.readFileSync(path.join(SPEC_DIR,name),"utf8"))
+  );
+}
+
+function fixedSix(value){
+  const [whole,fraction=""]=String(value).split(".");
+  return whole+"."+fraction.padEnd(6,"0").slice(0,6);
+}
+
+function amountAtomic(priceUsdc){
+  const [whole,fraction=""]=String(priceUsdc).split(".");
+  return String(BigInt(whole)*1000000n+BigInt(fraction.padEnd(6,"0").slice(0,6)));
+}
+
+function discoveryProduct(spec){
+  return {
+    number:spec.number,
+    id:spec.id,
+    buyer_task:spec.buyer.task,
+    method:spec.api.method,
+    path:spec.api.path,
+    price_usdc:spec.economics.price_usdc,
+    payment:{
+      x402_version:2,
+      ...PAYMENT,
+      amount_atomic_usdc:amountAtomic(spec.economics.price_usdc)
+    },
+    inputs:spec.api.inputs,
+    example_query:spec.api.example_query,
+    outputs:spec.api.outputs,
+    sources:spec.sources.map(source=>({
+      id:source.id,
+      authority:source.authority,
+      refresh_policy:source.refresh_policy,
+      cache_policy:source.cache_policy,
+      freshness_limit_seconds:source.freshness_limit_seconds
+    })),
+    failure_behavior:spec.failure_behavior
+  };
+}
+
+function buildDiscovery(specs=loadSpecs()){
+  return {
+    schema_version:1,
+    generator:"scripts/generate-spec-artifacts.js",
+    products:specs.map(discoveryProduct)
+  };
+}
+
+function contractCasesFor(spec){
+  const cases=[
+    {
+      id:spec.id+":unpaid",
+      kind:"payment_required",
+      method:spec.api.method,
+      path:spec.api.path,
+      expected_status:402,
+      assertions:["PAYMENT-REQUIRED header present","x402 price matches spec","no source work required"]
+    },
+    {
+      id:spec.id+":invalid-input",
+      kind:"invalid_input",
+      method:spec.api.method,
+      path:spec.api.path,
+      expected_status:400,
+      assertions:["payment is not settled"]
+    },
+    {
+      id:spec.id+":required-source-failure",
+      kind:"required_source_failure",
+      method:spec.api.method,
+      path:spec.api.path,
+      expected_status:502,
+      assertions:["chargeable=false","payment is not settled"]
+    },
+    {
+      id:spec.id+":payment-unresolved",
+      kind:"payment_unresolved",
+      method:spec.api.method,
+      path:spec.api.path,
+      expected_status:503,
+      assertions:["retrySamePayment=true"]
+    },
+    {
+      id:spec.id+":success",
+      kind:"paid_success",
+      method:spec.api.method,
+      path:spec.api.path,
+      expected_status:200,
+      allowed_decisions:spec.api.outputs.decisions,
+      assertions:["PAYMENT-RESPONSE header present","x402-settled=true","price matches spec"]
+    }
+  ];
+  return cases;
+}
+
+function buildContractCases(specs=loadSpecs()){
+  return {
+    schema_version:1,
+    generated_from:"specs/*.json",
+    cases:specs.flatMap(contractCasesFor)
+  };
+}
+
+function renderDocs(specs=loadSpecs()){
+  const lines=[
+    "# Generated product catalogue",
+    "",
+    "Generated from `specs/*.json` by `scripts/generate-spec-artifacts.js`. Do not hand-edit.",
+    ""
+  ];
+  for(const spec of specs){
+    lines.push(
+      "## "+spec.number+" "+spec.id,
+      "",
+      spec.buyer.task,
+      "",
+      "- Endpoint: `"+spec.api.method+" "+spec.api.path+"`",
+      "- Price: **$"+fixedSix(spec.economics.price_usdc)+" USDC**",
+      "- Decisions: "+spec.api.outputs.decisions.map(value=>"`"+value+"`").join(", "),
+      "- Sources: "+spec.sources.map(source=>source.authority).join("; "),
+      "- Purchase frequency: **"+spec.buyer.expected_purchase_frequency.status+"**",
+      "- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **"+spec.economics.post_allowance_margin_floor_pct.toFixed(1)+"%**",
+      "",
+      "### Inputs",
+      ""
+    );
+    for(const input of spec.api.inputs){
+      const qualifiers=[];
+      if(input.required===true) qualifiers.push("required");
+      else if(input.required===false) qualifiers.push("optional");
+      else qualifiers.push(String(input.required));
+      if(input.default!==undefined) qualifiers.push("default="+input.default);
+      if(input.minimum!==undefined) qualifiers.push("min="+input.minimum);
+      if(input.maximum!==undefined) qualifiers.push("max="+input.maximum);
+      if(input.minLength!==undefined) qualifiers.push("minLength="+input.minLength);
+      if(input.maxLength!==undefined) qualifiers.push("maxLength="+input.maxLength);
+      lines.push("- `"+input.name+"` ("+input.type+"; "+qualifiers.join(", ")+")");
+    }
+    lines.push(
+      "",
+      "### Decision rules",
+      "",
+      ...spec.decision.rules.map(rule=>"- "+rule),
+      "",
+      "### Failure behavior",
+      "",
+      "- Invalid input: "+spec.failure_behavior.invalid_input,
+      "- Required source failure: "+spec.failure_behavior.required_source_failure,
+      "- Payment unresolved: "+spec.failure_behavior.payment_unresolved,
+      "- Automatic reject: **"+String(spec.failure_behavior.automatic_reject)+"**",
+      "",
+      "### Launch gate",
+      "",
+      "- Status: `"+spec.launch.current_status+"`",
+      "- Release gate: `"+spec.launch.release_gate+"`",
+      ...spec.launch.criteria.map(item=>"- "+item),
+      ""
+    );
+  }
+  return lines.join("\n")+"\n";
+}
+
+const OUTPUTS=Object.freeze({
+  discovery:"spec-discovery.json",
+  contracts:"spec-contract-cases.json",
+  docs:"SPEC_PRODUCTS.md"
+});
+
+function serializeOutputs(specs=loadSpecs()){
+  return {
+    [OUTPUTS.discovery]:JSON.stringify(buildDiscovery(specs),null,2)+"\n",
+    [OUTPUTS.contracts]:JSON.stringify(buildContractCases(specs),null,2)+"\n",
+    [OUTPUTS.docs]:renderDocs(specs)
+  };
+}
+
+function write(){
+  const outputs=serializeOutputs();
+  fs.mkdirSync(GENERATED_DIR,{recursive:true});
+  for(const [name,content] of Object.entries(outputs)){
+    fs.writeFileSync(path.join(GENERATED_DIR,name),content,"utf8");
+  }
+  return outputs;
+}
+
+function check(){
+  const expected=serializeOutputs();
+  for(const [name,content] of Object.entries(expected)){
+    const file=path.join(GENERATED_DIR,name);
+    const actual=fs.existsSync(file)?fs.readFileSync(file,"utf8"):"";
+    if(actual!==content){
+      const error=new Error(name+" is stale; run node scripts/generate-spec-artifacts.js");
+      error.code="GENERATED_SPEC_ARTIFACT_STALE";
+      throw error;
+    }
+  }
+  return expected;
+}
+
+function main(){
+  const mode=process.argv.includes("--check")?"check":"write";
+  const outputs=mode==="check"?check():write();
+  const specs=loadSpecs();
+  console.log(JSON.stringify({
+    ok:true,
+    mode,
+    products:specs.length,
+    contractCases:buildContractCases(specs).cases.length,
+    outputs:Object.fromEntries(Object.entries(outputs).map(([name,content])=>[name,Buffer.byteLength(content)]))
+  },null,2));
+}
+
+if(require.main===module)main();
+
+module.exports={
+  PAYMENT,OUTPUTS,discoverSpecFiles,loadSpecs,fixedSix,amountAtomic,
+  buildDiscovery,buildContractCases,renderDocs,serializeOutputs,write,check
+};
