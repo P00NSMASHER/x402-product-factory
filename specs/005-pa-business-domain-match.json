@@ -14,6 +14,12 @@
       "pennsylvania-business-registry",
       "rdap",
       "human-review"
+    ],
+    "openapi_tags": [
+      "Business Domain",
+      "Pennsylvania Business Registry",
+      "RDAP",
+      "Vendor Identity"
     ]
   },
   "buyer": {
