@@ -161,3 +161,31 @@ The durable split is now:
 - All five unpaid production routes were independently probed and returned HTTP 402.
 - Payment requirements advertise Base USDC with EIP-712 `extra.name = "USD Coin"`, `extra.version = "2"`, amount `5000`, and the existing seller wallet.
 - The first deployment exposed Supabase's internal rewritten HTTP URL in generated metadata; version 3 fixed the public base to the external HTTPS `/functions/v1/x402-data-tools` origin and was re-verified.
+
+
+## Current cutover
+
+The five AppDeploy data APIs have been ported to one isolated Supabase Edge Function:
+
+`https://bvjtimsalbzkmulyinpg.supabase.co/functions/v1/x402-data-tools`
+
+Live paid routes:
+
+- `/api/sec-filings`
+- `/api/ofac-sdn-screen`
+- `/api/us-address-geocode`
+- `/api/domain-rdap`
+- `/api/treasury-average-rates`
+
+Cutover verification:
+
+1. `/health`, `/.well-known/x402`, and `/openapi.json` return public HTTP 200.
+2. Every paid route returns HTTP 402 when unpaid.
+3. `PAYMENT-REQUIRED` advertises x402 v2 exact payment on Base, amount 5000 atomic USDC, the existing seller wallet, `extra.name = "USD Coin"`, `extra.version = "2"`, and Bazaar metadata.
+4. Agent402 self-registration returned `listed: true`, `toolCount: 5`, `health: 1`, and `routable: true`.
+5. Exact-name Agent402 route queries rank each migrated tool #1 and expose `unprovenTier: true` with `unprovenMaxUsd: 0.01`.
+6. The deployed source is preserved at `deploy/supabase-x402-data-tools/index.ts`.
+7. The PA Floot seller remains unchanged so its existing outside-sale history and route identity are preserved.
+8. AppDeploy copies remain fallback/reference only while their platform-level discovery paths are credit-gated.
+
+x402scan currently canonicalizes this path-prefixed Supabase seller to the bare host and therefore does not discover it. Agent402 supports path-prefixed sellers, so this does not block Agent402 routing.
