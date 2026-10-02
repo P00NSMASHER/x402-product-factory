@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "number": "004",
+  "id": "pa-business-address-match",
+  "buyer": {
+    "task": "Check whether a submitted Pennsylvania business address is consistent with the address of a uniquely resolved Pennsylvania registry entity.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure independent settled purchases and repeat buyers per product after launch; do not infer demand from tests or crawler probes."
+    }
+  },
+  "api": {
+    "method": "GET",
+    "path": "/api/pa-business-address-match",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "required": true,
+        "minLength": 2,
+        "maxLength": 120
+      },
+      {
+        "name": "address",
+        "type": "string",
+        "required": true,
+        "minLength": 5,
+        "maxLength": 240
+      }
+    ],
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101"
+    },
+    "outputs": {
+      "decisions": [
+        "match",
+        "human_review"
+      ],
+      "fields": [
+        "decision",
+        "reasonCodes",
+        "checks",
+        "matchedEntity",
+        "policy",
+        "checkedAt",
+        "sourceFailures",
+        "evidence",
+        "paid",
+        "price"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "pa_registry",
+      "adapter": "createPaRegistryAdapter",
+      "authority": "Pennsylvania Department of State via data.pa.gov",
+      "refresh_policy": "live lookup on each paid request",
+      "cache_policy": "none",
+      "freshness_limit_seconds": null
+    },
+    {
+      "id": "census_address",
+      "adapter": "createCensusAddressAdapter",
+      "authority": "U.S. Census Bureau Geocoding Services",
+      "refresh_policy": "live comparison on each paid request after strong registry match",
+      "cache_policy": "none",
+      "freshness_limit_seconds": null
+    }
+  ],
+  "decision": {
+    "implementation": "products/pa-business-address-match/decision.js",
+    "parameters": {
+      "censusMaxDistanceMiles": 0.25
+    },
+    "rules": [
+      "Require a unique strong Pennsylvania registry match.",
+      "Require both submitted and registry addresses to geocode.",
+      "Require matching primary street number and ZIP.",
+      "Require geocoded distance at or below 0.25 miles.",
+      "Return match only when all checks pass; otherwise return human_review."
+    ]
+  },
+  "failure_behavior": {
+    "invalid_input": "HTTP 400; do not settle payment.",
+    "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+    "payment_unresolved": "HTTP 503; caller should retry the same payment authorization.",
+    "automatic_reject": false
+  },
+  "economics": {
+    "price_usdc": "0.003",
+    "paid_settlement_cost_usd": "0.002310",
+    "configured_direct_source_fee_usd": "0.000000",
+    "incremental_hosting_cost_usd": null,
+    "post_allowance_margin_floor_pct": 23,
+    "target_contribution_margin_pct": 70,
+    "meets_target_before_unknown_costs": false
+  },
+  "launch": {
+    "current_status": "live-source-verified-staging",
+    "release_gate": "scripts/validate-product-004.js",
+    "criteria": [
+      "Release gate passes from the same registry revision.",
+      "Authoritative live-source smoke passes without source failures.",
+      "Shared non-credit-gated hosting is available and measured.",
+      "Commercial promotion remains blocked until complete unit economics meet the target or an explicit exception is approved."
+    ]
+  }
+}
