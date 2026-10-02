@@ -14,6 +14,12 @@
       "filing-freshness",
       "company-data",
       "agent-decision"
+    ],
+    "openapi_tags": [
+      "SEC",
+      "EDGAR",
+      "Filing Freshness",
+      "Company Data"
     ]
   },
   "buyer": {
