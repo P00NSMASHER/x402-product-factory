@@ -26,7 +26,10 @@
         "Shared hosts or IP addresses also draw from a shared pool and can reach the applicable limit sooner.",
         "Some older receiving wallets retain a 10,000-credit legacy allowance.",
         "Wallet-specific entitlement and remaining free credits require account-specific evidence and are intentionally not inferred from public documentation."
-      ]
+      ],
+      "public_remaining_credit_endpoint_available": false,
+      "public_exhaustion_signal": "POST /settle returns HTTP 403 with errorReason beginning free_tier_exhausted when the applicable free tier is exhausted.",
+      "wallet_specific_verification_boundary": "The public facilitator reference exposes health, supported, verify, settle, and discovery/statistics endpoints, but no public wallet credit-balance endpoint. Remaining entitlement requires account-specific evidence rather than inference."
     }
   },
   "source_fee_method": {
