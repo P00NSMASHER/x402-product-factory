@@ -290,7 +290,7 @@ function renderPaidHandlersModule(specs=loadSpecs()){
     '',
     'module.exports={VALIDATORS,moduleFor,PAID_HANDLER_MODULES};',
     ''
-  ].join("\\n");
+  ].join("\n");
 }
 
 function renderDocs(specs=loadSpecs()){
