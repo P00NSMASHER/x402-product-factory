@@ -126,5 +126,10 @@
       "Shared non-credit-gated hosting is available and measured.",
       "Post-allowance unit economics are settlement-negative at the current price; commercial promotion remains blocked until economics are repaired or an explicit exception is approved."
     ]
+  },
+  "implementation": {
+    "handler_template": "standard-x402-get-v1",
+    "service_module": "products/domain-registration-age/service.js",
+    "input_validator_export": "validateDomainAgeInput"
   }
 }
