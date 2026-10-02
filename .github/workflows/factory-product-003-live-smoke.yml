@@ -1,0 +1,26 @@
+name: Factory product live smokes
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'product-registry.json'
+      - 'products/**'
+      - 'packages/sources/**'
+      - 'scripts/run-live-smokes.js'
+      - '.github/workflows/factory-product-003-live-smoke.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: factory-live-smokes-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run every staging product live smoke
+        run: node scripts/run-live-smokes.js
