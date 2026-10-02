@@ -2,6 +2,15 @@
   "schema_version": 1,
   "number": "006",
   "id": "sec-filing-freshness",
+  "buyer": {
+    "task": "Determine whether a U.S. public filer has an SEC EDGAR filing matching an optional exact form filter inside a caller-selected freshness window.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure independent settled purchases and repeat buyers per product after launch; do not infer demand from tests or crawler probes."
+    }
+  },
   "discovery": {
     "operation_id": "checkSecFilingFreshness",
     "service_name": "SEC Filing Freshness Check",
@@ -21,15 +30,6 @@
       "Filing Freshness",
       "Company Data"
     ]
-  },
-  "buyer": {
-    "task": "Determine whether a U.S. public filer has an SEC EDGAR filing matching an optional exact form filter inside a caller-selected freshness window.",
-    "expected_purchase_frequency": {
-      "status": "unmeasured",
-      "value": null,
-      "unit": null,
-      "measurement_plan": "Measure independent settled purchases and repeat buyers per product after launch; do not infer demand from tests or crawler probes."
-    }
   },
   "api": {
     "method": "GET",
@@ -102,6 +102,12 @@
       "freshness_limit_seconds": null
     }
   ],
+  "implementation": {
+    "service_module": "products/sec-filing-freshness/service.js",
+    "service_factory_export": "createSecFilingFreshnessService",
+    "validator_export": "validateFilingFreshnessInput",
+    "paid_handler_template": "standard_get_v1"
+  },
   "decision": {
     "implementation": "products/sec-filing-freshness/decision.js",
     "parameters": {
