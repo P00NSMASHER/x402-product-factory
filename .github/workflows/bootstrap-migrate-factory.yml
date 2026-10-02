@@ -60,7 +60,7 @@ jobs:
               except UnicodeDecodeError:
                   continue
 
-              updated = text.replace("factory/", "")
+              updated = text.replace("factory/", "").replace(r"factory\/", "")
 
               if path.as_posix().startswith(".github/workflows/"):
                   updated = updated.replace("x402-product-factory-bootstrap", "main")
