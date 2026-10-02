@@ -48,6 +48,7 @@ function discoveryProduct(spec){
     description:spec.discovery.description,
     resource_description:spec.discovery.resource_description,
     search_tags:spec.discovery.search_tags,
+    openapi_tags:spec.discovery.openapi_tags,
     method:spec.api.method,
     path:spec.api.path,
     price_usdc:spec.economics.price_usdc,
@@ -123,7 +124,11 @@ function contractCasesFor(spec){
       assertions:["PAYMENT-RESPONSE header present","x402-settled=true","price matches spec"]
     }
   ];
-  return cases;
+  return cases.map(item=>({
+    ...item,
+    price_usdc:spec.economics.price_usdc,
+    query:item.kind==="invalid_input"?{}:spec.api.example_query
+  }));
 }
 
 function buildContractCases(specs=loadSpecs()){
@@ -145,6 +150,7 @@ function renderMetadataModule(specs=loadSpecs()){
       description:spec.discovery.description,
       resource_description:spec.discovery.resource_description,
       search_tags:spec.discovery.search_tags,
+    openapi_tags:spec.discovery.openapi_tags,
       method:spec.api.method,
       path:spec.api.path,
       price_usdc:spec.economics.price_usdc,
@@ -192,7 +198,7 @@ function renderMetadataModule(specs=loadSpecs()){
     '    method:item.method,',
     '    description:item.resource_description,',
     '    price:"$"+item.price_usdc,',
-    '    tags:item.search_tags,',
+    '    tags:item.openapi_tags,' ,
     '    accepts:[paymentRequirements(item)],',
     '    extensions:{bazaar:{info:{input:{type:"http",method:item.method,queryParams:item.example_query},output:{type:"json",example:{decision:item.decisions[0],paid:true}}}}}',
     '  };',
