@@ -4,7 +4,8 @@ const test=require("node:test");
 const assert=require("node:assert/strict");
 const {managedProducts}=require("../packages/discovery/generator");
 const {encodeHeader}=require("../packages/x402/payment");
-const {paidHandlerModule,createFactoryRuntime}=require("./create-runtime");
+const {serviceModule,paidHandlerModule,createFactoryRuntime}=require("./create-runtime");
+const {SERVICE_MODULES:SPEC_SERVICE_MODULES}=require("../generated/spec-paid-handlers");
 
 function adapters(){
   const never=async()=>{throw new Error("source should not run for unpaid request");};
@@ -18,7 +19,7 @@ function adapters(){
   };
 }
 
-test("runtime uses generated paid handlers for spec-backed products with hand-written fallback",()=>{
+test("runtime uses generated service and paid-handler modules for spec-backed products with hand-written fallback",()=>{
   for(const id of [
     "pa-vendor-identity-match",
     "pa-business-address-match",
@@ -26,8 +27,10 @@ test("runtime uses generated paid handlers for spec-backed products with hand-wr
     "sec-filing-freshness",
     "domain-registration-age"
   ]){
+    assert.strictEqual(serviceModule(id),SPEC_SERVICE_MODULES[id],id+" service source");
     assert.equal(paidHandlerModule(id)?.source,"spec-generated",id+" handler source");
   }
+  assert.ok(serviceModule("treasury-average-rate-threshold"),"unspecced product service fallback");
   assert.notEqual(
     paidHandlerModule("treasury-average-rate-threshold")?.source,
     "spec-generated",
