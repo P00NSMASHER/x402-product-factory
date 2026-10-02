@@ -14,6 +14,12 @@
       "pennsylvania-business-registry",
       "census-geocoder",
       "rdap"
+    ],
+    "openapi_tags": [
+      "Vendor Identity",
+      "Pennsylvania Business Registry",
+      "Address Consistency",
+      "Domain Identity"
     ]
   },
   "buyer": {
