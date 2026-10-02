@@ -2,6 +2,20 @@
   "schema_version": 1,
   "number": "007",
   "id": "domain-registration-age",
+  "discovery": {
+    "operation_id": "checkDomainRegistrationAge",
+    "service_name": "Domain Registration Age",
+    "summary": "Check authoritative domain registration age",
+    "description": "Use IANA RDAP bootstrap and the authoritative registry RDAP service to compare a domain registration date against a caller-selected minimum age. Returns established, recent_registration, unregistered, or human_review. Domain age alone does not establish ownership, control, legitimacy, fraud risk, safety, or business history.",
+    "resource_description": "Determine whether a domain's authoritative RDAP registration date is at least a caller-selected age. Returns established, recent_registration, unregistered, or human_review. Domain age is an identity signal, not a fraud, legitimacy, safety, or ownership verdict.",
+    "search_tags": [
+      "domain",
+      "rdap",
+      "registration-age",
+      "vendor-check",
+      "human-review"
+    ]
+  },
   "buyer": {
     "task": "Determine whether an authoritative RDAP domain registration date is at least a caller-selected minimum age.",
     "expected_purchase_frequency": {
