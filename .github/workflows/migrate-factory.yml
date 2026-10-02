@@ -159,4 +159,10 @@ jobs:
             exit 0
           fi
           git commit -m 'Migrate x402 product factory to dedicated repository'
+
+          # Main can receive small setup commits while this long validation run
+          # is executing. Rebase the migration commit onto the latest main so
+          # the final push remains a fast-forward and preserves those changes.
+          git fetch origin main
+          git rebase origin/main
           git push origin HEAD:main
