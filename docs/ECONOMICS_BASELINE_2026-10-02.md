@@ -8,7 +8,8 @@ This records the first two increments of Phase 1: a registry-wide settlement-cos
 - Input: `product-registry.json`, 24 registered products.
 - Payment implementation: `packages/x402/payment.js` uses Base and PayAI.
 - [PayAI live pricing](https://facilitator.payai.network/pricing): Base `exact/eip3009` published rate **$0.00231 per settlement**, rate ID `3d1394f6-cae6-4a75-ae3b-1a3c29d428cb`; provider snapshot `asOf=2026-10-02T14:09:15.615Z`, effective `2026-09-22T11:11:01.537Z`.
-- [PayAI account terms](https://docs.payai.network/x402/facilitators/pricing) describe a finite free allowance. This screen models paid settlement after that allowance; the seller's remaining credits, legacy allowance, discounts, and account-specific terms have not been inspected.
+- [PayAI account terms](https://docs.payai.network/x402/facilitators/pricing) currently specify 1,000 free credits per receiving wallet for life for new wallets. At the current Base EIP-3009 rate of 2.31 credits/settlement, that is at most 432 complete Base settlements if the entire default allowance is available. Shared hosts/IPs also draw from a shared pool and may exhaust earlier; some older wallets retain a 10,000-credit legacy allowance.
+- The seller wallet's specific entitlement and remaining free-credit balance are still unverified. This screen therefore keeps two states separate: $0 facilitator fee while a verified allowance remains, and the published paid settlement rate after allowance exhaustion.
 - Assumes one successful settlement per purchase at the published rate. Rates can change; refresh before launch or pricing decisions.
 - The proposed 70% contribution target comes from the development plan and is a planning threshold, not an approved price change.
 
@@ -72,6 +73,21 @@ Hosting remains intentionally fail-closed. Products 003–007 are staging candid
 
 Therefore the table's contribution values are lower bounds, not complete margins. They subtract the current PayAI settlement rate and configured direct source fees, but **not** unknown incremental hosting, retries/failures, refunds, development, maintenance, or distribution.
 
+## Free-credit terms — increment 3
+
+Current PayAI documentation now resolves the general allowance model:
+
+- new receiving wallets: **1,000 free credits lifetime**, not a monthly reset;
+- current Base exact/EIP-3009 settlement: **2.31 credits = $0.00231**;
+- maximum complete Base settlements under an untouched 1,000-credit allowance at this rate: **432**;
+- shared hosts/IPs also consume a shared pool and may hit the applicable limit sooner;
+- some older receiving wallets retain a **10,000-credit** legacy allowance;
+- pre-21-September-2026 settlements count as one credit each toward the allowance.
+
+This does **not** establish the current seller wallet's remaining allowance. No public endpoint inspected here exposes that wallet-specific balance, so the economics record leaves it null rather than assuming either free or exhausted status.
+
+Operationally, the post-allowance pricing floor remains the sustainable scaling constraint. During a verified free-credit window, settlement cost can be $0, but that temporary allowance should not be used to certify a product's long-run margin.
+
 ## Pricing floor and next evidence
 
 Contribution per settled sale = collected price minus settlement, source, incremental hosting, and expected failed-request/retry/refund costs.
@@ -79,12 +95,13 @@ Contribution per settled sale = collected price minus settlement, source, increm
 For a 70% contribution target, required price = measured variable cost / 0.30.
 Settlement alone implies **$0.007700** at this snapshot. Actual required prices will be higher when other costs are included. Development, shared hosting, maintenance, and distribution costs must additionally be covered before claiming total profit.
 
-Next small increment: verify the seller wallet's applicable PayAI free allowance/account terms, then measure live shared-host request/capacity behavior when Products 003–007 have a non-credit-gated origin. Keep retry/failure/refund cost fail-closed until observed.
+Next small increment: obtain account-specific evidence for the seller wallet's remaining/legacy PayAI allowance, then measure live shared-host request/capacity behavior when Products 003–007 have a non-credit-gated origin. Keep retry/failure/refund cost fail-closed until observed.
 
 ## Progress
 
 - Phase 1, increment 1: settlement-cost baseline complete as a reviewable candidate.
 - Phase 1, increment 2: Products 003–007 source-request profiles, source billing configuration, caching behavior, and hosting unknowns recorded with a machine-readable test.
-- Phase 1 remains in progress: seller account terms, live hosting/capacity cost, failure/retry/refund rates, break-even demand, and price decisions are outstanding.
+- Phase 1, increment 3: current PayAI free-credit rules and the 432-Base-settlement ceiling for a fully available new-wallet allowance recorded; seller-wallet-specific remaining entitlement stays explicitly unknown.
+- Phase 1 remains in progress: seller-wallet balance evidence, live hosting/capacity cost, failure/retry/refund rates, break-even demand, and price decisions are outstanding.
 - Phases 2–7: six later phases remain.
 - This note changes no product price, payment rail, deployment, or account setting.
