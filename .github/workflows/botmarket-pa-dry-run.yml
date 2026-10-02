@@ -1,0 +1,23 @@
+name: BotMarket PA x402 dry-run
+
+on:
+  push:
+    paths:
+      - '.github/workflows/botmarket-pa-dry-run.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PA Entity One with BotMarket
+        shell: bash
+        run: |
+          set -euo pipefail
+          endpoint='https://pa-entity-x402.floot.app/_api/pa-entity-one?q=OpenAI'
+          payload=$(jq -nc --arg url "$endpoint" '{kind:"service",url:$url,dry_run:true}')
+          echo "Submitting dry-run validation for: $endpoint"
+          response=$(curl --fail-with-body -sS https://botmarket.bot/v1/submit             -H 'Content-Type: application/json'             -d "$payload")
+          echo "$response" | jq .
