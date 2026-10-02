@@ -1,0 +1,29 @@
+name: BotMarket Supabase x402 cutover
+
+on:
+  push:
+    paths:
+      - '.github/workflows/botmarket-supabase-cutover.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dry-run then submit Supabase seller
+        shell: bash
+        run: |
+          set -euo pipefail
+          url='https://bvjtimsalbzkmulyinpg.supabase.co/functions/v1/x402-data-tools'
+          for dry in true false; do
+            echo "=== dry_run=$dry ==="
+            payload=$(jq -nc --arg url "$url" --arg price '0.005' --argjson dry "$dry" '{kind:"service",url:$url,price:$price,dry_run:$dry}')
+            tmp=$(mktemp)
+            code=$(curl -sS -o "$tmp" -w '%{http_code}' https://botmarket.bot/v1/submit               -H 'Content-Type: application/json'               -d "$payload")
+            echo "HTTP $code"
+            cat "$tmp" | jq . || cat "$tmp"
+            test "$code" -ge 200 -a "$code" -lt 300
+            if [ "$dry" = "true" ]; then sleep 2; fi
+          done
