@@ -2,6 +2,15 @@
   "schema_version": 1,
   "number": "005",
   "id": "pa-business-domain-match",
+  "buyer": {
+    "task": "Check whether a supplied registered domain plausibly aligns with the name of a uniquely resolved Pennsylvania business entity.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure independent settled purchases and repeat buyers per product after launch; do not infer demand from tests or crawler probes."
+    }
+  },
   "discovery": {
     "operation_id": "matchPennsylvaniaBusinessDomain",
     "service_name": "PA Business Domain Match",
@@ -21,15 +30,6 @@
       "RDAP",
       "Vendor Identity"
     ]
-  },
-  "buyer": {
-    "task": "Check whether a supplied registered domain plausibly aligns with the name of a uniquely resolved Pennsylvania business entity.",
-    "expected_purchase_frequency": {
-      "status": "unmeasured",
-      "value": null,
-      "unit": null,
-      "measurement_plan": "Measure independent settled purchases and repeat buyers per product after launch; do not infer demand from tests or crawler probes."
-    }
   },
   "api": {
     "method": "GET",
@@ -91,6 +91,12 @@
       "freshness_limit_seconds": null
     }
   ],
+  "implementation": {
+    "service_module": "products/pa-business-domain-match/service.js",
+    "service_factory_export": "createBusinessDomainService",
+    "validator_export": "validateBusinessDomainInput",
+    "paid_handler_template": "standard_get_v1"
+  },
   "decision": {
     "implementation": "products/pa-business-domain-match/decision.js",
     "parameters": {},
