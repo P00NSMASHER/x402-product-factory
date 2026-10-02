@@ -94,6 +94,22 @@ jobs:
           manifest["classification_rule"] = manifest.get("classification_rule", "").replace(
               "factory/product-registry.json", "product-registry.json"
           )
+
+          registry = json.loads(Path("product-registry.json").read_text())
+          manifest["products"] = [p["number"] for p in registry["products"]]
+          manifest["production_products"] = [
+              p["number"] for p in registry["products"]
+              if p.get("status") in ("reference-production", "production-reference")
+          ]
+          manifest["staging_products"] = [
+              p["number"] for p in registry["products"]
+              if str(p.get("status", "")).endswith("staging")
+          ]
+          manifest["design_products"] = [
+              p["number"] for p in registry["products"]
+              if p.get("status") == "design"
+          ]
+
           manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
 
           runtime_bundle_path = Path("scripts/build-appdeploy-runtime-bundle.js")
