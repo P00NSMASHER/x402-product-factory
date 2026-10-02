@@ -100,8 +100,32 @@ function contractCasesFor(spec){
       assertions:["payment is not settled"]
     },
     {
+      id:spec.id+":malformed-payment",
+      kind:"malformed_payment",
+      method:spec.api.method,
+      path:spec.api.path,
+      expected_status:402,
+      assertions:["invalid payment returns fresh challenge","no source work required"]
+    },
+    {
+      id:spec.id+":verification-terminal",
+      kind:"verification_terminal",
+      method:spec.api.method,
+      path:spec.api.path,
+      expected_status:402,
+      assertions:["terminal verification returns fresh challenge","no source work required"]
+    },
+    {
       id:spec.id+":required-source-failure",
       kind:"required_source_failure",
+      method:spec.api.method,
+      path:spec.api.path,
+      expected_status:502,
+      assertions:["chargeable=false","payment is not settled"]
+    },
+    {
+      id:spec.id+":source-exception",
+      kind:"source_exception",
       method:spec.api.method,
       path:spec.api.path,
       expected_status:502,
@@ -114,6 +138,14 @@ function contractCasesFor(spec){
       path:spec.api.path,
       expected_status:503,
       assertions:["retrySamePayment=true"]
+    },
+    {
+      id:spec.id+":settlement-terminal",
+      kind:"settlement_terminal",
+      method:spec.api.method,
+      path:spec.api.path,
+      expected_status:402,
+      assertions:["terminal settlement returns fresh challenge"]
     },
     {
       id:spec.id+":success",
