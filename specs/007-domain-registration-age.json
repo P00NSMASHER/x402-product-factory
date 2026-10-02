@@ -14,6 +14,11 @@
       "registration-age",
       "vendor-check",
       "human-review"
+    ],
+    "openapi_tags": [
+      "Domain",
+      "RDAP",
+      "Registration Age"
     ]
   },
   "buyer": {
