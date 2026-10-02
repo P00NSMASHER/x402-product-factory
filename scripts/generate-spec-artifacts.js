@@ -2,15 +2,16 @@
 
 const fs=require("node:fs");
 const path=require("node:path");
+const {NETWORK,USDC,PAY_TO}=require("../packages/x402/payment");
 
 const ROOT=path.resolve(__dirname,"..");
 const SPEC_DIR=path.join(ROOT,"specs");
 const GENERATED_DIR=path.join(ROOT,"generated");
 
 const PAYMENT=Object.freeze({
-  network:"eip155:8453",
-  asset:"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-  payTo:"0x708f7b52b56eafd7fc1de65fc7752ed732914021",
+  network:NETWORK,
+  asset:USDC,
+  payTo:PAY_TO,
   scheme:"exact",
   extra:Object.freeze({name:"USD Coin",version:"2"})
 });
