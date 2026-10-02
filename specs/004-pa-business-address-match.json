@@ -14,6 +14,11 @@
       "pennsylvania-business-registry",
       "census-geocoder",
       "human-review"
+    ],
+    "openapi_tags": [
+      "Business Address",
+      "Pennsylvania Business Registry",
+      "Vendor Identity"
     ]
   },
   "buyer": {
