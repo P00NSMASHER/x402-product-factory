@@ -79,6 +79,48 @@ for(const [source,modules] of HANDLER_SETS){
         return;
       }
 
+      if(item.kind==="malformed_payment"){
+        const handler=createHandler(productId,modules,{
+          serviceCheck:async()=>{serviceCalls+=1;return{};},
+          fetchImpl:async url=>{urls.push(String(url));return response({});}
+        });
+        const result=await handler({
+          query:item.query,
+          event:{headers:{"payment-signature":"not-valid-base64-json"}}
+        });
+        assert.equal(result.statusCode,item.expected_status);
+        assert.equal(JSON.parse(result.body).error,"invalid_payment_header");
+        assert.ok(result.headers["PAYMENT-REQUIRED"]);
+        assert.equal(serviceCalls,0);
+        assert.equal(urls.length,0);
+        return;
+      }
+
+      if(item.kind==="verification_terminal"){
+        const handler=createHandler(productId,modules,{
+          serviceCheck:async()=>{serviceCalls+=1;return{};},
+          fetchImpl:async url=>{
+            const value=String(url);
+            urls.push(value);
+            if(value.endsWith("/verify")){
+              return response({isValid:false,invalidReason:"invalid_signature"},200);
+            }
+            throw new Error("settlement must not run after terminal verification");
+          }
+        });
+        const result=await handler({
+          query:item.query,
+          event:{headers:{"payment-signature":paymentSignature()}}
+        });
+        assert.equal(result.statusCode,item.expected_status);
+        assert.equal(JSON.parse(result.body).error,"invalid_signature");
+        assert.ok(result.headers["PAYMENT-REQUIRED"]);
+        assert.equal(serviceCalls,0);
+        assert.equal(urls.length,1);
+        assert.ok(urls[0].endsWith("/verify"));
+        return;
+      }
+
       if(item.kind==="required_source_failure"){
         const handler=createHandler(productId,modules,{
           serviceCheck:async()=>{
@@ -95,6 +137,31 @@ for(const [source,modules] of HANDLER_SETS){
             urls.push(value);
             if(value.endsWith("/verify"))return response({isValid:true});
             throw new Error("settlement must not run after required source failure");
+          }
+        });
+        const result=await handler({
+          query:item.query,
+          event:{headers:{"payment-signature":paymentSignature()}}
+        });
+        assert.equal(result.statusCode,item.expected_status);
+        assert.equal(JSON.parse(result.body).chargeable,false);
+        assert.equal(serviceCalls,1);
+        assert.equal(urls.length,1);
+        assert.ok(urls[0].endsWith("/verify"));
+        return;
+      }
+
+      if(item.kind==="source_exception"){
+        const handler=createHandler(productId,modules,{
+          serviceCheck:async()=>{
+            serviceCalls+=1;
+            throw new Error("fixture source exception");
+          },
+          fetchImpl:async url=>{
+            const value=String(url);
+            urls.push(value);
+            if(value.endsWith("/verify"))return response({isValid:true});
+            throw new Error("settlement must not run after source exception");
           }
         });
         const result=await handler({
@@ -128,6 +195,43 @@ for(const [source,modules] of HANDLER_SETS){
         assert.equal(serviceCalls,0);
         assert.equal(urls.length,1);
         assert.ok(urls[0].endsWith("/verify"));
+        return;
+      }
+
+      if(item.kind==="settlement_terminal"){
+        const decision=item.allowed_decisions?.[0]||"human_review";
+        const handler=createHandler(productId,modules,{
+          serviceCheck:async()=>{
+            serviceCalls+=1;
+            return {
+              decision,
+              reasonCodes:[],
+              sourceFailures:[],
+              chargeable:true,
+              checkedAt:"2026-10-02T20:00:00.000Z"
+            };
+          },
+          fetchImpl:async url=>{
+            const value=String(url);
+            urls.push(value);
+            if(value.endsWith("/verify"))return response({isValid:true});
+            if(value.endsWith("/settle")){
+              return response({success:false,errorReason:"insufficient_funds"},402);
+            }
+            throw new Error("unexpected facilitator URL: "+value);
+          }
+        });
+        const result=await handler({
+          query:item.query,
+          event:{headers:{"payment-signature":paymentSignature()}}
+        });
+        assert.equal(result.statusCode,item.expected_status);
+        assert.equal(JSON.parse(result.body).error,"insufficient_funds");
+        assert.ok(result.headers["PAYMENT-REQUIRED"]);
+        assert.equal(serviceCalls,1);
+        assert.equal(urls.length,2);
+        assert.ok(urls[0].endsWith("/verify"));
+        assert.ok(urls[1].endsWith("/settle"));
         return;
       }
 
