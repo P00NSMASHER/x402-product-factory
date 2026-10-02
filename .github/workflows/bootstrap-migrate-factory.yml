@@ -63,6 +63,23 @@ jobs:
               updated = text.replace("factory/", "")
               if path.as_posix().startswith(".github/workflows/"):
                   updated = updated.replace("x402-product-factory-bootstrap", "main")
+
+              # The source factory lives one directory below the old repository
+              # root. After flattening, scripts/ is directly under the new root,
+              # so any __dirname -> ../.. factory-root calculation must become
+              # __dirname -> ...
+              if path.as_posix().startswith("scripts/") and path.suffix == ".js":
+                  updated = re.sub(
+                      r'''path\.resolve\(__dirname,\s*["']\.\./\.\.["']\s*\)''',
+                      'path.resolve(__dirname,"..")',
+                      updated,
+                  )
+                  updated = re.sub(
+                      r'''path\.resolve\(__dirname,\s*["']\.\.["']\s*,\s*["']\.\.["']\s*\)''',
+                      'path.resolve(__dirname,"..")',
+                      updated,
+                  )
+
               if updated != text:
                   path.write_text(updated, encoding="utf-8")
 
