@@ -13,6 +13,7 @@ const {
   renderDocs,
   check:checkGeneratedSpecArtifacts
 }=require("../scripts/generate-spec-artifacts");
+const {METADATA_MODULES}=require("../generated/product-modules");
 
 const ROOT=path.resolve(__dirname,"..");
 const SPEC_FILES=[
@@ -148,4 +149,39 @@ test("spec compiler generates discovery docs and standard contract cases without
   assert.match(docs,/007 domain-registration-age/);
   assert.match(docs,/Purchase frequency: \*\*unmeasured\*\*/);
   assert.doesNotThrow(()=>checkGeneratedSpecArtifacts());
+});
+
+
+test("spec discovery stays at parity with current hand-written runtime metadata",()=>{
+  const base="https://candidate.example";
+  const specs=loadSpecs();
+
+  for(const spec of specs){
+    const metadata=METADATA_MODULES[spec.id];
+    assert.ok(metadata,spec.id+" metadata module missing");
+
+    const resource=metadata.catalogResource(base);
+    assert.equal(resource.resource,base+spec.api.path);
+    assert.equal(resource.method,spec.api.method);
+    assert.equal(resource.price,"$"+spec.economics.price_usdc);
+    assert.ok(Array.isArray(resource.accepts)&&resource.accepts.length>0);
+
+    const accepts=resource.accepts[0];
+    assert.equal(accepts.amount,String(BigInt(spec.economics.price_usdc.replace(".",""))*1000n));
+    assert.equal(accepts.network,PAYMENT.network);
+    assert.equal(accepts.asset,PAYMENT.asset);
+    assert.equal(accepts.payTo,PAYMENT.payTo);
+    assert.deepEqual(accepts.extra,{name:"USD Coin",version:"2"});
+
+    const openApi=metadata.openApiPath();
+    const operation=openApi[spec.api.method.toLowerCase()];
+    assert.ok(operation,spec.id+" OpenAPI method missing");
+    assert.equal(operation["x-payment-info"].price.amount,spec.economics.price_usdc+"000");
+    assert.equal(operation["x-payment-info"].network,PAYMENT.network);
+    assert.equal(operation["x-payment-info"].payTo,PAYMENT.payTo);
+
+    const actualNames=(operation.parameters||[]).map(parameter=>parameter.name);
+    const specNames=spec.api.inputs.map(input=>input.name);
+    assert.deepEqual(actualNames,specNames,spec.id+" OpenAPI input order");
+  }
 });
