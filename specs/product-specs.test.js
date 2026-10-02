@@ -5,6 +5,7 @@ const path=require("node:path");
 const test=require("node:test");
 const assert=require("node:assert/strict");
 const registry=require("../product-registry.json");
+const {buildIndex,check:checkGeneratedIndex}=require("../scripts/generate-product-spec-index");
 
 const ROOT=path.resolve(__dirname,"..");
 const SPEC_FILES=[
@@ -96,4 +97,12 @@ test("commercially important edge conditions remain explicit",()=>{
   assert.equal(byNumber["007"].decision.parameters.minAgeDays.default,90);
   assert.equal(byNumber["007"].decision.parameters.minAgeDays.maximum,3650);
   assert.ok(byNumber["007"].economics.post_allowance_margin_floor_pct<0);
+});
+
+
+test("generated product spec index is current",()=>{
+  const index=buildIndex();
+  assert.equal(index.schema_version,1);
+  assert.deepEqual(index.products.map(product=>product.number),["003","004","005","006","007"]);
+  assert.doesNotThrow(()=>checkGeneratedIndex());
 });
