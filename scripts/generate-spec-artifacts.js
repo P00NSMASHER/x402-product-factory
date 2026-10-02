@@ -150,7 +150,7 @@ function renderMetadataModule(specs=loadSpecs()){
       description:spec.discovery.description,
       resource_description:spec.discovery.resource_description,
       search_tags:spec.discovery.search_tags,
-    openapi_tags:spec.discovery.openapi_tags,
+      openapi_tags:spec.discovery.openapi_tags,
       method:spec.api.method,
       path:spec.api.path,
       price_usdc:spec.economics.price_usdc,
