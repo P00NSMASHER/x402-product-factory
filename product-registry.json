@@ -374,7 +374,7 @@
     {
       "id": "pa-vendor-distance-gate",
       "number": "024",
-      "status": "design",
+      "status": "live-source-verified-staging",
       "method": "GET",
       "path": "/api/pa-vendor-distance-gate",
       "price_usdc": "0.004",
@@ -383,7 +383,10 @@
         "outside_radius",
         "company_not_found",
         "human_review"
-      ]
+      ],
+      "release_gate": "scripts/validate-product-024.js",
+      "deployment_blocker": "AppDeploy deployment unavailable under current Free-tier limit",
+      "live_source_status": "PA Department of State + U.S. Census smoke resolved OpenAI OpCo to Openai Opco, Llc; both origin and registry addresses matched to 600 N 2ND ST, Harrisburg, PA 17101; distance 0 miles; within_radius for maxDistanceMiles 25 with zero source failures"
     }
   ]
 }
