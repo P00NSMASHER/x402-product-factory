@@ -21,6 +21,12 @@ test("phase 1 five-product economics stays bound to registry pricing",()=>{
 
   const fee=toMicros(costs.settlement.usd_per_successful_settlement);
   assert.equal(fee,2310n);
+  assert.equal(costs.settlement.credits_per_successful_settlement,"2.31");
+  assert.equal(costs.settlement.free_allowance_terms.current_default_credits_per_receiving_wallet,1000);
+  assert.equal(costs.settlement.free_allowance_terms.allowance_scope,"lifetime");
+  assert.equal(costs.settlement.free_allowance_terms.current_base_eip3009_full_settlement_ceiling_if_entire_default_allowance_is_available,432);
+  assert.equal(costs.settlement.free_allowance_terms.seller_wallet_specific_entitlement_verified,false);
+  assert.equal(costs.settlement.free_allowance_terms.seller_wallet_remaining_free_credits,null);
 
   for(const measured of costs.products){
     const product=registry.products.find(p=>p.number===measured.number);
