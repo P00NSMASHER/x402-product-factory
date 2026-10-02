@@ -1,0 +1,17 @@
+name: Product 024 one-shot live smoke
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/product-024-one-shot-smoke.yml'
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Product 024 live smoke
+        run: node products/pa-vendor-distance-gate/live-smoke.js
