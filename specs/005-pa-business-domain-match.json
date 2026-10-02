@@ -2,6 +2,20 @@
   "schema_version": 1,
   "number": "005",
   "id": "pa-business-domain-match",
+  "discovery": {
+    "operation_id": "matchPennsylvaniaBusinessDomain",
+    "service_name": "PA Business Domain Match",
+    "summary": "Check a Pennsylvania business domain against registry identity",
+    "description": "Resolve a Pennsylvania business to a unique strong registry entity and check whether the supplied registered domain plausibly aligns with the company name using authoritative RDAP. Returns match or human_review. A match is not proof of domain ownership/control, good standing, ownership, authority, fraud/sanctions/credit status, or legal compliance.",
+    "resource_description": "Check whether a supplied domain is a plausible identity match for a uniquely resolved Pennsylvania registry entity using official registry and authoritative RDAP evidence. Returns match or human_review and does not prove domain ownership, good standing, authority, fraud/sanctions/credit status, or legal compliance.",
+    "search_tags": [
+      "business-domain",
+      "vendor-identity",
+      "pennsylvania-business-registry",
+      "rdap",
+      "human-review"
+    ]
+  },
   "buyer": {
     "task": "Check whether a supplied registered domain plausibly aligns with the name of a uniquely resolved Pennsylvania business entity.",
     "expected_purchase_frequency": {
