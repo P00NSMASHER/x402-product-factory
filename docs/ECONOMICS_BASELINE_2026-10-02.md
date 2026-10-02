@@ -84,7 +84,7 @@ Current PayAI documentation now resolves the general allowance model:
 - some older receiving wallets retain a **10,000-credit** legacy allowance;
 - pre-21-September-2026 settlements count as one credit each toward the allowance.
 
-This does **not** establish the current seller wallet's remaining allowance. No public endpoint inspected here exposes that wallet-specific balance, so the economics record leaves it null rather than assuming either free or exhausted status.
+This does **not** establish the current seller wallet's remaining allowance. PayAI's current public facilitator reference exposes health, supported, verify, settle, and discovery/statistics endpoints, but no public wallet credit-balance endpoint. Free-tier exhaustion is surfaced only when settlement returns HTTP 403 with an `errorReason` beginning `free_tier_exhausted`. The economics record therefore leaves the wallet-specific balance null rather than forcing a paid settlement or assuming either free or exhausted status.
 
 Operationally, the post-allowance pricing floor remains the sustainable scaling constraint. During a verified free-credit window, settlement cost can be $0, but that temporary allowance should not be used to certify a product's long-run margin.
 
