@@ -18,13 +18,9 @@ const GENERATED_SPEC_METADATA=require("../generated/spec-metadata");
 const GENERATED_SPEC_PAID_HANDLERS=require("../generated/spec-paid-handlers");
 
 const ROOT=path.resolve(__dirname,"..");
-const SPEC_FILES=[
-  "003-pa-vendor-identity-match.json",
-  "004-pa-business-address-match.json",
-  "005-pa-business-domain-match.json",
-  "006-sec-filing-freshness.json",
-  "007-domain-registration-age.json"
-];
+const SPEC_FILES=fs.readdirSync(__dirname)
+  .filter(file=>/^\d{3}-.+\.json$/.test(file))
+  .sort();
 
 function toMicros(value){
   const match=String(value).match(/^(-?)(\d+)\.(\d{3,6})$/);
@@ -44,10 +40,13 @@ function loadSpecs(){
   return SPEC_FILES.map(file=>JSON.parse(fs.readFileSync(path.join(__dirname,file),"utf8")));
 }
 
-test("product specs 003-007 are registry-bound and structurally complete",()=>{
+test("all product specs are registry-bound and structurally complete",()=>{
   const specs=loadSpecs();
-  assert.equal(specs.length,5);
-  assert.deepEqual(specs.map(spec=>spec.number),["003","004","005","006","007"]);
+  assert.ok(specs.length>=5);
+  assert.deepEqual(
+    specs.map(spec=>spec.number),
+    SPEC_FILES.map(file=>file.slice(0,3))
+  );
 
   for(const spec of specs){
     assert.equal(spec.schema_version,1);
@@ -129,7 +128,7 @@ test("commercially important edge conditions remain explicit",()=>{
 test("generated product spec index is current",()=>{
   const index=buildIndex();
   assert.equal(index.schema_version,1);
-  assert.deepEqual(index.products.map(product=>product.number),["003","004","005","006","007"]);
+  assert.deepEqual(index.products.map(product=>product.number),loadSpecs().map(spec=>spec.number));
   assert.doesNotThrow(()=>checkGeneratedIndex());
 });
 
@@ -137,8 +136,9 @@ test("generated product spec index is current",()=>{
 test("spec compiler generates discovery docs and standard contract cases without drift",()=>{
   const discovery=buildDiscovery();
   assert.equal(discovery.schema_version,1);
-  assert.equal(discovery.products.length,5);
-  assert.deepEqual(discovery.products.map(product=>product.number),["003","004","005","006","007"]);
+  const specs=loadSpecs();
+  assert.equal(discovery.products.length,specs.length);
+  assert.deepEqual(discovery.products.map(product=>product.number),specs.map(spec=>spec.number));
 
   for(const product of discovery.products){
     assert.equal(product.payment.x402_version,2);
@@ -153,9 +153,8 @@ test("spec compiler generates discovery docs and standard contract cases without
   }
 
   const contracts=buildContractCases();
-  assert.equal(contracts.cases.length,45);
-  for(const number of ["003","004","005","006","007"]){
-    const spec=loadSpecs().find(item=>item.number===number);
+  assert.equal(contracts.cases.length,specs.length*9);
+  for(const spec of specs){
     const cases=contracts.cases.filter(item=>item.path===spec.api.path);
     assert.equal(cases.length,9);
     assert.deepEqual(
@@ -177,8 +176,9 @@ test("spec compiler generates discovery docs and standard contract cases without
   }
 
   const docs=renderDocs();
-  assert.match(docs,/003 pa-vendor-identity-match/);
-  assert.match(docs,/007 domain-registration-age/);
+  for(const spec of specs){
+    assert.ok(docs.includes(spec.number+" "+spec.id),spec.id+" generated docs entry");
+  }
   assert.match(docs,/Purchase frequency: \*\*unmeasured\*\*/);
   assert.doesNotThrow(()=>checkGeneratedSpecArtifacts());
 });
