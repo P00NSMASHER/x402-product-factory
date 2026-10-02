@@ -198,7 +198,7 @@ function renderMetadataModule(specs=loadSpecs()){
     '    method:item.method,',
     '    description:item.resource_description,',
     '    price:"$"+item.price_usdc,',
-    '    tags:item.openapi_tags,' ,
+    '    tags:item.openapi_tags,',
     '    accepts:[paymentRequirements(item)],',
     '    extensions:{bazaar:{info:{input:{type:"http",method:item.method,queryParams:item.example_query},output:{type:"json",example:{decision:item.decisions[0],paid:true}}}}}',
     '  };',
