@@ -76,6 +76,8 @@ test("product specs 003-007 are registry-bound and structurally complete",()=>{
 
     assert.ok(Array.isArray(spec.api.inputs)&&spec.api.inputs.length>0);
     assert.ok(Array.isArray(spec.sources)&&spec.sources.length>0);
+    assert.ok(Array.isArray(spec.discovery.search_tags)&&spec.discovery.search_tags.length>=1&&spec.discovery.search_tags.length<=5);
+    assert.ok(Array.isArray(spec.discovery.openapi_tags)&&spec.discovery.openapi_tags.length>=1);
     assert.ok(Array.isArray(spec.decision.rules)&&spec.decision.rules.length>0);
     assert.ok(fs.existsSync(path.join(ROOT,spec.decision.implementation)),spec.id+" decision implementation missing");
     assert.ok(Array.isArray(spec.launch.criteria)&&spec.launch.criteria.length>0);
@@ -188,6 +190,7 @@ test("spec discovery stays at parity with current hand-written runtime metadata"
     assert.equal(operation["x-payment-info"].price.amount,spec.economics.price_usdc+"000");
     assert.equal(operation["x-payment-info"].network,PAYMENT.network);
     assert.equal(operation["x-payment-info"].payTo,PAYMENT.payTo);
+    assert.deepEqual(operation.tags,spec.discovery.openapi_tags);
 
     const actualNames=(operation.parameters||[]).map(parameter=>parameter.name);
     const specNames=spec.api.inputs.map(input=>input.name);
