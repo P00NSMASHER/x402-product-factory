@@ -58,6 +58,9 @@ test("product specs 003-007 are registry-bound and structurally complete",()=>{
     assert.ok(Array.isArray(spec.discovery.search_tags));
     assert.ok(spec.discovery.search_tags.length>=1&&spec.discovery.search_tags.length<=5);
     assert.equal(new Set(spec.discovery.search_tags).size,spec.discovery.search_tags.length);
+    assert.ok(Array.isArray(spec.discovery.openapi_tags));
+    assert.ok(spec.discovery.openapi_tags.length>=1&&spec.discovery.openapi_tags.length<=8);
+    assert.equal(new Set(spec.discovery.openapi_tags).size,spec.discovery.openapi_tags.length);
     const product=registry.products.find(item=>item.number===spec.number);
     assert.ok(product,"registry entry missing for "+spec.number);
 
@@ -210,6 +213,7 @@ test("generated spec metadata matches current runtime metadata core contract",()
     assert.equal(generatedResource.method,currentResource.method);
     assert.equal(generatedResource.description,currentResource.description);
     assert.equal(generatedResource.price,currentResource.price);
+    assert.deepEqual(generatedResource.tags,spec.discovery.search_tags);
     assert.ok(generatedResource.tags.length>=1&&generatedResource.tags.length<=5);
 
     const currentAccept=currentResource.accepts[0];
@@ -224,6 +228,8 @@ test("generated spec metadata matches current runtime metadata core contract",()
     assert.equal(generatedOperation.operationId,currentOperation.operationId);
     assert.equal(generatedOperation.summary,currentOperation.summary);
     assert.equal(generatedOperation.description,currentOperation.description);
+    assert.deepEqual(generatedOperation.tags,spec.discovery.openapi_tags);
+    assert.deepEqual(generatedOperation.tags,currentOperation.tags);
     assert.deepEqual(
       generatedOperation.parameters.map(parameter=>parameter.name),
       currentOperation.parameters.map(parameter=>parameter.name)
