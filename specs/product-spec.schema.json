@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "x402 Product Factory product specification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "number",
+    "id",
+    "buyer",
+    "api",
+    "sources",
+    "decision",
+    "failure_behavior",
+    "economics",
+    "launch"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "number": {
+      "type": "string",
+      "pattern": "^\\d{3}$"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "buyer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task",
+        "expected_purchase_frequency"
+      ],
+      "properties": {
+        "task": {
+          "type": "string",
+          "minLength": 20
+        },
+        "expected_purchase_frequency": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "value",
+            "unit",
+            "measurement_plan"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "unmeasured",
+                "measured"
+              ]
+            },
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "unit": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "measurement_plan": {
+              "type": "string",
+              "minLength": 10
+            }
+          }
+        }
+      }
+    },
+    "api": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "path",
+        "inputs",
+        "example_query",
+        "outputs"
+      ],
+      "properties": {
+        "method": {
+          "enum": [
+            "GET",
+            "POST"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object"
+          }
+        },
+        "example_query": {
+          "type": "object"
+        },
+        "outputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "decisions",
+            "fields"
+          ],
+          "properties": {
+            "decisions": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            "fields": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "adapter",
+          "authority",
+          "refresh_policy",
+          "cache_policy",
+          "freshness_limit_seconds"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "adapter": {
+            "type": "string"
+          },
+          "authority": {
+            "type": "string"
+          },
+          "refresh_policy": {
+            "type": "string"
+          },
+          "cache_policy": {
+            "type": "string"
+          },
+          "freshness_limit_seconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "implementation",
+        "parameters",
+        "rules"
+      ],
+      "properties": {
+        "implementation": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "object"
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "failure_behavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invalid_input",
+        "required_source_failure",
+        "payment_unresolved",
+        "automatic_reject"
+      ],
+      "properties": {
+        "invalid_input": {
+          "type": "string"
+        },
+        "required_source_failure": {
+          "type": "string"
+        },
+        "payment_unresolved": {
+          "type": "string"
+        },
+        "automatic_reject": {
+          "type": "boolean"
+        }
+      }
+    },
+    "economics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "price_usdc",
+        "paid_settlement_cost_usd",
+        "configured_direct_source_fee_usd",
+        "incremental_hosting_cost_usd",
+        "post_allowance_margin_floor_pct",
+        "target_contribution_margin_pct",
+        "meets_target_before_unknown_costs"
+      ],
+      "properties": {
+        "price_usdc": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d{3}$"
+        },
+        "paid_settlement_cost_usd": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d{6}$"
+        },
+        "configured_direct_source_fee_usd": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d{6}$"
+        },
+        "incremental_hosting_cost_usd": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "post_allowance_margin_floor_pct": {
+          "type": "number"
+        },
+        "target_contribution_margin_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "meets_target_before_unknown_costs": {
+          "type": "boolean"
+        }
+      }
+    },
+    "launch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "current_status",
+        "release_gate",
+        "criteria"
+      ],
+      "properties": {
+        "current_status": {
+          "type": "string"
+        },
+        "release_gate": {
+          "type": "string"
+        },
+        "criteria": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
