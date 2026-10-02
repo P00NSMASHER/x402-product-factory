@@ -15,9 +15,12 @@ jobs:
       - name: Validate PA Entity One with BotMarket
         shell: bash
         run: |
-          set -euo pipefail
+          set -u
           endpoint='https://pa-entity-x402.floot.app/_api/pa-entity-one?q=OpenAI'
           payload=$(jq -nc --arg url "$endpoint" '{kind:"service",url:$url,dry_run:true}')
           echo "Submitting dry-run validation for: $endpoint"
-          response=$(curl --fail-with-body -sS https://botmarket.bot/v1/submit             -H 'Content-Type: application/json'             -d "$payload")
-          echo "$response" | jq .
+          tmp=$(mktemp)
+          status=$(curl -sS -o "$tmp" -w '%{http_code}' https://botmarket.bot/v1/submit             -H 'Content-Type: application/json'             -d "$payload")
+          echo "HTTP $status"
+          cat "$tmp" | jq . || cat "$tmp"
+          test "$status" -ge 200 -a "$status" -lt 300
