@@ -1,4 +1,4 @@
-name: BotMarket Supabase x402 cutover
+name: BotMarket Supabase x402 submit
 
 on:
   push:
@@ -12,12 +12,12 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - name: Validate Supabase seller with BotMarket
+      - name: Submit Supabase seller to BotMarket
         shell: bash
         run: |
           set -u
           url='https://bvjtimsalbzkmulyinpg.supabase.co/functions/v1/x402-data-tools'
-          payload=$(jq -nc --arg url "$url" --arg price '0.005' '{kind:"service",url:$url,price:$price,dry_run:true}')
+          payload=$(jq -nc --arg url "$url" --arg price '0.005' '{kind:"service",url:$url,price:$price,dry_run:false}')
           tmp=$(mktemp)
           status=$(curl -sS -o "$tmp" -w '%{http_code}' https://botmarket.bot/v1/submit -H 'Content-Type: application/json' -d "$payload")
           echo "HTTP $status"
