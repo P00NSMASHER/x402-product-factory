@@ -4,7 +4,7 @@ const test=require("node:test");
 const assert=require("node:assert/strict");
 const {managedProducts}=require("../packages/discovery/generator");
 const {encodeHeader}=require("../packages/x402/payment");
-const {createFactoryRuntime}=require("./create-runtime");
+const {paidHandlerModule,createFactoryRuntime}=require("./create-runtime");
 
 function adapters(){
   const never=async()=>{throw new Error("source should not run for unpaid request");};
@@ -17,6 +17,23 @@ function adapters(){
     ofac:{screen:never,lookup:never}
   };
 }
+
+test("runtime uses generated paid handlers for spec-backed products with hand-written fallback",()=>{
+  for(const id of [
+    "pa-vendor-identity-match",
+    "pa-business-address-match",
+    "pa-business-domain-match",
+    "sec-filing-freshness",
+    "domain-registration-age"
+  ]){
+    assert.equal(paidHandlerModule(id)?.source,"spec-generated",id+" handler source");
+  }
+  assert.notEqual(
+    paidHandlerModule("treasury-average-rate-threshold")?.source,
+    "spec-generated",
+    "unspecced product must keep hand-written handler fallback"
+  );
+});
 
 test("runtime wires exactly every modular staging product",()=>{
   const runtime=createFactoryRuntime({publicApiBase:"https://candidate.example",adapters:adapters(),fetchImpl:async()=>{throw new Error("network should not run");}});
