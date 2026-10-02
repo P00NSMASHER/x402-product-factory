@@ -55,7 +55,10 @@ jobs:
               except UnicodeDecodeError:
                   continue
               if 'factory/' in content:
-                  path.write_text(content.replace('factory/', ''))
+                  content = content.replace('factory/', '')
+              if 'factory\\/' in content:
+                  content = content.replace('factory\\/', '')
+              path.write_text(content)
 
           for path in [
               Path('.github/workflows/factory-pa-vendor-gate-ci.yml'),
