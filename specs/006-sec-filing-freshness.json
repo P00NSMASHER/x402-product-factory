@@ -2,6 +2,20 @@
   "schema_version": 1,
   "number": "006",
   "id": "sec-filing-freshness",
+  "discovery": {
+    "operation_id": "checkSecFilingFreshness",
+    "service_name": "SEC Filing Freshness Check",
+    "summary": "Check SEC filing freshness for a public filer",
+    "description": "Resolve a U.S. public filer by ticker or CIK and determine whether SEC EDGAR contains a matching filing inside a caller-selected freshness window. Optional form filtering is exact (for example 8-K, 10-Q, 10-K). Returns recent_filing, no_recent_filing, or company_not_found. The endpoint reports metadata only and does not interpret filing contents or provide investment advice.",
+    "resource_description": "Check whether a U.S. public filer has an SEC EDGAR filing matching an optional form filter within a caller-selected freshness window. Returns recent_filing, no_recent_filing, or company_not_found from authoritative SEC metadata; it does not interpret filing contents or provide investment advice.",
+    "search_tags": [
+      "SEC",
+      "EDGAR",
+      "filing-freshness",
+      "company-data",
+      "agent-decision"
+    ]
+  },
   "buyer": {
     "task": "Determine whether a U.S. public filer has an SEC EDGAR filing matching an optional exact form filter inside a caller-selected freshness window.",
     "expected_purchase_frequency": {
@@ -69,7 +83,8 @@
         "paid",
         "price"
       ]
-    }
+    },
+    "input_rule": "Provide exactly one of ticker or cik."
   },
   "sources": [
     {
