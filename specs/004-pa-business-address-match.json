@@ -2,6 +2,15 @@
   "schema_version": 1,
   "number": "004",
   "id": "pa-business-address-match",
+  "buyer": {
+    "task": "Check whether a submitted Pennsylvania business address is consistent with the address of a uniquely resolved Pennsylvania registry entity.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure independent settled purchases and repeat buyers per product after launch; do not infer demand from tests or crawler probes."
+    }
+  },
   "discovery": {
     "operation_id": "matchPennsylvaniaBusinessAddress",
     "service_name": "PA Business Address Match",
@@ -20,15 +29,6 @@
       "Pennsylvania Business Registry",
       "Vendor Identity"
     ]
-  },
-  "buyer": {
-    "task": "Check whether a submitted Pennsylvania business address is consistent with the address of a uniquely resolved Pennsylvania registry entity.",
-    "expected_purchase_frequency": {
-      "status": "unmeasured",
-      "value": null,
-      "unit": null,
-      "measurement_plan": "Measure independent settled purchases and repeat buyers per product after launch; do not infer demand from tests or crawler probes."
-    }
   },
   "api": {
     "method": "GET",
@@ -90,6 +90,12 @@
       "freshness_limit_seconds": null
     }
   ],
+  "implementation": {
+    "service_module": "products/pa-business-address-match/service.js",
+    "service_factory_export": "createBusinessAddressService",
+    "validator_export": "validateBusinessAddressInput",
+    "paid_handler_template": "standard_get_v1"
+  },
   "decision": {
     "implementation": "products/pa-business-address-match/decision.js",
     "parameters": {
