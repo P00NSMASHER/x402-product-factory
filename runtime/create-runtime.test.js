@@ -20,19 +20,15 @@ function adapters(){
 }
 
 test("runtime uses generated service and paid-handler modules for spec-backed products with hand-written fallback",()=>{
-  for(const id of [
-    "pa-vendor-identity-match",
-    "pa-business-address-match",
-    "pa-business-domain-match",
-    "sec-filing-freshness",
-    "domain-registration-age"
-  ]){
+  const generatedIds=Object.keys(SPEC_SERVICE_MODULES);
+  assert.ok(generatedIds.length>=5);
+  for(const id of generatedIds){
     assert.strictEqual(serviceModule(id),SPEC_SERVICE_MODULES[id],id+" service source");
     assert.equal(paidHandlerModule(id)?.source,"spec-generated",id+" handler source");
   }
-  assert.ok(serviceModule("treasury-average-rate-threshold"),"unspecced product service fallback");
+  assert.ok(serviceModule("sec-company-identity-match"),"unspecced product service fallback");
   assert.notEqual(
-    paidHandlerModule("treasury-average-rate-threshold")?.source,
+    paidHandlerModule("sec-company-identity-match")?.source,
     "spec-generated",
     "unspecced product must keep hand-written handler fallback"
   );
