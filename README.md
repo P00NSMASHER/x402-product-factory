@@ -1,6 +1,6 @@
 # x402 Product Factory
 
-Migration-ready scaffold for a future dedicated `x402-product-factory` repository.
+Canonical repository for the x402 Product Factory.
 
 ## Mission
 
@@ -339,14 +339,12 @@ AppDeploy reported an account-wide Free tier pause with weekly reset at:
 
 `2026-10-05T00:00:00Z`
 
-No upgrade/payment has been authorized. Products 003–020 therefore remain staging candidates rather than production claims.
+No upgrade/payment has been authorized. Products 003–023 therefore remain staging candidates rather than production claims; Product 024 remains in design.
 
-## Branch isolation
+## Repository
 
-All factory development in this workspace is isolated to:
+`P00NSMASHER/x402-product-factory` is now the canonical home of the factory.
 
-`x402-product-factory-bootstrap`
+Shared packages, product modules, runtime wiring, release gates, discovery generators, and maintained GitHub workflows live directly at repository root. The former `permitplate-nyc/x402-product-factory-bootstrap` branch is retained only as migration history/source evidence and is no longer the canonical development location.
 
-The existing production `main` branch is not the integration target for unfinished factory products.
-
-See each product's `DEPLOYMENT_PLAN.md` and release gate before any production change.
+See each product's `DEPLOYMENT_PLAN.md` and release gate before any production deployment.
