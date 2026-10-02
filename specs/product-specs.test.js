@@ -269,6 +269,13 @@ test("generated spec paid handlers bind declared validators and product constant
     assert.equal(generated.AMOUNT_ATOMIC,String(BigInt(spec.economics.price_usdc.replace(".",""))*1000n));
     assert.equal(generated.PRICE,"$"+spec.economics.price_usdc);
     assert.equal(generated.RESOURCE_PATH,spec.api.path);
+    const serviceExports=GENERATED_SPEC_PAID_HANDLERS.SERVICE_MODULES[spec.id];
+    assert.ok(serviceExports,spec.id+" generated service module missing");
+    assert.strictEqual(
+      GENERATED_SPEC_PAID_HANDLERS.VALIDATORS[spec.id],
+      serviceExports[spec.implementation.input_validator_export],
+      spec.id+" validator must come from generated service module"
+    );
     assert.equal(typeof GENERATED_SPEC_PAID_HANDLERS.VALIDATORS[spec.id],"function");
     const factories=Object.entries(generated)
       .filter(([name,value])=>typeof value==="function"&&/^createPaid.*Handler$/.test(name));
