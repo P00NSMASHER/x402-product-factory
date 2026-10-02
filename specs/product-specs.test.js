@@ -15,6 +15,7 @@ const {
 }=require("../scripts/generate-spec-artifacts");
 const {METADATA_MODULES}=require("../generated/product-modules");
 const GENERATED_SPEC_METADATA=require("../generated/spec-metadata");
+const GENERATED_SPEC_PAID_HANDLERS=require("../generated/spec-paid-handlers");
 
 const ROOT=path.resolve(__dirname,"..");
 const SPEC_FILES=[
@@ -83,6 +84,9 @@ test("product specs 003-007 are registry-bound and structurally complete",()=>{
     assert.ok(Array.isArray(spec.discovery.openapi_tags)&&spec.discovery.openapi_tags.length>=1);
     assert.ok(Array.isArray(spec.decision.rules)&&spec.decision.rules.length>0);
     assert.ok(fs.existsSync(path.join(ROOT,spec.decision.implementation)),spec.id+" decision implementation missing");
+    assert.equal(spec.implementation.handler_template,"standard-x402-get-v1");
+    assert.ok(fs.existsSync(path.join(ROOT,spec.implementation.service_module)),spec.id+" service module missing");
+    assert.match(spec.implementation.input_validator_export,/^[A-Za-z][A-Za-z0-9]+$/);
     assert.ok(Array.isArray(spec.launch.criteria)&&spec.launch.criteria.length>0);
 
     for(const source of spec.sources){
@@ -239,5 +243,21 @@ test("generated spec metadata matches current runtime metadata core contract",()
       assert.equal(generatedOperation["x-input-rule"],spec.api.input_rule);
       assert.equal(generatedOperation["x-input-rule"],currentOperation["x-input-rule"]);
     }
+  }
+});
+
+
+test("generated spec paid handlers bind declared validators and product constants",()=>{
+  for(const spec of loadSpecs()){
+    const generated=GENERATED_SPEC_PAID_HANDLERS.PAID_HANDLER_MODULES[spec.id];
+    assert.ok(generated,spec.id+" generated paid handler missing");
+    assert.equal(generated.source,"spec-generated");
+    assert.equal(generated.AMOUNT_ATOMIC,String(BigInt(spec.economics.price_usdc.replace(".",""))*1000n));
+    assert.equal(generated.PRICE,"$"+spec.economics.price_usdc);
+    assert.equal(generated.RESOURCE_PATH,spec.api.path);
+    assert.equal(typeof GENERATED_SPEC_PAID_HANDLERS.VALIDATORS[spec.id],"function");
+    const factories=Object.entries(generated)
+      .filter(([name,value])=>typeof value==="function"&&/^createPaid.*Handler$/.test(name));
+    assert.equal(factories.length,1,spec.id+" generated handler factory count");
   }
 });
