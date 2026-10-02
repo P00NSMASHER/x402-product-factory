@@ -64,11 +64,19 @@ jobs:
               content = path.read_text()
               path.write_text(content.replace('x402-product-factory-bootstrap', 'main'))
 
+          import re
+
           for path in Path('scripts').glob('*.js'):
               content = path.read_text()
-              content = content.replace(
-                  'path.resolve(__dirname,"..","..")',
-                  'path.resolve(__dirname,"..")'
+              content = re.sub(
+                  r'''path\.resolve\(__dirname,\s*["']\.\./\.\.["']\s*\)''',
+                  'path.resolve(__dirname,"..")',
+                  content
+              )
+              content = re.sub(
+                  r'''path\.resolve\(__dirname,\s*["']\.\.["']\s*,\s*["']\.\.["']\s*\)''',
+                  'path.resolve(__dirname,"..")',
+                  content
               )
               path.write_text(content)
 
