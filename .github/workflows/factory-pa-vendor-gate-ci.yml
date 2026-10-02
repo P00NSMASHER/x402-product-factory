@@ -1,0 +1,59 @@
+name: Factory product CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'product-registry.json'
+      - 'MIGRATION_MANIFEST.json'
+      - 'products/**'
+      - 'packages/**'
+      - 'scripts/**'
+      - 'runtime/**'
+      - '.github/workflows/factory-pa-vendor-gate-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: factory-product-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate generated product module registry
+        run: node scripts/generate-product-module-registry.js --check
+
+      - name: Validate factory JavaScript syntax
+        run: node scripts/validate-js-syntax.js
+
+      - name: Run all discovered factory tests
+        run: node scripts/run-all-tests.js
+
+      - name: Validate product registry
+        run: node scripts/validate-registry.js
+
+      - name: Validate migration manifest
+        run: node scripts/validate-migration-manifest.js
+
+      - name: Validate compiled discovery surfaces
+        run: node scripts/validate-discovery.js
+
+      - name: Build deterministic deployment bundle
+        run: node scripts/write-deployment-bundle.js https://candidate.example /tmp/x402-factory-bundle
+
+      - name: Build staging release bundle
+        run: node scripts/build-release-bundle.js /tmp/x402-factory-bundle https://candidate.example
+
+      - name: Run every staging product release gate
+        run: node scripts/run-release-gates.js
+
+      - name: Run structural deploy-candidate preflight
+        env:
+          SEC_USER_AGENT: x402-product-factory-ci/1.0 ci@example.com
+          PUBLIC_API_BASE: https://candidate.example
+        run: node runtime/validate-deploy-candidate.js
