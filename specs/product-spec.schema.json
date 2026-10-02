@@ -14,7 +14,8 @@
     "decision",
     "failure_behavior",
     "economics",
-    "launch"
+    "launch",
+    "implementation"
   ],
   "properties": {
     "schema_version": {
@@ -352,6 +353,28 @@
             "minLength": 2,
             "maxLength": 64
           }
+        }
+      }
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "handler_template",
+        "service_module",
+        "input_validator_export"
+      ],
+      "properties": {
+        "handler_template": {
+          "const": "standard-x402-get-v1"
+        },
+        "service_module": {
+          "type": "string",
+          "pattern": "^products/.+/service\\\\.js$"
+        },
+        "input_validator_export": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9]+$"
         }
       }
     }
