@@ -237,7 +237,7 @@ function renderMetadataModule(specs=loadSpecs()){
     '',
     'module.exports={PAYMENT,PRODUCTS,product,fixedSix,paymentRequirements,catalogResource,openApiPath};',
     ''
-  ].join("\\n");
+  ].join("\n");
 }
 
 function renderDocs(specs=loadSpecs()){
