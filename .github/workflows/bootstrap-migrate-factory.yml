@@ -101,6 +101,146 @@ jobs:
           )
           runtime_bundle_path.write_text(runtime_bundle)
 
+          for script_path in Path("scripts").glob("*.js"):
+              script = script_path.read_text()
+              script = script.replace(
+                  'path.resolve(__dirname,"..","..")',
+                  'path.resolve(__dirname,"..")'
+              )
+              script_path.write_text(script)
+
+          live_smoke_test = Path("scripts/run-live-smokes.test.js")
+          live_smoke_text = live_smoke_test.read_text()
+          live_smoke_text = live_smoke_text.replace(
+              r'^factory\\/products\\/.+\\/live-smoke\\.js
+          readme = readme_path.read_text()
+          readme = readme.replace(
+              "Migration-ready scaffold for a future dedicated `x402-product-factory` repository.",
+              "Canonical repository for the x402 Product Factory."
+          )
+          readme = re.sub(
+              r"## Branch isolation[\s\S]*$",
+              "## Repository\n\nThis repository is the canonical home of the factory. "
+              "Product code, shared packages, runtime wiring, release gates, and workflows "
+              "live at repository root.\n",
+              readme,
+          )
+          readme_path.write_text(readme)
+          PY
+
+          rm -f .github/workflows/bootstrap-migrate-factory.yml
+
+      - name: Verify flattened layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f product-registry.json
+          test -d products
+          test -d packages
+          test -d runtime
+          test -d scripts
+          test ! -d factory
+          test -f .github/workflows/factory-pa-vendor-gate-ci.yml
+          test -f .github/workflows/factory-product-003-live-smoke.yml
+
+          if grep -R --line-number \
+            --include='*.js' --include='*.ts' --include='*.json' \
+            --include='*.yml' --include='*.yaml' \
+            'factory/' . --exclude-dir=.git; then
+            echo 'Found stale nested factory/ paths after flattening.'
+            exit 1
+          fi
+
+      - name: Regenerate root-layout module registry
+        run: |
+          node scripts/generate-product-module-registry.js
+          node scripts/generate-product-module-registry.js --check
+
+      - name: Validate migrated factory
+        run: |
+          node scripts/validate-js-syntax.js
+          node scripts/run-all-tests.js
+          node scripts/validate-registry.js
+          node scripts/validate-migration-manifest.js
+          node scripts/validate-discovery.js
+          node scripts/run-release-gates.js
+
+      - name: Commit migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Migrate x402 Product Factory to repository root'
+          git push origin HEAD:main
+,
+              r'^products\\/.+\\/live-smoke\\.js
+          readme = readme_path.read_text()
+          readme = readme.replace(
+              "Migration-ready scaffold for a future dedicated `x402-product-factory` repository.",
+              "Canonical repository for the x402 Product Factory."
+          )
+          readme = re.sub(
+              r"## Branch isolation[\s\S]*$",
+              "## Repository\n\nThis repository is the canonical home of the factory. "
+              "Product code, shared packages, runtime wiring, release gates, and workflows "
+              "live at repository root.\n",
+              readme,
+          )
+          readme_path.write_text(readme)
+          PY
+
+          rm -f .github/workflows/bootstrap-migrate-factory.yml
+
+      - name: Verify flattened layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f product-registry.json
+          test -d products
+          test -d packages
+          test -d runtime
+          test -d scripts
+          test ! -d factory
+          test -f .github/workflows/factory-pa-vendor-gate-ci.yml
+          test -f .github/workflows/factory-product-003-live-smoke.yml
+
+          if grep -R --line-number \
+            --include='*.js' --include='*.ts' --include='*.json' \
+            --include='*.yml' --include='*.yaml' \
+            'factory/' . --exclude-dir=.git; then
+            echo 'Found stale nested factory/ paths after flattening.'
+            exit 1
+          fi
+
+      - name: Regenerate root-layout module registry
+        run: |
+          node scripts/generate-product-module-registry.js
+          node scripts/generate-product-module-registry.js --check
+
+      - name: Validate migrated factory
+        run: |
+          node scripts/validate-js-syntax.js
+          node scripts/run-all-tests.js
+          node scripts/validate-registry.js
+          node scripts/validate-migration-manifest.js
+          node scripts/validate-discovery.js
+          node scripts/run-release-gates.js
+
+      - name: Commit migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Migrate x402 Product Factory to repository root'
+          git push origin HEAD:main
+
+          )
+          live_smoke_test.write_text(live_smoke_text)
+
           readme_path = Path("README.md")
           readme = readme_path.read_text()
           readme = readme.replace(
