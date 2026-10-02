@@ -143,5 +143,10 @@
       "Shared non-credit-gated hosting is available and measured.",
       "Commercial promotion remains blocked until complete unit economics meet the target or an explicit exception is approved."
     ]
+  },
+  "implementation": {
+    "handler_template": "standard-x402-get-v1",
+    "service_module": "products/pa-vendor-identity-match/service.js",
+    "input_validator_export": "validateVendorIdentityInput"
   }
 }
