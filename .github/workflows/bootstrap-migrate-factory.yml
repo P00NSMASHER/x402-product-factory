@@ -115,9 +115,13 @@ jobs:
             exit 1
           fi
 
+      - name: Regenerate root-layout module registry
+        run: |
+          node scripts/generate-product-module-registry.js
+          node scripts/generate-product-module-registry.js --check
+
       - name: Validate migrated factory
         run: |
-          node scripts/generate-product-module-registry.js --check
           node scripts/validate-js-syntax.js
           node scripts/run-all-tests.js
           node scripts/validate-registry.js
