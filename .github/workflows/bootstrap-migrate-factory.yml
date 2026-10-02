@@ -76,6 +76,14 @@ jobs:
           )
           manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
 
+          runtime_bundle_path = Path("scripts/build-appdeploy-runtime-bundle.js")
+          runtime_bundle = runtime_bundle_path.read_text()
+          runtime_bundle = runtime_bundle.replace(
+              'const FACTORY_ROOT=path.resolve(__dirname,"../..");',
+              'const FACTORY_ROOT=path.resolve(__dirname,"..");'
+          )
+          runtime_bundle_path.write_text(runtime_bundle)
+
           readme_path = Path("README.md")
           readme = readme_path.read_text()
           readme = readme.replace(
