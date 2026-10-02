@@ -17,7 +17,7 @@ jobs:
         run: |
           set -u
           endpoint='https://pa-entity-x402.floot.app/_api/pa-entity-one?q=OpenAI'
-          payload=$(jq -nc --arg url "$endpoint" '{kind:"service",url:$url,dry_run:true}')
+          payload=$(jq -nc --arg url "$endpoint" --arg price '0.001' '{kind:"service",url:$url,price:$price,dry_run:true}')
           echo "Submitting dry-run validation for: $endpoint"
           tmp=$(mktemp)
           status=$(curl -sS -o "$tmp" -w '%{http_code}' https://botmarket.bot/v1/submit             -H 'Content-Type: application/json'             -d "$payload")
