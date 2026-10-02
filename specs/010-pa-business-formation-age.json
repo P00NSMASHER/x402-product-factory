@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "number": "010",
+  "id": "pa-business-formation-age",
+  "discovery": {
+    "operation_id": "checkPennsylvaniaBusinessFormationAge",
+    "service_name": "PA Business Formation Age",
+    "summary": "Check Pennsylvania business formation age",
+    "description": "Resolve a Pennsylvania business name to one strong registry entity and compare its Department of State creation date with a caller-selected minimum age. Returns established_entity, recent_entity, company_not_found, or human_review. Formation age alone does not establish current good standing, ownership, authority, legitimacy, fraud risk, sanctions status, creditworthiness, or legal compliance.",
+    "resource_description": "Determine whether a uniquely resolved Pennsylvania business entity is at least a caller-selected age using Pennsylvania Department of State creation-date evidence. Returns established_entity, recent_entity, company_not_found, or human_review. Formation age is an identity/history signal, not proof of current good standing, ownership, authority, legitimacy, fraud risk, sanctions status, creditworthiness, or legal compliance.",
+    "search_tags": [
+      "pennsylvania-business-registry",
+      "business-age",
+      "formation-date",
+      "vendor-history",
+      "human-review"
+    ],
+    "openapi_tags": [
+      "Pennsylvania Business Registry",
+      "Formation Date",
+      "Business Age",
+      "Vendor History"
+    ]
+  },
+  "buyer": {
+    "task": "Determine whether a uniquely resolved Pennsylvania business entity is at least a caller-selected age from its Department of State creation date.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure independent settled purchases and repeat buyers per product after launch; do not infer demand from tests or crawler probes."
+    }
+  },
+  "api": {
+    "method": "GET",
+    "path": "/api/pa-business-formation-age",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "required": true,
+        "minLength": 2,
+        "maxLength": 120
+      },
+      {
+        "name": "minAgeDays",
+        "type": "integer",
+        "required": false,
+        "minimum": 1,
+        "maximum": 36500,
+        "default": 365
+      }
+    ],
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "minAgeDays": 365
+    },
+    "outputs": {
+      "decisions": [
+        "established_entity",
+        "recent_entity",
+        "company_not_found",
+        "human_review"
+      ],
+      "fields": [
+        "decision",
+        "reasonCodes",
+        "matchedEntity",
+        "creationDate",
+        "ageDays",
+        "minAgeDays",
+        "cutoffDate",
+        "checkedAt",
+        "input",
+        "sourceFailures",
+        "evidence",
+        "paid",
+        "price"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "pa_registry",
+      "adapter": "createPaRegistryAdapter",
+      "authority": "Pennsylvania Department of State via data.pa.gov",
+      "refresh_policy": "live registry lookup on each paid request",
+      "cache_policy": "none",
+      "freshness_limit_seconds": null
+    }
+  ],
+  "decision": {
+    "implementation": "products/pa-business-formation-age/decision.js",
+    "parameters": {
+      "minAgeDays": {
+        "default": 365,
+        "minimum": 1,
+        "maximum": 36500
+      }
+    },
+    "rules": [
+      "Require a uniquely resolved strong Pennsylvania registry entity.",
+      "Require a valid creation date that is not in the future.",
+      "Return company_not_found when the registry lookup succeeds but no entity is found.",
+      "Return established_entity when the creation date is on or before the minimum-age cutoff; return recent_entity when newer; otherwise return human_review."
+    ]
+  },
+  "failure_behavior": {
+    "invalid_input": "HTTP 400; do not settle payment.",
+    "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+    "payment_unresolved": "HTTP 503; caller should retry the same payment authorization.",
+    "automatic_reject": false
+  },
+  "economics": {
+    "price_usdc": "0.002",
+    "paid_settlement_cost_usd": "0.002310",
+    "configured_direct_source_fee_usd": "0.000000",
+    "incremental_hosting_cost_usd": null,
+    "post_allowance_margin_floor_pct": -15.5,
+    "target_contribution_margin_pct": 70,
+    "meets_target_before_unknown_costs": false
+  },
+  "launch": {
+    "current_status": "live-source-verified-staging",
+    "release_gate": "scripts/validate-product-010.js",
+    "criteria": [
+      "Release gate passes from the same registry revision.",
+      "Authoritative live-source smoke passes without source failures.",
+      "Shared non-credit-gated hosting is available and measured.",
+      "Post-allowance unit economics are settlement-negative at the current price; commercial promotion remains blocked until economics are repaired or an explicit exception is approved."
+    ]
+  },
+  "implementation": {
+    "handler_template": "standard-x402-get-v1",
+    "service_module": "products/pa-business-formation-age/service.js",
+    "input_validator_export": "validateFormationAgeInput"
+  }
+}
