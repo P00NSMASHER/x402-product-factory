@@ -2,6 +2,20 @@
   "schema_version": 1,
   "number": "004",
   "id": "pa-business-address-match",
+  "discovery": {
+    "operation_id": "matchPennsylvaniaBusinessAddress",
+    "service_name": "PA Business Address Match",
+    "summary": "Check a Pennsylvania business address against registry evidence",
+    "description": "Resolve a Pennsylvania business name to a unique strong registry entity and compare the supplied address with the registry address using U.S. Census geocoding. Returns match or human_review. A match is not proof of physical presence, control, good standing, ownership, authority, fraud risk, sanctions status, creditworthiness, or legal compliance.",
+    "resource_description": "Check whether a supplied Pennsylvania business address matches the selected Pennsylvania registry entity using official registry and Census geocoding evidence. Returns match or human_review; it does not prove address control, ownership, good standing, or legal/compliance status.",
+    "search_tags": [
+      "business-address",
+      "vendor-identity",
+      "pennsylvania-business-registry",
+      "census-geocoder",
+      "human-review"
+    ]
+  },
   "buyer": {
     "task": "Check whether a submitted Pennsylvania business address is consistent with the address of a uniquely resolved Pennsylvania registry entity.",
     "expected_purchase_frequency": {
