@@ -12,7 +12,13 @@
         "PAYMENT-REQUIRED header present",
         "x402 price matches spec",
         "no source work required"
-      ]
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101",
+        "domain": "openai.com"
+      }
     },
     {
       "id": "pa-vendor-identity-match:invalid-input",
@@ -22,7 +28,9 @@
       "expected_status": 400,
       "assertions": [
         "payment is not settled"
-      ]
+      ],
+      "price_usdc": "0.005",
+      "query": {}
     },
     {
       "id": "pa-vendor-identity-match:required-source-failure",
@@ -33,7 +41,13 @@
       "assertions": [
         "chargeable=false",
         "payment is not settled"
-      ]
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101",
+        "domain": "openai.com"
+      }
     },
     {
       "id": "pa-vendor-identity-match:payment-unresolved",
@@ -43,7 +57,13 @@
       "expected_status": 503,
       "assertions": [
         "retrySamePayment=true"
-      ]
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101",
+        "domain": "openai.com"
+      }
     },
     {
       "id": "pa-vendor-identity-match:success",
@@ -59,7 +79,13 @@
         "PAYMENT-RESPONSE header present",
         "x402-settled=true",
         "price matches spec"
-      ]
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101",
+        "domain": "openai.com"
+      }
     },
     {
       "id": "pa-business-address-match:unpaid",
@@ -71,7 +97,12 @@
         "PAYMENT-REQUIRED header present",
         "x402 price matches spec",
         "no source work required"
-      ]
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101"
+      }
     },
     {
       "id": "pa-business-address-match:invalid-input",
@@ -81,7 +112,9 @@
       "expected_status": 400,
       "assertions": [
         "payment is not settled"
-      ]
+      ],
+      "price_usdc": "0.003",
+      "query": {}
     },
     {
       "id": "pa-business-address-match:required-source-failure",
@@ -92,7 +125,12 @@
       "assertions": [
         "chargeable=false",
         "payment is not settled"
-      ]
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101"
+      }
     },
     {
       "id": "pa-business-address-match:payment-unresolved",
@@ -102,7 +140,12 @@
       "expected_status": 503,
       "assertions": [
         "retrySamePayment=true"
-      ]
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101"
+      }
     },
     {
       "id": "pa-business-address-match:success",
@@ -118,7 +161,12 @@
         "PAYMENT-RESPONSE header present",
         "x402-settled=true",
         "price matches spec"
-      ]
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101"
+      }
     },
     {
       "id": "pa-business-domain-match:unpaid",
@@ -130,7 +178,12 @@
         "PAYMENT-REQUIRED header present",
         "x402 price matches spec",
         "no source work required"
-      ]
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "OpenAI OpCo",
+        "domain": "openai.com"
+      }
     },
     {
       "id": "pa-business-domain-match:invalid-input",
@@ -140,7 +193,9 @@
       "expected_status": 400,
       "assertions": [
         "payment is not settled"
-      ]
+      ],
+      "price_usdc": "0.003",
+      "query": {}
     },
     {
       "id": "pa-business-domain-match:required-source-failure",
@@ -151,7 +206,12 @@
       "assertions": [
         "chargeable=false",
         "payment is not settled"
-      ]
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "OpenAI OpCo",
+        "domain": "openai.com"
+      }
     },
     {
       "id": "pa-business-domain-match:payment-unresolved",
@@ -161,7 +221,12 @@
       "expected_status": 503,
       "assertions": [
         "retrySamePayment=true"
-      ]
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "OpenAI OpCo",
+        "domain": "openai.com"
+      }
     },
     {
       "id": "pa-business-domain-match:success",
@@ -177,7 +242,12 @@
         "PAYMENT-RESPONSE header present",
         "x402-settled=true",
         "price matches spec"
-      ]
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "OpenAI OpCo",
+        "domain": "openai.com"
+      }
     },
     {
       "id": "sec-filing-freshness:unpaid",
@@ -189,7 +259,12 @@
         "PAYMENT-REQUIRED header present",
         "x402 price matches spec",
         "no source work required"
-      ]
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "ticker": "AAPL",
+        "maxAgeDays": 30
+      }
     },
     {
       "id": "sec-filing-freshness:invalid-input",
@@ -199,7 +274,9 @@
       "expected_status": 400,
       "assertions": [
         "payment is not settled"
-      ]
+      ],
+      "price_usdc": "0.005",
+      "query": {}
     },
     {
       "id": "sec-filing-freshness:required-source-failure",
@@ -210,7 +287,12 @@
       "assertions": [
         "chargeable=false",
         "payment is not settled"
-      ]
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "ticker": "AAPL",
+        "maxAgeDays": 30
+      }
     },
     {
       "id": "sec-filing-freshness:payment-unresolved",
@@ -220,7 +302,12 @@
       "expected_status": 503,
       "assertions": [
         "retrySamePayment=true"
-      ]
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "ticker": "AAPL",
+        "maxAgeDays": 30
+      }
     },
     {
       "id": "sec-filing-freshness:success",
@@ -237,7 +324,12 @@
         "PAYMENT-RESPONSE header present",
         "x402-settled=true",
         "price matches spec"
-      ]
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "ticker": "AAPL",
+        "maxAgeDays": 30
+      }
     },
     {
       "id": "domain-registration-age:unpaid",
@@ -249,7 +341,12 @@
         "PAYMENT-REQUIRED header present",
         "x402 price matches spec",
         "no source work required"
-      ]
+      ],
+      "price_usdc": "0.002",
+      "query": {
+        "domain": "openai.com",
+        "minAgeDays": 90
+      }
     },
     {
       "id": "domain-registration-age:invalid-input",
@@ -259,7 +356,9 @@
       "expected_status": 400,
       "assertions": [
         "payment is not settled"
-      ]
+      ],
+      "price_usdc": "0.002",
+      "query": {}
     },
     {
       "id": "domain-registration-age:required-source-failure",
@@ -270,7 +369,12 @@
       "assertions": [
         "chargeable=false",
         "payment is not settled"
-      ]
+      ],
+      "price_usdc": "0.002",
+      "query": {
+        "domain": "openai.com",
+        "minAgeDays": 90
+      }
     },
     {
       "id": "domain-registration-age:payment-unresolved",
@@ -280,7 +384,12 @@
       "expected_status": 503,
       "assertions": [
         "retrySamePayment=true"
-      ]
+      ],
+      "price_usdc": "0.002",
+      "query": {
+        "domain": "openai.com",
+        "minAgeDays": 90
+      }
     },
     {
       "id": "domain-registration-age:success",
@@ -298,7 +407,12 @@
         "PAYMENT-RESPONSE header present",
         "x402-settled=true",
         "price matches spec"
-      ]
+      ],
+      "price_usdc": "0.002",
+      "query": {
+        "domain": "openai.com",
+        "minAgeDays": 90
+      }
     }
   ]
 }
