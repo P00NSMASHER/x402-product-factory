@@ -1,0 +1,304 @@
+{
+  "schema_version": 1,
+  "generated_from": "specs/*.json",
+  "cases": [
+    {
+      "id": "pa-vendor-identity-match:unpaid",
+      "kind": "payment_required",
+      "method": "GET",
+      "path": "/api/pa-vendor-identity-match",
+      "expected_status": 402,
+      "assertions": [
+        "PAYMENT-REQUIRED header present",
+        "x402 price matches spec",
+        "no source work required"
+      ]
+    },
+    {
+      "id": "pa-vendor-identity-match:invalid-input",
+      "kind": "invalid_input",
+      "method": "GET",
+      "path": "/api/pa-vendor-identity-match",
+      "expected_status": 400,
+      "assertions": [
+        "payment is not settled"
+      ]
+    },
+    {
+      "id": "pa-vendor-identity-match:required-source-failure",
+      "kind": "required_source_failure",
+      "method": "GET",
+      "path": "/api/pa-vendor-identity-match",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ]
+    },
+    {
+      "id": "pa-vendor-identity-match:payment-unresolved",
+      "kind": "payment_unresolved",
+      "method": "GET",
+      "path": "/api/pa-vendor-identity-match",
+      "expected_status": 503,
+      "assertions": [
+        "retrySamePayment=true"
+      ]
+    },
+    {
+      "id": "pa-vendor-identity-match:success",
+      "kind": "paid_success",
+      "method": "GET",
+      "path": "/api/pa-vendor-identity-match",
+      "expected_status": 200,
+      "allowed_decisions": [
+        "consistent",
+        "human_review"
+      ],
+      "assertions": [
+        "PAYMENT-RESPONSE header present",
+        "x402-settled=true",
+        "price matches spec"
+      ]
+    },
+    {
+      "id": "pa-business-address-match:unpaid",
+      "kind": "payment_required",
+      "method": "GET",
+      "path": "/api/pa-business-address-match",
+      "expected_status": 402,
+      "assertions": [
+        "PAYMENT-REQUIRED header present",
+        "x402 price matches spec",
+        "no source work required"
+      ]
+    },
+    {
+      "id": "pa-business-address-match:invalid-input",
+      "kind": "invalid_input",
+      "method": "GET",
+      "path": "/api/pa-business-address-match",
+      "expected_status": 400,
+      "assertions": [
+        "payment is not settled"
+      ]
+    },
+    {
+      "id": "pa-business-address-match:required-source-failure",
+      "kind": "required_source_failure",
+      "method": "GET",
+      "path": "/api/pa-business-address-match",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ]
+    },
+    {
+      "id": "pa-business-address-match:payment-unresolved",
+      "kind": "payment_unresolved",
+      "method": "GET",
+      "path": "/api/pa-business-address-match",
+      "expected_status": 503,
+      "assertions": [
+        "retrySamePayment=true"
+      ]
+    },
+    {
+      "id": "pa-business-address-match:success",
+      "kind": "paid_success",
+      "method": "GET",
+      "path": "/api/pa-business-address-match",
+      "expected_status": 200,
+      "allowed_decisions": [
+        "match",
+        "human_review"
+      ],
+      "assertions": [
+        "PAYMENT-RESPONSE header present",
+        "x402-settled=true",
+        "price matches spec"
+      ]
+    },
+    {
+      "id": "pa-business-domain-match:unpaid",
+      "kind": "payment_required",
+      "method": "GET",
+      "path": "/api/pa-business-domain-match",
+      "expected_status": 402,
+      "assertions": [
+        "PAYMENT-REQUIRED header present",
+        "x402 price matches spec",
+        "no source work required"
+      ]
+    },
+    {
+      "id": "pa-business-domain-match:invalid-input",
+      "kind": "invalid_input",
+      "method": "GET",
+      "path": "/api/pa-business-domain-match",
+      "expected_status": 400,
+      "assertions": [
+        "payment is not settled"
+      ]
+    },
+    {
+      "id": "pa-business-domain-match:required-source-failure",
+      "kind": "required_source_failure",
+      "method": "GET",
+      "path": "/api/pa-business-domain-match",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ]
+    },
+    {
+      "id": "pa-business-domain-match:payment-unresolved",
+      "kind": "payment_unresolved",
+      "method": "GET",
+      "path": "/api/pa-business-domain-match",
+      "expected_status": 503,
+      "assertions": [
+        "retrySamePayment=true"
+      ]
+    },
+    {
+      "id": "pa-business-domain-match:success",
+      "kind": "paid_success",
+      "method": "GET",
+      "path": "/api/pa-business-domain-match",
+      "expected_status": 200,
+      "allowed_decisions": [
+        "match",
+        "human_review"
+      ],
+      "assertions": [
+        "PAYMENT-RESPONSE header present",
+        "x402-settled=true",
+        "price matches spec"
+      ]
+    },
+    {
+      "id": "sec-filing-freshness:unpaid",
+      "kind": "payment_required",
+      "method": "GET",
+      "path": "/api/sec-filing-freshness",
+      "expected_status": 402,
+      "assertions": [
+        "PAYMENT-REQUIRED header present",
+        "x402 price matches spec",
+        "no source work required"
+      ]
+    },
+    {
+      "id": "sec-filing-freshness:invalid-input",
+      "kind": "invalid_input",
+      "method": "GET",
+      "path": "/api/sec-filing-freshness",
+      "expected_status": 400,
+      "assertions": [
+        "payment is not settled"
+      ]
+    },
+    {
+      "id": "sec-filing-freshness:required-source-failure",
+      "kind": "required_source_failure",
+      "method": "GET",
+      "path": "/api/sec-filing-freshness",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ]
+    },
+    {
+      "id": "sec-filing-freshness:payment-unresolved",
+      "kind": "payment_unresolved",
+      "method": "GET",
+      "path": "/api/sec-filing-freshness",
+      "expected_status": 503,
+      "assertions": [
+        "retrySamePayment=true"
+      ]
+    },
+    {
+      "id": "sec-filing-freshness:success",
+      "kind": "paid_success",
+      "method": "GET",
+      "path": "/api/sec-filing-freshness",
+      "expected_status": 200,
+      "allowed_decisions": [
+        "recent_filing",
+        "no_recent_filing",
+        "company_not_found"
+      ],
+      "assertions": [
+        "PAYMENT-RESPONSE header present",
+        "x402-settled=true",
+        "price matches spec"
+      ]
+    },
+    {
+      "id": "domain-registration-age:unpaid",
+      "kind": "payment_required",
+      "method": "GET",
+      "path": "/api/domain-registration-age",
+      "expected_status": 402,
+      "assertions": [
+        "PAYMENT-REQUIRED header present",
+        "x402 price matches spec",
+        "no source work required"
+      ]
+    },
+    {
+      "id": "domain-registration-age:invalid-input",
+      "kind": "invalid_input",
+      "method": "GET",
+      "path": "/api/domain-registration-age",
+      "expected_status": 400,
+      "assertions": [
+        "payment is not settled"
+      ]
+    },
+    {
+      "id": "domain-registration-age:required-source-failure",
+      "kind": "required_source_failure",
+      "method": "GET",
+      "path": "/api/domain-registration-age",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ]
+    },
+    {
+      "id": "domain-registration-age:payment-unresolved",
+      "kind": "payment_unresolved",
+      "method": "GET",
+      "path": "/api/domain-registration-age",
+      "expected_status": 503,
+      "assertions": [
+        "retrySamePayment=true"
+      ]
+    },
+    {
+      "id": "domain-registration-age:success",
+      "kind": "paid_success",
+      "method": "GET",
+      "path": "/api/domain-registration-age",
+      "expected_status": 200,
+      "allowed_decisions": [
+        "established",
+        "recent_registration",
+        "unregistered",
+        "human_review"
+      ],
+      "assertions": [
+        "PAYMENT-RESPONSE header present",
+        "x402-settled=true",
+        "price matches spec"
+      ]
+    }
+  ]
+}
