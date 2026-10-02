@@ -1,0 +1,34 @@
+name: Probe unique x402 frontend routes
+
+on:
+  push:
+    paths:
+      - '.github/workflows/probe-unique-x402-routes.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe five paid routes
+        shell: bash
+        run: |
+          set -u
+          urls=(
+            'https://sec-recent-filings-x402-f9qatj.v2.appdeploy.ai/api/sec-filings?ticker=AAPL&limit=1'
+            'https://ofac-sdn-name-screen-x402-m9ko96.v2.appdeploy.ai/api/ofac-sdn-screen?name=OpenAI'
+            'https://us-census-address-geocoder-x402-23mj4x.v2.appdeploy.ai/api/us-address-geocode?address=1600%20Pennsylvania%20Ave%20NW'
+            'https://domain-rdap-lookup-x402-spdfnq.v2.appdeploy.ai/api/domain-rdap?domain=example.com'
+            'https://treasury-average-interest-rates-x402-xeqftl.v2.appdeploy.ai/api/treasury-average-rates'
+          )
+          for url in "${urls[@]}"; do
+            echo "===== $url ====="
+            h=$(mktemp); b=$(mktemp)
+            code=$(curl -sS -D "$h" -o "$b" -w '%{http_code}' "$url" || true)
+            echo "HTTP $code"
+            grep -Ei '^(payment-required|payment-response|content-type|location|x402|www-authenticate):' "$h" || true
+            echo 'BODY:'
+            head -c 1000 "$b"; echo
+          done
