@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "number": "009",
+  "id": "ofac-name-review-gate",
+  "discovery": {
+    "operation_id": "reviewOfacSdnName",
+    "service_name": "OFAC Name Review Gate",
+    "summary": "Run an OFAC SDN name-review screen",
+    "description": "Screen a person or organization name against current U.S. Treasury OFAC SDN primary names and aliases using deterministic similarity scoring. Returns candidate_found, no_candidate, or human_review. A candidate is a review signal, not a legal sanctions determination. no_candidate is not sanctions clearance, and the endpoint does not perform OFAC 50 Percent Rule ownership analysis.",
+    "resource_description": "Run deterministic first-pass name and alias screening against the current U.S. Treasury OFAC SDN list. Returns candidate_found, no_candidate, or human_review. Results are review signals only: a candidate is not a legal sanctions determination, no_candidate is not sanctions clearance, and OFAC 50 Percent Rule ownership analysis is not included.",
+    "search_tags": [
+      "OFAC",
+      "SDN",
+      "sanctions-screening",
+      "name-review",
+      "human-review"
+    ],
+    "openapi_tags": [
+      "OFAC",
+      "SDN",
+      "Name Screening",
+      "Human Review"
+    ]
+  },
+  "buyer": {
+    "task": "Screen a submitted person or organization name against current OFAC SDN primary names and aliases for review candidates.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure independent settled purchases and repeat buyers per product after launch; do not infer demand from tests or crawler probes."
+    }
+  },
+  "api": {
+    "method": "GET",
+    "path": "/api/ofac-name-review-gate",
+    "inputs": [
+      {
+        "name": "name",
+        "type": "string",
+        "required": true,
+        "minLength": 2,
+        "maxLength": 160
+      },
+      {
+        "name": "minScore",
+        "type": "integer",
+        "required": false,
+        "minimum": 70,
+        "maximum": 100,
+        "default": 90
+      }
+    ],
+    "example_query": {
+      "name": "Example LLC",
+      "minScore": 90
+    },
+    "outputs": {
+      "decisions": [
+        "candidate_found",
+        "no_candidate",
+        "human_review"
+      ],
+      "fields": [
+        "decision",
+        "reasonCodes",
+        "candidateCount",
+        "candidates",
+        "minScore",
+        "checkedAt",
+        "input",
+        "sourceFailures",
+        "evidence",
+        "limitations",
+        "paid",
+        "price"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "ofac_sdn",
+      "adapter": "createOfacNameAdapter",
+      "authority": "U.S. Treasury OFAC Specially Designated Nationals (SDN) List",
+      "refresh_policy": "load current SDN.CSV and ALT.CSV on the first adapter lookup",
+      "cache_policy": "combined parsed SDN/ALT dataset cached in memory for the adapter lifetime; no time-based expiry",
+      "freshness_limit_seconds": null
+    }
+  ],
+  "decision": {
+    "implementation": "products/ofac-name-review-gate/decision.js",
+    "parameters": {
+      "minScore": {
+        "default": 90,
+        "minimum": 70,
+        "maximum": 100
+      }
+    },
+    "rules": [
+      "Score the submitted name deterministically against OFAC SDN primary names and aliases.",
+      "Return candidate_found when one or more candidates meet minScore.",
+      "Return no_candidate when no name or alias meets minScore.",
+      "Return human_review when required OFAC evidence is unavailable; candidate results are review signals, not legal determinations."
+    ]
+  },
+  "failure_behavior": {
+    "invalid_input": "HTTP 400; do not settle payment.",
+    "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+    "payment_unresolved": "HTTP 503; caller should retry the same payment authorization.",
+    "automatic_reject": false
+  },
+  "economics": {
+    "price_usdc": "0.003",
+    "paid_settlement_cost_usd": "0.002310",
+    "configured_direct_source_fee_usd": "0.000000",
+    "incremental_hosting_cost_usd": null,
+    "post_allowance_margin_floor_pct": 23,
+    "target_contribution_margin_pct": 70,
+    "meets_target_before_unknown_costs": false
+  },
+  "launch": {
+    "current_status": "live-source-verified-staging",
+    "release_gate": "scripts/validate-product-009.js",
+    "criteria": [
+      "Release gate passes from the same registry revision.",
+      "Authoritative live-source smoke passes without source failures.",
+      "Shared non-credit-gated hosting is available and measured.",
+      "Commercial promotion remains blocked until complete unit economics meet the target or an explicit exception is approved."
+    ]
+  },
+  "implementation": {
+    "handler_template": "standard-x402-get-v1",
+    "service_module": "products/ofac-name-review-gate/service.js",
+    "input_validator_export": "validateOfacInput"
+  }
+}
