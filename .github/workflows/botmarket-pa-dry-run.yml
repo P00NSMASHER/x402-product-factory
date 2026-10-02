@@ -12,11 +12,11 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - name: Validate PA Entity One with BotMarket
+      - name: Validate PA seller origin with BotMarket
         shell: bash
         run: |
           set -u
-          endpoint='https://pa-entity-x402.floot.app/_api/pa-entity-one?q=OpenAI'
+          endpoint='https://pa-entity-x402.floot.app'
           payload=$(jq -nc --arg url "$endpoint" --arg price '0.001' '{kind:"service",url:$url,price:$price,dry_run:true}')
           echo "Submitting dry-run validation for: $endpoint"
           tmp=$(mktemp)
