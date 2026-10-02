@@ -84,6 +84,7 @@ Next small increment: verify the seller wallet's applicable PayAI free allowance
 ## Progress
 
 - Phase 1, increment 1: settlement-cost baseline complete as a reviewable candidate.
-- Phase 1 remains in progress: full costs, account terms, break-even demand, and price decisions are outstanding.
+- Phase 1, increment 2: Products 003–007 source-request profiles, source billing configuration, caching behavior, and hosting unknowns recorded with a machine-readable test.
+- Phase 1 remains in progress: seller account terms, live hosting/capacity cost, failure/retry/refund rates, break-even demand, and price decisions are outstanding.
 - Phases 2–7: six later phases remain.
 - This note changes no product price, payment rail, deployment, or account setting.
