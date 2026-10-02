@@ -107,8 +107,8 @@ Expand the existing Floot PA seller **additively**:
 
 ## Agent402 routing facts
 
-- Base proven-seller threshold currently requires 50 settled calls and 3 distinct payers.
-- The unproven Base lane is enabled for routes priced at or below $0.01.
+- Base proven-seller threshold currently requires 20 outside settlements and 3 distinct payers.
+- The confirmed 2026-10-02 outside $0.001 settlement counts toward that proven threshold.\n- The unproven Base lane is enabled for routes priced at or below $0.01.
 - Therefore the $0.001 and $0.005 SKUs can be tried before they meet the full settlement-history floor.
 - The $0.020 vendor-intake gate is above the unproven ceiling and needs independent settlement history/direct discovery.
 
