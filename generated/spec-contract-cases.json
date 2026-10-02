@@ -33,8 +33,59 @@
       "query": {}
     },
     {
+      "id": "pa-vendor-identity-match:malformed-payment",
+      "kind": "malformed_payment",
+      "method": "GET",
+      "path": "/api/pa-vendor-identity-match",
+      "expected_status": 402,
+      "assertions": [
+        "invalid payment returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101",
+        "domain": "openai.com"
+      }
+    },
+    {
+      "id": "pa-vendor-identity-match:verification-terminal",
+      "kind": "verification_terminal",
+      "method": "GET",
+      "path": "/api/pa-vendor-identity-match",
+      "expected_status": 402,
+      "assertions": [
+        "terminal verification returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101",
+        "domain": "openai.com"
+      }
+    },
+    {
       "id": "pa-vendor-identity-match:required-source-failure",
       "kind": "required_source_failure",
+      "method": "GET",
+      "path": "/api/pa-vendor-identity-match",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101",
+        "domain": "openai.com"
+      }
+    },
+    {
+      "id": "pa-vendor-identity-match:source-exception",
+      "kind": "source_exception",
       "method": "GET",
       "path": "/api/pa-vendor-identity-match",
       "expected_status": 502,
@@ -57,6 +108,22 @@
       "expected_status": 503,
       "assertions": [
         "retrySamePayment=true"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101",
+        "domain": "openai.com"
+      }
+    },
+    {
+      "id": "pa-vendor-identity-match:settlement-terminal",
+      "kind": "settlement_terminal",
+      "method": "GET",
+      "path": "/api/pa-vendor-identity-match",
+      "expected_status": 402,
+      "assertions": [
+        "terminal settlement returns fresh challenge"
       ],
       "price_usdc": "0.005",
       "query": {
@@ -117,8 +184,56 @@
       "query": {}
     },
     {
+      "id": "pa-business-address-match:malformed-payment",
+      "kind": "malformed_payment",
+      "method": "GET",
+      "path": "/api/pa-business-address-match",
+      "expected_status": 402,
+      "assertions": [
+        "invalid payment returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101"
+      }
+    },
+    {
+      "id": "pa-business-address-match:verification-terminal",
+      "kind": "verification_terminal",
+      "method": "GET",
+      "path": "/api/pa-business-address-match",
+      "expected_status": 402,
+      "assertions": [
+        "terminal verification returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101"
+      }
+    },
+    {
       "id": "pa-business-address-match:required-source-failure",
       "kind": "required_source_failure",
+      "method": "GET",
+      "path": "/api/pa-business-address-match",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101"
+      }
+    },
+    {
+      "id": "pa-business-address-match:source-exception",
+      "kind": "source_exception",
       "method": "GET",
       "path": "/api/pa-business-address-match",
       "expected_status": 502,
@@ -140,6 +255,21 @@
       "expected_status": 503,
       "assertions": [
         "retrySamePayment=true"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101"
+      }
+    },
+    {
+      "id": "pa-business-address-match:settlement-terminal",
+      "kind": "settlement_terminal",
+      "method": "GET",
+      "path": "/api/pa-business-address-match",
+      "expected_status": 402,
+      "assertions": [
+        "terminal settlement returns fresh challenge"
       ],
       "price_usdc": "0.003",
       "query": {
@@ -198,8 +328,56 @@
       "query": {}
     },
     {
+      "id": "pa-business-domain-match:malformed-payment",
+      "kind": "malformed_payment",
+      "method": "GET",
+      "path": "/api/pa-business-domain-match",
+      "expected_status": 402,
+      "assertions": [
+        "invalid payment returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "OpenAI OpCo",
+        "domain": "openai.com"
+      }
+    },
+    {
+      "id": "pa-business-domain-match:verification-terminal",
+      "kind": "verification_terminal",
+      "method": "GET",
+      "path": "/api/pa-business-domain-match",
+      "expected_status": 402,
+      "assertions": [
+        "terminal verification returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "OpenAI OpCo",
+        "domain": "openai.com"
+      }
+    },
+    {
       "id": "pa-business-domain-match:required-source-failure",
       "kind": "required_source_failure",
+      "method": "GET",
+      "path": "/api/pa-business-domain-match",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "OpenAI OpCo",
+        "domain": "openai.com"
+      }
+    },
+    {
+      "id": "pa-business-domain-match:source-exception",
+      "kind": "source_exception",
       "method": "GET",
       "path": "/api/pa-business-domain-match",
       "expected_status": 502,
@@ -221,6 +399,21 @@
       "expected_status": 503,
       "assertions": [
         "retrySamePayment=true"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "OpenAI OpCo",
+        "domain": "openai.com"
+      }
+    },
+    {
+      "id": "pa-business-domain-match:settlement-terminal",
+      "kind": "settlement_terminal",
+      "method": "GET",
+      "path": "/api/pa-business-domain-match",
+      "expected_status": 402,
+      "assertions": [
+        "terminal settlement returns fresh challenge"
       ],
       "price_usdc": "0.003",
       "query": {
@@ -279,8 +472,56 @@
       "query": {}
     },
     {
+      "id": "sec-filing-freshness:malformed-payment",
+      "kind": "malformed_payment",
+      "method": "GET",
+      "path": "/api/sec-filing-freshness",
+      "expected_status": 402,
+      "assertions": [
+        "invalid payment returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "ticker": "AAPL",
+        "maxAgeDays": 30
+      }
+    },
+    {
+      "id": "sec-filing-freshness:verification-terminal",
+      "kind": "verification_terminal",
+      "method": "GET",
+      "path": "/api/sec-filing-freshness",
+      "expected_status": 402,
+      "assertions": [
+        "terminal verification returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "ticker": "AAPL",
+        "maxAgeDays": 30
+      }
+    },
+    {
       "id": "sec-filing-freshness:required-source-failure",
       "kind": "required_source_failure",
+      "method": "GET",
+      "path": "/api/sec-filing-freshness",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "ticker": "AAPL",
+        "maxAgeDays": 30
+      }
+    },
+    {
+      "id": "sec-filing-freshness:source-exception",
+      "kind": "source_exception",
       "method": "GET",
       "path": "/api/sec-filing-freshness",
       "expected_status": 502,
@@ -302,6 +543,21 @@
       "expected_status": 503,
       "assertions": [
         "retrySamePayment=true"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "ticker": "AAPL",
+        "maxAgeDays": 30
+      }
+    },
+    {
+      "id": "sec-filing-freshness:settlement-terminal",
+      "kind": "settlement_terminal",
+      "method": "GET",
+      "path": "/api/sec-filing-freshness",
+      "expected_status": 402,
+      "assertions": [
+        "terminal settlement returns fresh challenge"
       ],
       "price_usdc": "0.005",
       "query": {
@@ -361,8 +617,56 @@
       "query": {}
     },
     {
+      "id": "domain-registration-age:malformed-payment",
+      "kind": "malformed_payment",
+      "method": "GET",
+      "path": "/api/domain-registration-age",
+      "expected_status": 402,
+      "assertions": [
+        "invalid payment returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.002",
+      "query": {
+        "domain": "openai.com",
+        "minAgeDays": 90
+      }
+    },
+    {
+      "id": "domain-registration-age:verification-terminal",
+      "kind": "verification_terminal",
+      "method": "GET",
+      "path": "/api/domain-registration-age",
+      "expected_status": 402,
+      "assertions": [
+        "terminal verification returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.002",
+      "query": {
+        "domain": "openai.com",
+        "minAgeDays": 90
+      }
+    },
+    {
       "id": "domain-registration-age:required-source-failure",
       "kind": "required_source_failure",
+      "method": "GET",
+      "path": "/api/domain-registration-age",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ],
+      "price_usdc": "0.002",
+      "query": {
+        "domain": "openai.com",
+        "minAgeDays": 90
+      }
+    },
+    {
+      "id": "domain-registration-age:source-exception",
+      "kind": "source_exception",
       "method": "GET",
       "path": "/api/domain-registration-age",
       "expected_status": 502,
@@ -384,6 +688,21 @@
       "expected_status": 503,
       "assertions": [
         "retrySamePayment=true"
+      ],
+      "price_usdc": "0.002",
+      "query": {
+        "domain": "openai.com",
+        "minAgeDays": 90
+      }
+    },
+    {
+      "id": "domain-registration-age:settlement-terminal",
+      "kind": "settlement_terminal",
+      "method": "GET",
+      "path": "/api/domain-registration-age",
+      "expected_status": 402,
+      "assertions": [
+        "terminal settlement returns fresh challenge"
       ],
       "price_usdc": "0.002",
       "query": {
