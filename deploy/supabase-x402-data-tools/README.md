@@ -42,3 +42,12 @@ These are intentionally unpaywalled:
 - x402scan does not currently discover this path-prefixed Supabase seller because it canonicalizes to the bare host. This is a directory limitation, not a seller-health failure.
 
 The Edge Function does not read or write the Supabase database and does not use the existing project's unrelated functions.
+
+
+## Distribution cutover
+
+- Agent402 registration: accepted as one path-prefixed seller with 5 tools, health 1, routable true.
+- Exact-name Agent402 route searches rank all five migrated tools #1 and expose the Base unproven execution tier.
+- BotMarket submission #37 is the current unified catalog listing for this origin.
+- BotMarket submissions #31-#35 pointed at the older AppDeploy product hosts and have been marked to the maintainer as superseded by #37.
+- BotMarket submission #30 (PA Entity on Floot) remains separate and current.
