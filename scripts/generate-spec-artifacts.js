@@ -249,12 +249,12 @@ function renderPaidHandlersModule(specs=loadSpecs()){
     }
   }
   const validators=specs.map(spec=>{
-    const service="../"+spec.implementation.service_module.replace(/\\.js$/,"");
+    const service="../"+spec.implementation.service_module.replace(/\.js$/,"");
     return "  "+JSON.stringify(spec.id)+":require("+JSON.stringify(service)+")["+JSON.stringify(spec.implementation.input_validator_export)+"]";
-  }).join(",\\n");
+  }).join(",\n");
   const modules=specs.map(spec=>
     "  "+JSON.stringify(spec.id)+":moduleFor("+JSON.stringify(spec.id)+")"
-  ).join(",\\n");
+  ).join(",\n");
   return [
     '"use strict";',
     '',
