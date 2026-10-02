@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "number": "006",
+  "id": "sec-filing-freshness",
+  "buyer": {
+    "task": "Determine whether a U.S. public filer has an SEC EDGAR filing matching an optional exact form filter inside a caller-selected freshness window.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure independent settled purchases and repeat buyers per product after launch; do not infer demand from tests or crawler probes."
+    }
+  },
+  "api": {
+    "method": "GET",
+    "path": "/api/sec-filing-freshness",
+    "inputs": [
+      {
+        "name": "ticker",
+        "type": "string",
+        "required": "exactly_one_of_ticker_or_cik",
+        "minLength": 1,
+        "maxLength": 12
+      },
+      {
+        "name": "cik",
+        "type": "string",
+        "required": "exactly_one_of_ticker_or_cik",
+        "pattern": "^\\d{1,10}$"
+      },
+      {
+        "name": "form",
+        "type": "string",
+        "required": false,
+        "maxLength": 20,
+        "comparison": "exact_case_normalized"
+      },
+      {
+        "name": "maxAgeDays",
+        "type": "integer",
+        "required": false,
+        "minimum": 1,
+        "maximum": 365,
+        "default": 30
+      }
+    ],
+    "example_query": {
+      "ticker": "AAPL",
+      "maxAgeDays": 30
+    },
+    "outputs": {
+      "decisions": [
+        "recent_filing",
+        "no_recent_filing",
+        "company_not_found"
+      ],
+      "fields": [
+        "decision",
+        "reasonCodes",
+        "company",
+        "latestMatchingFiling",
+        "matchingFilingCount",
+        "recentFilingCount",
+        "maxAgeDays",
+        "cutoffDate",
+        "checkedAt",
+        "sourceFailures",
+        "evidence",
+        "paid",
+        "price"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "sec_edgar",
+      "adapter": "createSecFilingsAdapter",
+      "authority": "U.S. Securities and Exchange Commission EDGAR",
+      "refresh_policy": "live ticker-map lookup when ticker is supplied, then live company submissions lookup on each paid request",
+      "cache_policy": "none",
+      "freshness_limit_seconds": null
+    }
+  ],
+  "decision": {
+    "implementation": "products/sec-filing-freshness/decision.js",
+    "parameters": {
+      "maxAgeDays": {
+        "default": 30,
+        "minimum": 1,
+        "maximum": 365
+      },
+      "formFilter": "optional exact match"
+    },
+    "rules": [
+      "Require exactly one of ticker or CIK.",
+      "Resolve ticker to CIK when ticker is supplied.",
+      "Filter recent SEC filing metadata by exact normalized form when form is supplied.",
+      "Compute a UTC-day cutoff from maxAgeDays.",
+      "Return recent_filing when at least one dated matching filing is on or after the cutoff; otherwise return no_recent_filing; return company_not_found only for a valid lookup that does not resolve a company."
+    ]
+  },
+  "failure_behavior": {
+    "invalid_input": "HTTP 400; do not settle payment.",
+    "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment. Live SEC transport also requires SEC_USER_AGENT containing a contact email.",
+    "payment_unresolved": "HTTP 503; caller should retry the same payment authorization.",
+    "automatic_reject": false
+  },
+  "economics": {
+    "price_usdc": "0.005",
+    "paid_settlement_cost_usd": "0.002310",
+    "configured_direct_source_fee_usd": "0.000000",
+    "incremental_hosting_cost_usd": null,
+    "post_allowance_margin_floor_pct": 53.8,
+    "target_contribution_margin_pct": 70,
+    "meets_target_before_unknown_costs": false
+  },
+  "launch": {
+    "current_status": "source-contract-verified-staging",
+    "release_gate": "scripts/validate-product-006.js",
+    "criteria": [
+      "Release gate and deterministic/source-contract tests pass.",
+      "Production SEC_USER_AGENT contains a declared client identity and real contact email.",
+      "Live SEC transport smoke passes under production-style identification.",
+      "Shared non-credit-gated hosting is available and measured.",
+      "Commercial promotion remains blocked until complete unit economics meet the target or an explicit exception is approved."
+    ]
+  }
+}
