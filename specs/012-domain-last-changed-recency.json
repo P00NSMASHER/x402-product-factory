@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "number": "012",
+  "id": "domain-last-changed-recency",
+  "discovery": {
+    "operation_id": "checkDomainLastChangedRecency",
+    "service_name": "Domain Last-Changed Recency",
+    "summary": "Check how recently authoritative RDAP says a domain record changed",
+    "description": "Resolve a domain through IANA RDAP bootstrap and its authoritative registry, then compare the published last-changed event with a caller-selected recent window. Returns recently_changed, stable_since_window, unregistered, or human_review. A recent RDAP metadata change is not by itself evidence of compromise, fraud, ownership change, malicious activity, or business risk.",
+    "resource_description": "Determine whether authoritative RDAP says a domain registration record changed within a caller-selected recent window. Returns recently_changed, stable_since_window, unregistered, or human_review. A recent RDAP metadata change is not by itself evidence of compromise, fraud, ownership change, malicious activity, or business risk.",
+    "search_tags": [
+      "domain",
+      "rdap",
+      "last-changed",
+      "recency",
+      "monitoring"
+    ],
+    "openapi_tags": [
+      "Domain",
+      "RDAP",
+      "Recency",
+      "Monitoring"
+    ]
+  },
+  "buyer": {
+    "task": "Determine whether authoritative RDAP says a domain registration record changed within a caller-selected recent window.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure independent settled purchases and repeat buyers per product after launch; do not infer demand from tests or crawler probes."
+    }
+  },
+  "api": {
+    "method": "GET",
+    "path": "/api/domain-last-changed-recency",
+    "inputs": [
+      {
+        "name": "domain",
+        "type": "string",
+        "required": true,
+        "minLength": 3,
+        "maxLength": 253
+      },
+      {
+        "name": "maxAgeDays",
+        "type": "integer",
+        "required": false,
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 90
+      }
+    ],
+    "example_query": {
+      "domain": "openai.com",
+      "maxAgeDays": 90
+    },
+    "outputs": {
+      "decisions": [
+        "recently_changed",
+        "stable_since_window",
+        "unregistered",
+        "human_review"
+      ],
+      "fields": [
+        "decision",
+        "reasonCodes",
+        "lastChangedDate",
+        "ageDays",
+        "maxAgeDays",
+        "cutoffDate",
+        "checkedAt",
+        "input",
+        "sourceFailures",
+        "evidence",
+        "paid",
+        "price"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "rdap",
+      "adapter": "createRdapAdapter",
+      "authority": "IANA DNS bootstrap plus authoritative registry RDAP",
+      "refresh_policy": "authoritative domain lookup on each paid request",
+      "cache_policy": "IANA bootstrap cached in memory for adapter lifetime; authoritative domain result not cached",
+      "freshness_limit_seconds": null
+    }
+  ],
+  "decision": {
+    "implementation": "products/domain-last-changed-recency/decision.js",
+    "parameters": {
+      "maxAgeDays": {
+        "default": 90,
+        "minimum": 1,
+        "maximum": 3650
+      }
+    },
+    "rules": [
+      "Resolve the domain through IANA bootstrap and authoritative registry RDAP.",
+      "Return unregistered when authoritative RDAP reports the domain is not registered.",
+      "Use only the authoritative domain lastChanged event; do not substitute RDAP database-refresh timestamps.",
+      "Return recently_changed when lastChanged is on or after the recent-window cutoff; return stable_since_window when older; otherwise return human_review."
+    ]
+  },
+  "failure_behavior": {
+    "invalid_input": "HTTP 400; do not settle payment.",
+    "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+    "payment_unresolved": "HTTP 503; caller should retry the same payment authorization.",
+    "automatic_reject": false
+  },
+  "economics": {
+    "price_usdc": "0.002",
+    "paid_settlement_cost_usd": "0.002310",
+    "configured_direct_source_fee_usd": "0.000000",
+    "incremental_hosting_cost_usd": null,
+    "post_allowance_margin_floor_pct": -15.5,
+    "target_contribution_margin_pct": 70,
+    "meets_target_before_unknown_costs": false
+  },
+  "launch": {
+    "current_status": "live-source-verified-staging",
+    "release_gate": "scripts/validate-product-012.js",
+    "criteria": [
+      "Release gate passes from the same registry revision.",
+      "Authoritative live-source smoke passes without source failures.",
+      "Shared non-credit-gated hosting is available and measured.",
+      "Post-allowance unit economics are settlement-negative at the current price; commercial promotion remains blocked until economics are repaired or an explicit exception is approved."
+    ]
+  },
+  "implementation": {
+    "handler_template": "standard-x402-get-v1",
+    "service_module": "products/domain-last-changed-recency/service.js",
+    "input_validator_export": "validateRecencyInput"
+  }
+}
