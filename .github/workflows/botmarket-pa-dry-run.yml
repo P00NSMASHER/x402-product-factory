@@ -1,4 +1,4 @@
-name: BotMarket PA x402 dry-run
+name: BotMarket PA x402 submit
 
 on:
   push:
@@ -12,13 +12,13 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - name: Validate PA seller origin with BotMarket
+      - name: Submit PA seller origin to BotMarket
         shell: bash
         run: |
           set -u
           endpoint='https://pa-entity-x402.floot.app'
-          payload=$(jq -nc --arg url "$endpoint" --arg price '0.001' '{kind:"service",url:$url,price:$price,dry_run:true}')
-          echo "Submitting dry-run validation for: $endpoint"
+          payload=$(jq -nc --arg url "$endpoint" --arg price '0.001' '{kind:"service",url:$url,price:$price,dry_run:false}')
+          echo "Submitting validated service for: $endpoint"
           tmp=$(mktemp)
           status=$(curl -sS -o "$tmp" -w '%{http_code}' https://botmarket.bot/v1/submit             -H 'Content-Type: application/json'             -d "$payload")
           echo "HTTP $status"
