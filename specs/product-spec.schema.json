@@ -11,6 +11,7 @@
     "discovery",
     "api",
     "sources",
+    "implementation",
     "decision",
     "failure_behavior",
     "economics",
@@ -352,6 +353,33 @@
             "minLength": 2,
             "maxLength": 64
           }
+        }
+      }
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_module",
+        "service_factory_export",
+        "validator_export",
+        "paid_handler_template"
+      ],
+      "properties": {
+        "service_module": {
+          "type": "string",
+          "pattern": "^products/[a-z0-9-]+/service\\\\.js$"
+        },
+        "service_factory_export": {
+          "type": "string",
+          "pattern": "^create[A-Za-z0-9]+Service$"
+        },
+        "validator_export": {
+          "type": "string",
+          "pattern": "^validate[A-Za-z0-9]+Input$"
+        },
+        "paid_handler_template": {
+          "const": "standard_get_v1"
         }
       }
     }
