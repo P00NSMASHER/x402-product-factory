@@ -6,12 +6,14 @@ on:
       - main
     paths:
       - 'product-registry.json'
+      - 'production-topology.json'
       - 'products/**'
       - 'packages/sources/**'
       - 'deploy/floot-pa-vendor-gate/**'
       - 'scripts/run-live-smokes.js'
       - 'scripts/verify-floot-product-002.js'
       - 'scripts/verify-floot-product-002-rollback.js'
+      - 'scripts/verify-production-topology.js'
       - '.github/workflows/factory-product-003-live-smoke.yml'
   workflow_dispatch:
 
@@ -29,6 +31,8 @@ jobs:
         run: node scripts/verify-floot-product-002.js
       - name: Verify Product 002 immutable rollback source without payment
         run: node scripts/verify-floot-product-002-rollback.js --verify-remote
+      - name: Verify canonical Floot and Supabase discovery ownership
+        run: node scripts/verify-production-topology.js
       - name: Run Product 002 zero-spend live-source smoke
         run: node products/pa-vendor-gate/live-smoke.js
       - name: Run every staging product live smoke

@@ -49,6 +49,8 @@ The durable PA seller remains on Floot. Product 002's paid route, unpaid x402 ch
 
 The Product 002 Floot endpoint and schema are pinned to an immutable source commit with byte lengths, Git blob IDs, and SHA-256 hashes in `deploy/floot-pa-vendor-gate/rollback-manifest.json`. `node scripts/verify-floot-product-002-rollback.js --verify-remote` validates those rollback bytes without sending payment headers or changing Floot.
 
+`production-topology.json` is the canonical discovery-ownership map: three PA routes belong to Floot, while SEC, OFAC, Census, RDAP, and Treasury belong to the Supabase data-tools seller. `node scripts/verify-production-topology.js` audits both live catalogs without payment. Historical same-origin data-tool copies still advertised by Floot are reported as noncanonical legacy-shadow warnings; they never satisfy a missing canonical Supabase route.
+
 ## Product 003
 
 Combines:

@@ -110,6 +110,13 @@ function validatePortfolioCoverage(root=path.resolve(__dirname,"..")){
     }
   }
 
+  if(!exists("production-topology.json")){
+    problems.push("factory:missing_production_topology");
+  }
+  if(!exists("scripts/verify-production-topology.js")){
+    problems.push("factory:missing_production_topology_verifier");
+  }
+
   const architectureChecks=[
     ["ci_dynamic_tests",ci.includes("scripts/run-all-tests.js")],
     ["ci_dynamic_release_gates",ci.includes("scripts/run-release-gates.js")],
@@ -119,7 +126,8 @@ function validatePortfolioCoverage(root=path.resolve(__dirname,"..")){
     ["product_002_live_smoke",smokeWorkflow.includes("products/pa-vendor-gate/live-smoke.js")],
     ["product_002_floot_audit",smokeWorkflow.includes("scripts/verify-floot-product-002.js")],
     ["product_002_rollback_gate",ci.includes("scripts/verify-floot-product-002-rollback.js")],
-    ["product_002_rollback_live_audit",smokeWorkflow.includes("scripts/verify-floot-product-002-rollback.js --verify-remote")]
+    ["product_002_rollback_live_audit",smokeWorkflow.includes("scripts/verify-floot-product-002-rollback.js --verify-remote")],
+    ["production_topology_live_audit",smokeWorkflow.includes("scripts/verify-production-topology.js")]
   ];
   for(const [name,ok] of architectureChecks){
     if(!ok)problems.push("factory:"+name+":missing");
