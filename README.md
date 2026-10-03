@@ -41,7 +41,7 @@ The PA Vendor Intake Gate combines:
 - current OFAC SDN candidate screening, and
 - authoritative RDAP registration.
 
-It returns `proceed` or `human_review`, never an automatic rejection. The factory now contains both its deterministic decision policy and a direct-source composition service. A required-source transport failure is explicitly non-chargeable.
+It returns `proceed` or `human_review`, never an automatic rejection. The factory now contains its deterministic decision policy, direct-source composition service, shared-x402 paid handler, and discovery metadata. A required-source transport failure is explicitly non-chargeable and is never settled.
 
 The durable PA seller remains on Floot. Product 002 is not claimed as cut over to Floot until its paid route and same-origin discovery entry are both live there; the historical AppDeploy URL remains reference evidence only.
 

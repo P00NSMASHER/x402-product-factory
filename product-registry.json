@@ -13,6 +13,7 @@
       "id": "pa-vendor-intake-gate",
       "number": "002",
       "status": "production-reference",
+      "module_directory": "pa-vendor-gate",
       "method": "GET",
       "path": "/api/vendor-intake-gate",
       "price_usdc": "0.020",
