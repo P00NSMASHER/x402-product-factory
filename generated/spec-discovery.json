@@ -1,0 +1,522 @@
+{
+  "schema_version": 1,
+  "generator": "scripts/generate-spec-artifacts.js",
+  "products": [
+    {
+      "number": "003",
+      "id": "pa-vendor-identity-match",
+      "buyer_task": "Determine whether a prospective Pennsylvania vendor's submitted company name, address, and domain are mutually consistent with authoritative public identity evidence.",
+      "operation_id": "matchPennsylvaniaVendorIdentity",
+      "service_name": "PA Vendor Identity Match",
+      "summary": "Check Pennsylvania vendor identity consistency",
+      "description": "Compare a prospective Pennsylvania vendor company name, address, and domain against Pennsylvania Department of State registry data, U.S. Census address normalization, and authoritative RDAP. Returns consistent or human_review. This is an identity-consistency check, not legal/compliance approval, sanctions screening, fraud scoring, credit analysis, good-standing certification, proof of address control, or proof of domain ownership.",
+      "resource_description": "Check whether a supplied Pennsylvania vendor company name, address, and domain are mutually consistent with public registry, Census, and authoritative RDAP evidence. Returns consistent or human_review; it does not make a legal, sanctions, fraud, or credit determination.",
+      "search_tags": [
+        "vendor-identity",
+        "company-identity",
+        "pennsylvania-business-registry",
+        "census-geocoder",
+        "rdap"
+      ],
+      "openapi_tags": [
+        "Vendor Identity",
+        "Pennsylvania Business Registry",
+        "Address Consistency",
+        "Domain Identity"
+      ],
+      "method": "GET",
+      "path": "/api/pa-vendor-identity-match",
+      "price_usdc": "0.005",
+      "payment": {
+        "x402_version": 2,
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "payTo": "0x708f7b52b56eafd7fc1de65fc7752ed732914021",
+        "scheme": "exact",
+        "extra": {
+          "name": "USD Coin",
+          "version": "2"
+        },
+        "amount_atomic_usdc": "5000"
+      },
+      "inputs": [
+        {
+          "name": "company",
+          "type": "string",
+          "required": true,
+          "minLength": 2,
+          "maxLength": 120
+        },
+        {
+          "name": "address",
+          "type": "string",
+          "required": true,
+          "minLength": 5,
+          "maxLength": 240
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "required": true,
+          "minLength": 3,
+          "maxLength": 253
+        }
+      ],
+      "example_query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101",
+        "domain": "openai.com"
+      },
+      "outputs": {
+        "decisions": [
+          "consistent",
+          "human_review"
+        ],
+        "fields": [
+          "decision",
+          "reasonCodes",
+          "checks",
+          "matchedEntity",
+          "policy",
+          "checkedAt",
+          "sourceFailures",
+          "evidence",
+          "paid",
+          "price"
+        ]
+      },
+      "sources": [
+        {
+          "id": "pa_registry",
+          "authority": "Pennsylvania Department of State via data.pa.gov",
+          "refresh_policy": "live lookup on each paid request",
+          "cache_policy": "none",
+          "freshness_limit_seconds": null
+        },
+        {
+          "id": "census_address",
+          "authority": "U.S. Census Bureau Geocoding Services",
+          "refresh_policy": "live comparison on each paid request after strong registry match",
+          "cache_policy": "none",
+          "freshness_limit_seconds": null
+        },
+        {
+          "id": "rdap",
+          "authority": "IANA DNS bootstrap plus authoritative registry RDAP",
+          "refresh_policy": "authoritative domain lookup on each paid request",
+          "cache_policy": "IANA bootstrap cached in memory for adapter lifetime; authoritative domain result not cached",
+          "freshness_limit_seconds": null
+        }
+      ],
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; do not settle payment.",
+        "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+        "payment_unresolved": "HTTP 503; caller should retry the same payment authorization.",
+        "automatic_reject": false
+      },
+      "input_rule": null
+    },
+    {
+      "number": "004",
+      "id": "pa-business-address-match",
+      "buyer_task": "Check whether a submitted Pennsylvania business address is consistent with the address of a uniquely resolved Pennsylvania registry entity.",
+      "operation_id": "matchPennsylvaniaBusinessAddress",
+      "service_name": "PA Business Address Match",
+      "summary": "Check a Pennsylvania business address against registry evidence",
+      "description": "Resolve a Pennsylvania business name to a unique strong registry entity and compare the supplied address with the registry address using U.S. Census geocoding. Returns match or human_review. A match is not proof of physical presence, control, good standing, ownership, authority, fraud risk, sanctions status, creditworthiness, or legal compliance.",
+      "resource_description": "Check whether a supplied Pennsylvania business address matches the selected Pennsylvania registry entity using official registry and Census geocoding evidence. Returns match or human_review; it does not prove address control, ownership, good standing, or legal/compliance status.",
+      "search_tags": [
+        "business-address",
+        "vendor-identity",
+        "pennsylvania-business-registry",
+        "census-geocoder",
+        "human-review"
+      ],
+      "openapi_tags": [
+        "Business Address",
+        "Pennsylvania Business Registry",
+        "Vendor Identity"
+      ],
+      "method": "GET",
+      "path": "/api/pa-business-address-match",
+      "price_usdc": "0.003",
+      "payment": {
+        "x402_version": 2,
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "payTo": "0x708f7b52b56eafd7fc1de65fc7752ed732914021",
+        "scheme": "exact",
+        "extra": {
+          "name": "USD Coin",
+          "version": "2"
+        },
+        "amount_atomic_usdc": "3000"
+      },
+      "inputs": [
+        {
+          "name": "company",
+          "type": "string",
+          "required": true,
+          "minLength": 2,
+          "maxLength": 120
+        },
+        {
+          "name": "address",
+          "type": "string",
+          "required": true,
+          "minLength": 5,
+          "maxLength": 240
+        }
+      ],
+      "example_query": {
+        "company": "OpenAI OpCo",
+        "address": "600 North Second Street, Suite 401, Harrisburg, PA 17101"
+      },
+      "outputs": {
+        "decisions": [
+          "match",
+          "human_review"
+        ],
+        "fields": [
+          "decision",
+          "reasonCodes",
+          "checks",
+          "matchedEntity",
+          "policy",
+          "checkedAt",
+          "sourceFailures",
+          "evidence",
+          "paid",
+          "price"
+        ]
+      },
+      "sources": [
+        {
+          "id": "pa_registry",
+          "authority": "Pennsylvania Department of State via data.pa.gov",
+          "refresh_policy": "live lookup on each paid request",
+          "cache_policy": "none",
+          "freshness_limit_seconds": null
+        },
+        {
+          "id": "census_address",
+          "authority": "U.S. Census Bureau Geocoding Services",
+          "refresh_policy": "live comparison on each paid request after strong registry match",
+          "cache_policy": "none",
+          "freshness_limit_seconds": null
+        }
+      ],
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; do not settle payment.",
+        "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+        "payment_unresolved": "HTTP 503; caller should retry the same payment authorization.",
+        "automatic_reject": false
+      },
+      "input_rule": null
+    },
+    {
+      "number": "005",
+      "id": "pa-business-domain-match",
+      "buyer_task": "Check whether a supplied registered domain plausibly aligns with the name of a uniquely resolved Pennsylvania business entity.",
+      "operation_id": "matchPennsylvaniaBusinessDomain",
+      "service_name": "PA Business Domain Match",
+      "summary": "Check a Pennsylvania business domain against registry identity",
+      "description": "Resolve a Pennsylvania business to a unique strong registry entity and check whether the supplied registered domain plausibly aligns with the company name using authoritative RDAP. Returns match or human_review. A match is not proof of domain ownership/control, good standing, ownership, authority, fraud/sanctions/credit status, or legal compliance.",
+      "resource_description": "Check whether a supplied domain is a plausible identity match for a uniquely resolved Pennsylvania registry entity using official registry and authoritative RDAP evidence. Returns match or human_review and does not prove domain ownership, good standing, authority, fraud/sanctions/credit status, or legal compliance.",
+      "search_tags": [
+        "business-domain",
+        "vendor-identity",
+        "pennsylvania-business-registry",
+        "rdap",
+        "human-review"
+      ],
+      "openapi_tags": [
+        "Business Domain",
+        "Pennsylvania Business Registry",
+        "RDAP",
+        "Vendor Identity"
+      ],
+      "method": "GET",
+      "path": "/api/pa-business-domain-match",
+      "price_usdc": "0.003",
+      "payment": {
+        "x402_version": 2,
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "payTo": "0x708f7b52b56eafd7fc1de65fc7752ed732914021",
+        "scheme": "exact",
+        "extra": {
+          "name": "USD Coin",
+          "version": "2"
+        },
+        "amount_atomic_usdc": "3000"
+      },
+      "inputs": [
+        {
+          "name": "company",
+          "type": "string",
+          "required": true,
+          "minLength": 2,
+          "maxLength": 120
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "required": true,
+          "minLength": 3,
+          "maxLength": 253
+        }
+      ],
+      "example_query": {
+        "company": "OpenAI OpCo",
+        "domain": "openai.com"
+      },
+      "outputs": {
+        "decisions": [
+          "match",
+          "human_review"
+        ],
+        "fields": [
+          "decision",
+          "reasonCodes",
+          "checks",
+          "matchedEntity",
+          "policy",
+          "checkedAt",
+          "sourceFailures",
+          "evidence",
+          "paid",
+          "price"
+        ]
+      },
+      "sources": [
+        {
+          "id": "pa_registry",
+          "authority": "Pennsylvania Department of State via data.pa.gov",
+          "refresh_policy": "live lookup on each paid request",
+          "cache_policy": "none",
+          "freshness_limit_seconds": null
+        },
+        {
+          "id": "rdap",
+          "authority": "IANA DNS bootstrap plus authoritative registry RDAP",
+          "refresh_policy": "authoritative domain lookup on each paid request",
+          "cache_policy": "IANA bootstrap cached in memory for adapter lifetime; authoritative domain result not cached",
+          "freshness_limit_seconds": null
+        }
+      ],
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; do not settle payment.",
+        "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+        "payment_unresolved": "HTTP 503; caller should retry the same payment authorization.",
+        "automatic_reject": false
+      },
+      "input_rule": null
+    },
+    {
+      "number": "006",
+      "id": "sec-filing-freshness",
+      "buyer_task": "Determine whether a U.S. public filer has an SEC EDGAR filing matching an optional exact form filter inside a caller-selected freshness window.",
+      "operation_id": "checkSecFilingFreshness",
+      "service_name": "SEC Filing Freshness Check",
+      "summary": "Check SEC filing freshness for a public filer",
+      "description": "Resolve a U.S. public filer by ticker or CIK and determine whether SEC EDGAR contains a matching filing inside a caller-selected freshness window. Optional form filtering is exact (for example 8-K, 10-Q, 10-K). Returns recent_filing, no_recent_filing, or company_not_found. The endpoint reports metadata only and does not interpret filing contents or provide investment advice.",
+      "resource_description": "Check whether a U.S. public filer has an SEC EDGAR filing matching an optional form filter within a caller-selected freshness window. Returns recent_filing, no_recent_filing, or company_not_found from authoritative SEC metadata; it does not interpret filing contents or provide investment advice.",
+      "search_tags": [
+        "SEC",
+        "EDGAR",
+        "filing-freshness",
+        "company-data",
+        "agent-decision"
+      ],
+      "openapi_tags": [
+        "SEC",
+        "EDGAR",
+        "Filing Freshness",
+        "Company Data"
+      ],
+      "method": "GET",
+      "path": "/api/sec-filing-freshness",
+      "price_usdc": "0.005",
+      "payment": {
+        "x402_version": 2,
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "payTo": "0x708f7b52b56eafd7fc1de65fc7752ed732914021",
+        "scheme": "exact",
+        "extra": {
+          "name": "USD Coin",
+          "version": "2"
+        },
+        "amount_atomic_usdc": "5000"
+      },
+      "inputs": [
+        {
+          "name": "ticker",
+          "type": "string",
+          "required": "exactly_one_of_ticker_or_cik",
+          "minLength": 1,
+          "maxLength": 12
+        },
+        {
+          "name": "cik",
+          "type": "string",
+          "required": "exactly_one_of_ticker_or_cik",
+          "pattern": "^\\d{1,10}$"
+        },
+        {
+          "name": "form",
+          "type": "string",
+          "required": false,
+          "maxLength": 20,
+          "comparison": "exact_case_normalized"
+        },
+        {
+          "name": "maxAgeDays",
+          "type": "integer",
+          "required": false,
+          "minimum": 1,
+          "maximum": 365,
+          "default": 30
+        }
+      ],
+      "example_query": {
+        "ticker": "AAPL",
+        "maxAgeDays": 30
+      },
+      "outputs": {
+        "decisions": [
+          "recent_filing",
+          "no_recent_filing",
+          "company_not_found"
+        ],
+        "fields": [
+          "decision",
+          "reasonCodes",
+          "company",
+          "latestMatchingFiling",
+          "matchingFilingCount",
+          "recentFilingCount",
+          "maxAgeDays",
+          "cutoffDate",
+          "checkedAt",
+          "sourceFailures",
+          "evidence",
+          "paid",
+          "price"
+        ]
+      },
+      "sources": [
+        {
+          "id": "sec_edgar",
+          "authority": "U.S. Securities and Exchange Commission EDGAR",
+          "refresh_policy": "live ticker-map lookup when ticker is supplied, then live company submissions lookup on each paid request",
+          "cache_policy": "none",
+          "freshness_limit_seconds": null
+        }
+      ],
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; do not settle payment.",
+        "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment. Live SEC transport also requires SEC_USER_AGENT containing a contact email.",
+        "payment_unresolved": "HTTP 503; caller should retry the same payment authorization.",
+        "automatic_reject": false
+      },
+      "input_rule": "Provide exactly one of ticker or cik."
+    },
+    {
+      "number": "007",
+      "id": "domain-registration-age",
+      "buyer_task": "Determine whether an authoritative RDAP domain registration date is at least a caller-selected minimum age.",
+      "operation_id": "checkDomainRegistrationAge",
+      "service_name": "Domain Registration Age",
+      "summary": "Check authoritative domain registration age",
+      "description": "Use IANA RDAP bootstrap and the authoritative registry RDAP service to compare a domain registration date against a caller-selected minimum age. Returns established, recent_registration, unregistered, or human_review. Domain age alone does not establish ownership, control, legitimacy, fraud risk, safety, or business history.",
+      "resource_description": "Determine whether a domain's authoritative RDAP registration date is at least a caller-selected age. Returns established, recent_registration, unregistered, or human_review. Domain age is an identity signal, not a fraud, legitimacy, safety, or ownership verdict.",
+      "search_tags": [
+        "domain",
+        "rdap",
+        "registration-age",
+        "vendor-check",
+        "human-review"
+      ],
+      "openapi_tags": [
+        "Domain",
+        "RDAP",
+        "Registration Age"
+      ],
+      "method": "GET",
+      "path": "/api/domain-registration-age",
+      "price_usdc": "0.002",
+      "payment": {
+        "x402_version": 2,
+        "network": "eip155:8453",
+        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "payTo": "0x708f7b52b56eafd7fc1de65fc7752ed732914021",
+        "scheme": "exact",
+        "extra": {
+          "name": "USD Coin",
+          "version": "2"
+        },
+        "amount_atomic_usdc": "2000"
+      },
+      "inputs": [
+        {
+          "name": "domain",
+          "type": "string",
+          "required": true,
+          "minLength": 3,
+          "maxLength": 253
+        },
+        {
+          "name": "minAgeDays",
+          "type": "integer",
+          "required": false,
+          "minimum": 1,
+          "maximum": 3650,
+          "default": 90
+        }
+      ],
+      "example_query": {
+        "domain": "openai.com",
+        "minAgeDays": 90
+      },
+      "outputs": {
+        "decisions": [
+          "established",
+          "recent_registration",
+          "unregistered",
+          "human_review"
+        ],
+        "fields": [
+          "decision",
+          "reasonCodes",
+          "registrationDate",
+          "ageDays",
+          "minAgeDays",
+          "cutoffDate",
+          "checkedAt",
+          "sourceFailures",
+          "evidence",
+          "paid",
+          "price"
+        ]
+      },
+      "sources": [
+        {
+          "id": "rdap",
+          "authority": "IANA DNS bootstrap plus authoritative registry RDAP",
+          "refresh_policy": "authoritative domain lookup on each paid request",
+          "cache_policy": "IANA bootstrap cached in memory for adapter lifetime; authoritative domain result not cached",
+          "freshness_limit_seconds": null
+        }
+      ],
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; do not settle payment.",
+        "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+        "payment_unresolved": "HTTP 503; caller should retry the same payment authorization.",
+        "automatic_reject": false
+      },
+      "input_rule": null
+    }
+  ]
+}

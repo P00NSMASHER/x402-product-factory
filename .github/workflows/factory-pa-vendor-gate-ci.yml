@@ -12,6 +12,19 @@ on:
       - 'packages/**'
       - 'scripts/**'
       - 'runtime/**'
+      - 'specs/**'
+      - 'generated/**'
+      - '.github/workflows/factory-pa-vendor-gate-ci.yml'
+  pull_request:
+    paths:
+      - 'product-registry.json'
+      - 'MIGRATION_MANIFEST.json'
+      - 'products/**'
+      - 'packages/**'
+      - 'scripts/**'
+      - 'runtime/**'
+      - 'specs/**'
+      - 'generated/**'
       - '.github/workflows/factory-pa-vendor-gate-ci.yml'
   workflow_dispatch:
 
