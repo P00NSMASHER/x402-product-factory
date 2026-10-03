@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'deploy/supabase/x402-data-tools/**'
+      - 'deploy/supabase-x402-data-tools/**'
       - 'scripts/verify-supabase-production.js'
       - '.github/workflows/supabase-production-x402-smoke.yml'
   workflow_dispatch:
