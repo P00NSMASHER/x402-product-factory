@@ -40,11 +40,13 @@ async function main(){
   const root=await jsonGet("");
   assert(root.response.status===200,"root must return 200");
   assert(root.body?.service==="Agent Data Tools x402","root service mismatch");
+  assert(root.body?.build==="supabase-x402-v5","root build fingerprint mismatch");
   assert(root.body?.network===NETWORK,"root network mismatch");
 
   const health=await jsonGet("/health");
   assert(health.response.status===200,"health must return 200");
   assert(health.body?.ok===true,"health ok must be true");
+  assert(health.body?.build==="supabase-x402-v5","health build fingerprint mismatch");
   assert(health.body?.routeCount===EXPECTED.length,"health route count mismatch");
 
   const catalogResult=await jsonGet("/.well-known/x402");
