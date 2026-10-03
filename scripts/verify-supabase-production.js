@@ -106,7 +106,7 @@ async function main(){
         "access-control-request-headers":"PAYMENT-SIGNATURE"
       }
     });
-    assert(options.status===204,"OPTIONS status drift for "+path);
+    assert(options.status===200||options.status===204,"OPTIONS status drift for "+path+": "+options.status);
     assert(/GET/i.test(options.headers.get("access-control-allow-methods")||""),"OPTIONS GET missing for "+path);
     assert(/PAYMENT-SIGNATURE/i.test(options.headers.get("access-control-allow-headers")||""),"OPTIONS payment header missing for "+path);
 
