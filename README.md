@@ -33,6 +33,18 @@ Build narrow, deterministic, machine-purchasable decision tools for autonomous a
 
 Product 001 has an independently verified third-party Base USDC settlement and remains the payment/distribution reference.
 
+## Product 002
+
+The PA Vendor Intake Gate combines:
+- Pennsylvania Department of State registry identity,
+- U.S. Census address consistency,
+- current OFAC SDN candidate screening, and
+- authoritative RDAP registration.
+
+It returns `proceed` or `human_review`, never an automatic rejection. The factory now contains both its deterministic decision policy and a direct-source composition service. A required-source transport failure is explicitly non-chargeable.
+
+The durable PA seller remains on Floot. Product 002 is not claimed as cut over to Floot until its paid route and same-origin discovery entry are both live there; the historical AppDeploy URL remains reference evidence only.
+
 ## Product 003
 
 Combines:
