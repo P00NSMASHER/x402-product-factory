@@ -1,6 +1,6 @@
 # Product 002 deployment plan — PA Vendor Intake Gate x402
 
-Status: **Floot paid route and discovery live; browser CORS preflight hardening pending**.
+Status: **Floot paid route and discovery live; server-to-server x402 verified**.
 
 ## Product contract
 
@@ -26,7 +26,7 @@ The durable production split remains:
 - PA products on `https://pa-entity-x402.floot.app`
 - SEC, OFAC, Census, RDAP, and Treasury data tools on the existing Supabase seller
 
-Product 002's paid route and same-origin discovery entry are live on Floot at `/_api/vendor-intake-gate`. A zero-payment audit confirms the HTTP 402 challenge and exact payment terms. Full factory readiness is still withheld because Floot's current `OPTIONS` response omits the expected `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers` values. The historical AppDeploy URL is reference evidence only and is not the durable target.
+Product 002's paid route and same-origin discovery entry are live on Floot at `/_api/vendor-intake-gate`. A zero-payment audit confirms the HTTP 402 challenge and exact payment terms. Floot owns the route's `OPTIONS` response and rejects custom `*_OPTIONS.ts` endpoint files, so server-to-server x402 is the supported buyer mode and browser-preflight compatibility is not claimed. The historical AppDeploy URL is reference evidence only and is not the durable target.
 
 Do not move Product 002 to Supabase merely to unify hosting. Do not change the existing Floot PA entity routes or the Supabase five-tool seller.
 
@@ -55,12 +55,12 @@ The deployment must preserve:
 9. unresolved settlement → HTTP 503 and retry the same authorization,
 10. confirmed settlement → HTTP 200 with `PAYMENT-RESPONSE` and `x402-settled:true`.
 
-## Remaining acceptance requirements
+## Production acceptance requirements
 
-Before marking Product 002 fully ready for browser-based buyers:
+The server-to-server production boundary requires:
 
 1. Product 002 deterministic release gate passes.
-2. `node scripts/verify-floot-product-002.js --require-ready` passes against the deployed seller; the non-strict audit currently reports `deployed: true` and `ready: false` only for missing preflight headers.
+2. `node scripts/verify-floot-product-002.js --require-ready` passes against the deployed seller. Browser preflight remains a separately reported Floot limitation and is not part of this gate.
 3. Product 002 decision, service, paid-handler, metadata, and Floot-auditor tests pass.
 4. Zero-spend direct-source smoke completes without source failures.
 5. The Floot deployment source is backed up in a versioned rollback artifact.
@@ -70,7 +70,7 @@ Before marking Product 002 fully ready for browser-based buyers:
 
 ## Production acceptance
 
-After a future authorized Floot preflight-hardening deployment:
+For the current Floot deployment:
 
 1. `/.well-known/x402` returns HTTP 200 and contains `/_api/vendor-intake-gate`.
 2. `/openapi.json` documents Product 002 at `$0.020`.
@@ -81,4 +81,4 @@ After a future authorized Floot preflight-hardening deployment:
 7. Existing Floot PA entity routes continue to return their prior x402 challenges.
 8. The Supabase five-tool seller remains unchanged and healthy.
 
-The paid route and discovery entry are already live. Only after all acceptance checks pass may Product 002 be described as fully browser-preflight ready.
+The paid route and discovery entry are live for server-to-server buyers. Do not describe Product 002 as browser-preflight compatible unless Floot adds and the diagnostic audit verifies the required headers.

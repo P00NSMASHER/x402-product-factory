@@ -129,7 +129,8 @@ function main() {
         catalogResourceAccepts: true,
         publishedInStagingCatalog: false,
         flootProductionRoute: true,
-        browserPreflightAcceptanceRequired: true,
+        supportedBuyerMode: "server-to-server",
+        browserPreflightClaimed: false,
       },
       null,
       2

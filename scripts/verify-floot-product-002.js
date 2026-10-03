@@ -192,11 +192,12 @@ async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
     }
   }
 
-  const problems = [...deploymentProblems, ...preflightProblems];
   return {
     auditCompleted: true,
     deployed: deploymentProblems.length === 0,
-    ready: problems.length === 0,
+    ready: deploymentProblems.length === 0,
+    supportMode: "server-to-server",
+    browserPreflightReady: preflightProblems.length === 0,
     checkedAt: new Date().toISOString(),
     base: normalizedBase,
     route: RESOURCE_PATH,
@@ -219,16 +220,23 @@ async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
     },
     deploymentProblems,
     preflightProblems,
-    problems,
+    problems: deploymentProblems,
+    warnings: preflightProblems,
   };
 }
 
 if (require.main === module) {
   const requireReady = process.argv.includes("--require-ready");
+  const requireBrowserPreflight = process.argv.includes(
+    "--require-browser-preflight"
+  );
   verifyFlootProduct002()
     .then((result) => {
       console.log(JSON.stringify(result, null, 2));
       if (requireReady && !result.ready) process.exitCode = 2;
+      if (requireBrowserPreflight && !result.browserPreflightReady) {
+        process.exitCode = 3;
+      }
     })
     .catch((error) => {
       console.error(error?.stack || error);

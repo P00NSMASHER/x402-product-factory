@@ -116,6 +116,7 @@ test("Floot audit recognizes a complete Product 002 cutover", async () => {
   assert.equal(RESOURCE_PATH, "/_api/vendor-intake-gate");
   assert.equal(result.deployed, true);
   assert.equal(result.ready, true, JSON.stringify(result.problems, null, 2));
+  assert.equal(result.browserPreflightReady, true);
   assert.deepEqual(result.problems, []);
   assert.equal(result.observations.catalogRoutePresent, true);
   assert.equal(result.observations.openapiRoutePresent, true);
@@ -149,6 +150,7 @@ test("Floot audit reports the current SPA-shell state as not ready", async () =>
 
   assert.equal(result.deployed, false);
   assert.equal(result.ready, false);
+  assert.equal(result.browserPreflightReady, false);
   assert.ok(result.problems.includes("catalog_route_missing"));
   assert.ok(result.problems.includes("openapi_route_missing"));
   assert.ok(result.problems.includes("unpaid_status:200"));
@@ -183,7 +185,7 @@ test("Floot audit catches payment-contract drift without sending payment", async
   assert.equal(transport.stats().paymentHeaders, 0);
 });
 
-test("Floot audit distinguishes a deployed route from incomplete browser preflight", async () => {
+test("Floot audit reports browser preflight as a non-blocking Floot limitation", async () => {
   const transport = readyTransport({ includeCors: false });
   const result = await verifyFlootProduct002({
     base: BASE,
@@ -191,11 +193,15 @@ test("Floot audit distinguishes a deployed route from incomplete browser preflig
   });
 
   assert.equal(result.deployed, true);
-  assert.equal(result.ready, false);
+  assert.equal(result.ready, true);
+  assert.equal(result.supportMode, "server-to-server");
+  assert.equal(result.browserPreflightReady, false);
   assert.deepEqual(result.deploymentProblems, []);
+  assert.deepEqual(result.problems, []);
   assert.deepEqual(result.preflightProblems, [
     "options_get_missing",
     "options_payment_header_missing",
   ]);
+  assert.deepEqual(result.warnings, result.preflightProblems);
   assert.equal(transport.stats().paymentHeaders, 0);
 });
