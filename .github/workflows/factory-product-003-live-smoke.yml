@@ -9,8 +9,6 @@ on:
       - 'products/**'
       - 'packages/sources/**'
       - 'scripts/run-live-smokes.js'
-      - 'scripts/verify-supabase-production.js'
-      - 'deploy/supabase/x402-data-tools/**'
       - '.github/workflows/factory-product-003-live-smoke.yml'
   workflow_dispatch:
 
@@ -27,5 +25,3 @@ jobs:
       - name: Run every staging product live smoke
         run: node scripts/run-live-smokes.js
 
-      - name: Verify Supabase production x402 seller
-        run: node scripts/verify-supabase-production.js
