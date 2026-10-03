@@ -1099,7 +1099,7 @@ Deno.serve(async (request: Request) => {
   const context = requestContext(url);
 
   if (request.method === "OPTIONS") {
-    return new Response("", { status: 204, headers: CORS });
+    return new Response(null, { status: 204, headers: CORS });
   }
   if (request.method !== "GET") {
     return json({ error: "method_not_allowed" }, 405);
