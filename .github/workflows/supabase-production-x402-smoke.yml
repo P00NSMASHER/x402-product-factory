@@ -1,0 +1,24 @@
+name: Supabase production x402 smoke
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'deploy/supabase/x402-data-tools/**'
+      - 'scripts/verify-supabase-production.js'
+      - '.github/workflows/supabase-production-x402-smoke.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-production-x402-smoke
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify production seller
+        run: node scripts/verify-supabase-production.js
