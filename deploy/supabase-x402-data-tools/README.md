@@ -51,3 +51,11 @@ The Edge Function does not read or write the Supabase database and does not use 
 - BotMarket submission #37 is the current unified catalog listing for this origin.
 - BotMarket submissions #31-#35 pointed at the older AppDeploy product hosts and have been marked to the maintainer as superseded by #37.
 - BotMarket submission #30 (PA Entity on Floot) remains separate and current.
+
+## Source of truth
+
+Canonical source path in this repository:
+
+`deploy/supabase-x402-data-tools/index.ts`
+
+Do not maintain a second copy of this Edge Function under another deployment directory. The canonical file should be compared against the live Supabase Edge Function before any redeploy.
