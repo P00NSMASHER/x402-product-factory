@@ -40,7 +40,7 @@ function openApiPath() {
       ],
       parameters: [
         {
-          name: "company",
+          name: "name",
           in: "query",
           required: true,
           schema: { type: "string", minLength: 2, maxLength: 120 },
@@ -75,7 +75,7 @@ function openApiPath() {
         },
         400: {
           description:
-            "Invalid company, address, or domain input. Payment is not settled.",
+            "Invalid vendor name, address, or domain input. Payment is not settled.",
         },
         402: {
           description:
@@ -103,12 +103,12 @@ function llmsText(publicApiBase) {
     "Paid endpoint: GET " +
       base +
       RESOURCE_PATH +
-      "?company=OpenAI%20OpCo&address=600%20North%20Second%20Street%2C%20Suite%20401%2C%20Harrisburg%2C%20PA%2017101&domain=openai.com",
+      "?name=OpenAI%20OpCo&address=600%20North%20Second%20Street%2C%20Suite%20401%2C%20Harrisburg%2C%20PA%2017101&domain=openai.com",
     "Price: $0.020 USDC on Base via x402.",
     "Sources: Pennsylvania Department of State via data.pa.gov; U.S. Census Bureau Geocoding Services; current U.S. Treasury OFAC SDN/ALT files; IANA RDAP bootstrap plus authoritative registry RDAP.",
     "Returns: proceed or human_review with ordered review triggers and source evidence. There is no automatic rejection.",
     "Proceed is not legal/compliance approval, sanctions clearance, fraud/credit approval, good-standing certification, proof of address control, or proof of domain ownership.",
-    "The historical name query is accepted as a compatibility alias for company.",
+    "The company query is accepted as a compatibility alias for the canonical name input.",
     "On HTTP 503 retry the same PAYMENT-SIGNATURE rather than creating a new payment authorization.",
   ].join("\n");
 }

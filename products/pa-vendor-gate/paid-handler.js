@@ -13,7 +13,7 @@ const { validateVendorIntakeInput } = require("./service");
 
 const AMOUNT_ATOMIC = "20000";
 const PRICE = "$0.020";
-const RESOURCE_PATH = "/api/vendor-intake-gate";
+const RESOURCE_PATH = "/_api/vendor-intake-gate";
 
 function header(event, name) {
   const wanted = name.toLowerCase();
@@ -68,7 +68,7 @@ function productPaymentDocument(publicApiBase) {
       type: "http",
       method: "GET",
       queryParams: {
-        company: "OpenAI OpCo",
+        name: "OpenAI OpCo",
         address:
           "600 North Second Street, Suite 401, Harrisburg, PA 17101",
         domain: "openai.com",
@@ -125,7 +125,7 @@ function createPaidVendorIntakeHandler({
     let normalized;
     try {
       normalized = validateVendorIntakeInput({
-        company: query.company ?? query.name ?? "",
+        company: query.name ?? query.company ?? "",
         address: query.address ?? "",
         domain: query.domain ?? "",
       });

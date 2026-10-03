@@ -47,7 +47,7 @@ function response(status, body, headers = {}) {
   };
 }
 
-function readyTransport({ mutateCatalog, mutateChallenge } = {}) {
+function readyTransport({ mutateCatalog, mutateChallenge, includeCors = true } = {}) {
   let paymentHeaders = 0;
   const fetchImpl = async (url, init = {}) => {
     for (const [key, value] of Object.entries(init.headers || {})) {
@@ -84,10 +84,16 @@ function readyTransport({ mutateCatalog, mutateChallenge } = {}) {
       }, { "content-type": "application/json" });
     }
     if (parsed.pathname === RESOURCE_PATH && init.method === "OPTIONS") {
-      return response(204, "", {
-        "access-control-allow-methods": "GET, OPTIONS",
-        "access-control-allow-headers": "PAYMENT-SIGNATURE, Content-Type",
-      });
+      return response(
+        204,
+        "",
+        includeCors
+          ? {
+              "access-control-allow-methods": "GET, OPTIONS",
+              "access-control-allow-headers": "PAYMENT-SIGNATURE, Content-Type",
+            }
+          : {}
+      );
     }
     if (parsed.pathname === RESOURCE_PATH) {
       const document = mutateChallenge
@@ -107,6 +113,8 @@ test("Floot audit recognizes a complete Product 002 cutover", async () => {
   const transport = readyTransport();
   const result = await verifyFlootProduct002({ base: BASE, fetchImpl: transport.fetchImpl });
 
+  assert.equal(RESOURCE_PATH, "/_api/vendor-intake-gate");
+  assert.equal(result.deployed, true);
   assert.equal(result.ready, true, JSON.stringify(result.problems, null, 2));
   assert.deepEqual(result.problems, []);
   assert.equal(result.observations.catalogRoutePresent, true);
@@ -139,6 +147,7 @@ test("Floot audit reports the current SPA-shell state as not ready", async () =>
 
   const result = await verifyFlootProduct002({ base: BASE, fetchImpl });
 
+  assert.equal(result.deployed, false);
   assert.equal(result.ready, false);
   assert.ok(result.problems.includes("catalog_route_missing"));
   assert.ok(result.problems.includes("openapi_route_missing"));
@@ -166,9 +175,27 @@ test("Floot audit catches payment-contract drift without sending payment", async
 
   const result = await verifyFlootProduct002({ base: BASE, fetchImpl: transport.fetchImpl });
 
+  assert.equal(result.deployed, false);
   assert.equal(result.ready, false);
   assert.ok(result.problems.includes("catalog_accept:amount"));
   assert.ok(result.problems.includes("unpaid_accept:payto"));
   assert.ok(result.problems.includes("payment_required_accept:payto"));
+  assert.equal(transport.stats().paymentHeaders, 0);
+});
+
+test("Floot audit distinguishes a deployed route from incomplete browser preflight", async () => {
+  const transport = readyTransport({ includeCors: false });
+  const result = await verifyFlootProduct002({
+    base: BASE,
+    fetchImpl: transport.fetchImpl,
+  });
+
+  assert.equal(result.deployed, true);
+  assert.equal(result.ready, false);
+  assert.deepEqual(result.deploymentProblems, []);
+  assert.deepEqual(result.preflightProblems, [
+    "options_get_missing",
+    "options_payment_header_missing",
+  ]);
   assert.equal(transport.stats().paymentHeaders, 0);
 });

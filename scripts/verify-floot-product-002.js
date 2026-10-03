@@ -1,14 +1,14 @@
 "use strict";
 
 const BASE = "https://pa-entity-x402.floot.app";
-const RESOURCE_PATH = "/api/vendor-intake-gate";
+const RESOURCE_PATH = "/_api/vendor-intake-gate";
 const NETWORK = "eip155:8453";
 const USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const PAY_TO = "0x708f7b52b56eafd7fc1de65fc7752ed732914021";
 const AMOUNT = "20000";
 const PRICE = "$0.020";
 const QUERY =
-  "company=OpenAI%20OpCo&address=600%20North%20Second%20Street%2C%20Suite%20401%2C%20Harrisburg%2C%20PA%2017101&domain=openai.com";
+  "name=OpenAI%20OpCo&address=600%20North%20Second%20Street%2C%20Suite%20401%2C%20Harrisburg%2C%20PA%2017101&domain=openai.com";
 
 function decodeBase64Json(value) {
   if (typeof value !== "string" || !value.trim()) return null;
@@ -62,16 +62,17 @@ function requirementProblems(prefix, accept) {
 async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
   const normalizedBase = base.replace(/\/$/, "");
   const routeUrl = normalizedBase + RESOURCE_PATH;
-  const problems = [];
+  const deploymentProblems = [];
+  const preflightProblems = [];
 
   const catalogResult = await request(
     fetchImpl,
     normalizedBase + "/.well-known/x402",
     { headers: { accept: "application/json" } }
   );
-  if (catalogResult.error) problems.push("catalog_transport");
+  if (catalogResult.error) deploymentProblems.push("catalog_transport");
   else if (catalogResult.response.status !== 200) {
-    problems.push("catalog_status:" + catalogResult.response.status);
+    deploymentProblems.push("catalog_status:" + catalogResult.response.status);
   }
 
   const resources = Array.isArray(catalogResult.json?.resources)
@@ -79,11 +80,15 @@ async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
     : [];
   const resource = resources.find((item) => item?.resource === routeUrl) || null;
   if (!resource) {
-    problems.push("catalog_route_missing");
+    deploymentProblems.push("catalog_route_missing");
   } else {
-    if (resource.price !== PRICE) problems.push("catalog_price");
-    problems.push(...requirementProblems("catalog_accept", resource.accepts?.[0]));
-    if (!resource.extensions?.bazaar) problems.push("catalog_bazaar_missing");
+    if (resource.price !== PRICE) deploymentProblems.push("catalog_price");
+    deploymentProblems.push(
+      ...requirementProblems("catalog_accept", resource.accepts?.[0])
+    );
+    if (!resource.extensions?.bazaar) {
+      deploymentProblems.push("catalog_bazaar_missing");
+    }
   }
 
   const openapiResult = await request(
@@ -91,67 +96,69 @@ async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
     normalizedBase + "/openapi.json",
     { headers: { accept: "application/json" } }
   );
-  if (openapiResult.error) problems.push("openapi_transport");
+  if (openapiResult.error) deploymentProblems.push("openapi_transport");
   else if (openapiResult.response.status !== 200) {
-    problems.push("openapi_status:" + openapiResult.response.status);
+    deploymentProblems.push("openapi_status:" + openapiResult.response.status);
   }
   const operation = openapiResult.json?.paths?.[RESOURCE_PATH]?.get;
   if (!operation) {
-    problems.push("openapi_route_missing");
+    deploymentProblems.push("openapi_route_missing");
   } else {
     if (operation["x-payment-info"]?.price?.amount !== "0.020000") {
-      problems.push("openapi_price");
+      deploymentProblems.push("openapi_price");
     }
     if (operation["x-payment-info"]?.network !== NETWORK) {
-      problems.push("openapi_network");
+      deploymentProblems.push("openapi_network");
     }
     if (
       !Array.isArray(operation["x-payment-info"]?.protocols) ||
       !operation["x-payment-info"].protocols.some((item) => item?.x402)
     ) {
-      problems.push("openapi_x402_protocol_missing");
+      deploymentProblems.push("openapi_x402_protocol_missing");
     }
     if (
       String(operation["x-payment-info"]?.payTo).toLowerCase() !==
       PAY_TO.toLowerCase()
     ) {
-      problems.push("openapi_payto");
+      deploymentProblems.push("openapi_payto");
     }
   }
 
   const unpaidResult = await request(fetchImpl, routeUrl + "?" + QUERY, {
     headers: { accept: "application/json" },
   });
-  if (unpaidResult.error) problems.push("unpaid_transport");
+  if (unpaidResult.error) deploymentProblems.push("unpaid_transport");
   else {
     if (unpaidResult.response.status !== 402) {
-      problems.push("unpaid_status:" + unpaidResult.response.status);
+      deploymentProblems.push("unpaid_status:" + unpaidResult.response.status);
     }
     const contentType = unpaidResult.response.headers.get("content-type") || "";
     if (!/application\/json/i.test(contentType)) {
-      problems.push("unpaid_content_type");
+      deploymentProblems.push("unpaid_content_type");
     }
-    if (unpaidResult.json?.x402Version !== 2) problems.push("unpaid_x402_version");
-    problems.push(
+    if (unpaidResult.json?.x402Version !== 2) {
+      deploymentProblems.push("unpaid_x402_version");
+    }
+    deploymentProblems.push(
       ...requirementProblems("unpaid_accept", unpaidResult.json?.accepts?.[0])
     );
     const headerDocument = decodeBase64Json(
       unpaidResult.response.headers.get("payment-required")
     );
     if (!headerDocument) {
-      problems.push("payment_required_header_missing");
+      deploymentProblems.push("payment_required_header_missing");
     } else {
       if (headerDocument.resource?.url !== routeUrl) {
-        problems.push("payment_required_resource");
+        deploymentProblems.push("payment_required_resource");
       }
-      problems.push(
+      deploymentProblems.push(
         ...requirementProblems(
           "payment_required_accept",
           headerDocument.accepts?.[0]
         )
       );
       if (!headerDocument.extensions?.bazaar) {
-        problems.push("payment_required_bazaar_missing");
+        deploymentProblems.push("payment_required_bazaar_missing");
       }
     }
   }
@@ -164,29 +171,31 @@ async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
       "access-control-request-headers": "PAYMENT-SIGNATURE",
     },
   });
-  if (optionsResult.error) problems.push("options_transport");
+  if (optionsResult.error) preflightProblems.push("options_transport");
   else {
     if (![200, 204].includes(optionsResult.response.status)) {
-      problems.push("options_status:" + optionsResult.response.status);
+      preflightProblems.push("options_status:" + optionsResult.response.status);
     }
     if (
       !/GET/i.test(
         optionsResult.response.headers.get("access-control-allow-methods") || ""
       )
     ) {
-      problems.push("options_get_missing");
+      preflightProblems.push("options_get_missing");
     }
     if (
       !/PAYMENT-SIGNATURE/i.test(
         optionsResult.response.headers.get("access-control-allow-headers") || ""
       )
     ) {
-      problems.push("options_payment_header_missing");
+      preflightProblems.push("options_payment_header_missing");
     }
   }
 
+  const problems = [...deploymentProblems, ...preflightProblems];
   return {
     auditCompleted: true,
+    deployed: deploymentProblems.length === 0,
     ready: problems.length === 0,
     checkedAt: new Date().toISOString(),
     base: normalizedBase,
@@ -208,6 +217,8 @@ async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
         unpaidResult.response?.headers.get("content-type") ?? null,
       optionsStatus: optionsResult.response?.status ?? null,
     },
+    deploymentProblems,
+    preflightProblems,
     problems,
   };
 }

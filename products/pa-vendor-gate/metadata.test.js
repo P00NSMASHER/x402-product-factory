@@ -13,7 +13,7 @@ const BASE = "https://example.test";
 
 test("catalog resource advertises the Product 002 Base-USDC contract", () => {
   const resource = catalogResource(BASE);
-  assert.equal(resource.resource, BASE + "/api/vendor-intake-gate");
+  assert.equal(resource.resource, BASE + "/_api/vendor-intake-gate");
   assert.equal(resource.method, "GET");
   assert.equal(resource.price, "$0.020");
   assert.equal(resource.accepts.length, 1);
@@ -29,7 +29,7 @@ test("OpenAPI fragment exposes inputs, payment metadata, and no-charge failures"
   assert.equal(path.get.operationId, OPERATION_ID);
   assert.deepEqual(
     path.get.parameters.map((parameter) => parameter.name),
-    ["company", "address", "domain"]
+    ["name", "address", "domain"]
   );
   assert.equal(path.get["x-payment-info"].price.amount, "0.020000");
   assert.ok(path.get.responses[502]);

@@ -34,6 +34,11 @@ function main() {
   assert.equal(product.method, "GET");
   assert.equal(product.path, RESOURCE_PATH);
   assert.equal(product.price_usdc, "0.020");
+  assert.equal(product.production_origin, "https://pa-entity-x402.floot.app");
+  assert.equal(
+    spec.production_reference,
+    product.production_origin + RESOURCE_PATH
+  );
   assert.equal(product.release_gate, "scripts/validate-product-002.js");
   assert.deepEqual(product.decision_values, ["proceed", "human_review"]);
 
@@ -88,7 +93,7 @@ function main() {
   assert.equal(operation.operationId, "gatePennsylvaniaVendorIntake");
   assert.deepEqual(
     operation.parameters.map((parameter) => parameter.name),
-    ["company", "address", "domain"]
+    ["name", "address", "domain"]
   );
   assert.equal(operation["x-payment-info"].price.amount, "0.020000");
   assert.ok(operation.responses[502]);
@@ -96,7 +101,7 @@ function main() {
   assert.match(operation.description, /never an automatic rejection/i);
 
   const agentText = llmsText(base);
-  assert.match(agentText, /historical name query/i);
+  assert.match(agentText, /company query is accepted/i);
   assert.match(agentText, /no automatic rejection/i);
   assert.match(agentText, /same PAYMENT-SIGNATURE/i);
 
@@ -106,7 +111,7 @@ function main() {
       (resource) => resource.resource === base + RESOURCE_PATH
     ),
     false,
-    "Product 002 must not enter staged discovery before Floot cutover"
+    "Product 002 must remain out of the separate staged catalog because its durable production target is Floot"
   );
 
   console.log(
@@ -123,7 +128,8 @@ function main() {
         directSourceChecks: spec.checks,
         catalogResourceAccepts: true,
         publishedInStagingCatalog: false,
-        flootCutoverRequired: true,
+        flootProductionRoute: true,
+        browserPreflightAcceptanceRequired: true,
       },
       null,
       2

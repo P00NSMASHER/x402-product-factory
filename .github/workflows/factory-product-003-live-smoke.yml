@@ -9,6 +9,7 @@ on:
       - 'products/**'
       - 'packages/sources/**'
       - 'scripts/run-live-smokes.js'
+      - 'scripts/verify-floot-product-002.js'
       - '.github/workflows/factory-product-003-live-smoke.yml'
   workflow_dispatch:
 

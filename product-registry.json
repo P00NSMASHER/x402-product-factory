@@ -15,9 +15,11 @@
       "status": "production-reference",
       "module_directory": "pa-vendor-gate",
       "method": "GET",
-      "path": "/api/vendor-intake-gate",
+      "path": "/_api/vendor-intake-gate",
       "price_usdc": "0.020",
-      "production_origin": "https://api-v2.appdeploy.ai/app/pa-entity-lookup-x402-4fbm4s",
+      "production_origin": "https://pa-entity-x402.floot.app",
+      "historical_production_origin": "https://api-v2.appdeploy.ai/app/pa-entity-lookup-x402-4fbm4s",
+      "live_status": "paid route and same-origin discovery verified on Floot; browser CORS preflight headers pending",
       "release_gate": "scripts/validate-product-002.js",
       "decision_values": [
         "proceed",

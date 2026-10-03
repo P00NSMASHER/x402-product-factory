@@ -27,7 +27,7 @@ function paymentSignature() {
 
 function goodQuery() {
   return {
-    company: "OpenAI OpCo",
+    name: "OpenAI OpCo",
     address:
       "600 North Second Street, Suite 401, Harrisburg, PA 17101",
     domain: "openai.com",
@@ -77,7 +77,7 @@ test("invalid input is rejected before facilitator verification", async () => {
   });
 
   const result = await handler({
-    query: { company: "OpenAI", address: "short", domain: "not a domain" },
+    query: { name: "OpenAI", address: "short", domain: "not a domain" },
     event: { headers: { "payment-signature": paymentSignature() } },
   });
   assert.equal(result.statusCode, 400);
@@ -124,7 +124,7 @@ test("valid payment verifies, computes, settles, then returns paid result", asyn
   assert.ok(result.headers["PAYMENT-RESPONSE"]);
 });
 
-test("historical name query remains compatible with the canonical company input", async () => {
+test("company query remains compatible with the canonical name input", async () => {
   let observedCompany = null;
   const handler = createPaidVendorIntakeHandler({
     publicApiBase: "https://example.test",
@@ -140,8 +140,8 @@ test("historical name query remains compatible with the canonical company input"
         : response({ success: true }),
   });
   const query = goodQuery();
-  query.name = query.company;
-  delete query.company;
+  query.company = query.name;
+  delete query.name;
 
   const result = await handler({
     query,

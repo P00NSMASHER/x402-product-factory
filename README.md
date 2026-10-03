@@ -11,7 +11,7 @@ Build narrow, deterministic, machine-purchasable decision tools for autonomous a
 | # | Product | Status | Route | Price |
 |---|---|---|---|---:|
 | 001 | PA Entity Lookup | production reference | `/_api/pa-entity-one` | $0.001 |
-| 002 | PA Vendor Intake Gate | production reference | `/api/vendor-intake-gate` | $0.020 |
+| 002 | PA Vendor Intake Gate | Floot production; CORS hardening pending | `/_api/vendor-intake-gate` | $0.020 |
 | 003 | PA Vendor Identity Match | live-source-verified staging | `/api/pa-vendor-identity-match` | $0.005 |
 | 004 | PA Business Address Match | live-source-verified staging | `/api/pa-business-address-match` | $0.003 |
 | 005 | PA Business Domain Match | live-source-verified staging | `/api/pa-business-domain-match` | $0.003 |
@@ -43,9 +43,9 @@ The PA Vendor Intake Gate combines:
 
 It returns `proceed` or `human_review`, never an automatic rejection. The factory now contains its deterministic decision policy, direct-source composition service, shared-x402 paid handler, and discovery metadata. A required-source transport failure is explicitly non-chargeable and is never settled.
 
-The durable PA seller remains on Floot. Product 002 is not claimed as cut over to Floot until its paid route and same-origin discovery entry are both live there; the historical AppDeploy URL remains reference evidence only.
+The durable PA seller remains on Floot. Product 002's paid route, unpaid x402 challenge, OpenAPI operation, and same-origin discovery entry are live there at `/_api/vendor-intake-gate`; the historical AppDeploy URL remains reference evidence only. The current Floot `OPTIONS` response is `204` but omits the expected CORS allow headers, so full browser-preflight acceptance remains pending.
 
-`node scripts/verify-floot-product-002.js` performs a read-only, zero-payment audit of that cutover boundary. Strict acceptance uses `--require-ready` only after a deployment is expected to be live.
+`node scripts/verify-floot-product-002.js` performs a read-only, zero-payment audit of that cutover boundary. Its `deployed` result covers the live route and discovery contract; `ready` additionally requires browser preflight headers. Strict acceptance uses `--require-ready` after preflight hardening is expected to be live.
 
 ## Product 003
 
