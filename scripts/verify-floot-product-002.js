@@ -9,6 +9,22 @@ const AMOUNT = "20000";
 const PRICE = "$0.020";
 const QUERY =
   "name=OpenAI%20OpCo&address=600%20North%20Second%20Street%2C%20Suite%20401%2C%20Harrisburg%2C%20PA%2017101&domain=openai.com";
+const PRESERVED_PA_ROUTES = Object.freeze([
+  Object.freeze({
+    id: "pa_entity_one",
+    path: "/_api/pa-entity-one",
+    query: "q=OpenAI",
+    price: "$0.001",
+    amount: "1000",
+  }),
+  Object.freeze({
+    id: "pa_business",
+    path: "/_api/pa-business",
+    query: "q=OpenAI&limit=1",
+    price: "$0.005",
+    amount: "5000",
+  }),
+]);
 
 function decodeBase64Json(value) {
   if (typeof value !== "string" || !value.trim()) return null;
@@ -42,12 +58,12 @@ async function request(fetchImpl, url, init = {}) {
   }
 }
 
-function requirementProblems(prefix, accept) {
+function requirementProblems(prefix, accept, expectedAmount = AMOUNT) {
   const problems = [];
   if (!accept) return [prefix + ":missing"];
   if (accept.scheme !== "exact") problems.push(prefix + ":scheme");
   if (accept.network !== NETWORK) problems.push(prefix + ":network");
-  if (accept.amount !== AMOUNT) problems.push(prefix + ":amount");
+  if (accept.amount !== expectedAmount) problems.push(prefix + ":amount");
   if (String(accept.asset).toLowerCase() !== USDC.toLowerCase()) {
     problems.push(prefix + ":asset");
   }
@@ -89,6 +105,79 @@ async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
     if (!resource.extensions?.bazaar) {
       deploymentProblems.push("catalog_bazaar_missing");
     }
+  }
+
+  const preservedPaRoutes = [];
+  for (const preserved of PRESERVED_PA_ROUTES) {
+    const prefix = "preserved_pa:" + preserved.id;
+    const preservedUrl = normalizedBase + preserved.path;
+    const catalogEntry =
+      resources.find((item) => item?.resource === preservedUrl) || null;
+    if (!catalogEntry) {
+      deploymentProblems.push(prefix + ":catalog_missing");
+    } else {
+      if (catalogEntry.price !== preserved.price) {
+        deploymentProblems.push(prefix + ":catalog_price");
+      }
+      deploymentProblems.push(
+        ...requirementProblems(
+          prefix + ":catalog_accept",
+          catalogEntry.accepts?.[0],
+          preserved.amount
+        )
+      );
+    }
+
+    const unpaid = await request(
+      fetchImpl,
+      preservedUrl + "?" + preserved.query,
+      { headers: { accept: "application/json" } }
+    );
+    if (unpaid.error) {
+      deploymentProblems.push(prefix + ":unpaid_transport");
+    } else {
+      if (unpaid.response.status !== 402) {
+        deploymentProblems.push(prefix + ":unpaid_status:" + unpaid.response.status);
+      }
+      if (unpaid.json?.x402Version !== 2) {
+        deploymentProblems.push(prefix + ":unpaid_x402_version");
+      }
+      if (unpaid.json?.price !== preserved.price) {
+        deploymentProblems.push(prefix + ":unpaid_price");
+      }
+      deploymentProblems.push(
+        ...requirementProblems(
+          prefix + ":unpaid_accept",
+          unpaid.json?.accepts?.[0],
+          preserved.amount
+        )
+      );
+      const headerDocument = decodeBase64Json(
+        unpaid.response.headers.get("payment-required")
+      );
+      if (!headerDocument) {
+        deploymentProblems.push(prefix + ":payment_required_header_missing");
+      } else {
+        if (headerDocument.resource?.url !== preservedUrl) {
+          deploymentProblems.push(prefix + ":payment_required_resource");
+        }
+        deploymentProblems.push(
+          ...requirementProblems(
+            prefix + ":payment_required_accept",
+            headerDocument.accepts?.[0],
+            preserved.amount
+          )
+        );
+      }
+    }
+    preservedPaRoutes.push({
+      id: preserved.id,
+      path: preserved.path,
+      expectedPrice: preserved.price,
+      expectedAmount: preserved.amount,
+      catalogPresent: Boolean(catalogEntry),
+      unpaidStatus: unpaid.response?.status ?? null,
+    });
   }
 
   const openapiResult = await request(
@@ -217,6 +306,7 @@ async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
       unpaidContentType:
         unpaidResult.response?.headers.get("content-type") ?? null,
       optionsStatus: optionsResult.response?.status ?? null,
+      preservedPaRoutes,
     },
     deploymentProblems,
     preflightProblems,
@@ -252,6 +342,7 @@ module.exports = {
   PAY_TO,
   AMOUNT,
   PRICE,
+  PRESERVED_PA_ROUTES,
   decodeBase64Json,
   requirementProblems,
   verifyFlootProduct002,

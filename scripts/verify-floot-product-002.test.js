@@ -8,6 +8,7 @@ const {
   USDC,
   PAY_TO,
   AMOUNT,
+  PRESERVED_PA_ROUTES,
   verifyFlootProduct002,
 } = require("./verify-floot-product-002");
 
@@ -47,7 +48,12 @@ function response(status, body, headers = {}) {
   };
 }
 
-function readyTransport({ mutateCatalog, mutateChallenge, includeCors = true } = {}) {
+function readyTransport({
+  mutateCatalog,
+  mutateChallenge,
+  includeCors = true,
+  omitPreservedCatalog = null,
+} = {}) {
   let paymentHeaders = 0;
   const fetchImpl = async (url, init = {}) => {
     for (const [key, value] of Object.entries(init.headers || {})) {
@@ -61,9 +67,19 @@ function readyTransport({ mutateCatalog, mutateChallenge, includeCors = true } =
         accepts: [paymentRequirement()],
         extensions: { bazaar: { info: {} } },
       };
+      const preservedResources = PRESERVED_PA_ROUTES.filter(
+        (item) => item.id !== omitPreservedCatalog
+      ).map((item) => ({
+        resource: BASE + item.path,
+        price: item.price,
+        accepts: [paymentRequirement({ amount: item.amount })],
+      }));
       return response(200, {
         x402Version: 2,
-        resources: [mutateCatalog ? mutateCatalog(resource) : resource],
+        resources: [
+          mutateCatalog ? mutateCatalog(resource) : resource,
+          ...preservedResources,
+        ],
       }, { "content-type": "application/json" });
     }
     if (parsed.pathname === "/openapi.json") {
@@ -104,6 +120,25 @@ function readyTransport({ mutateCatalog, mutateChallenge, includeCors = true } =
         "payment-required": Buffer.from(JSON.stringify(document)).toString("base64"),
       });
     }
+    const preserved = PRESERVED_PA_ROUTES.find(
+      (item) => item.path === parsed.pathname
+    );
+    if (preserved) {
+      const document = paymentDocument({
+        resource: { url: BASE + preserved.path },
+        accepts: [paymentRequirement({ amount: preserved.amount })],
+      });
+      return response(
+        402,
+        { ...document, price: preserved.price },
+        {
+          "content-type": "application/json; charset=utf-8",
+          "payment-required": Buffer.from(JSON.stringify(document)).toString(
+            "base64"
+          ),
+        }
+      );
+    }
     throw new Error("unexpected URL " + url);
   };
   return { fetchImpl, stats: () => ({ paymentHeaders }) };
@@ -121,6 +156,12 @@ test("Floot audit recognizes a complete Product 002 cutover", async () => {
   assert.equal(result.observations.catalogRoutePresent, true);
   assert.equal(result.observations.openapiRoutePresent, true);
   assert.equal(result.observations.unpaidStatus, 402);
+  assert.equal(result.observations.preservedPaRoutes.length, 2);
+  assert.ok(
+    result.observations.preservedPaRoutes.every(
+      (item) => item.catalogPresent && item.unpaidStatus === 402
+    )
+  );
   assert.equal(transport.stats().paymentHeaders, 0);
 });
 
@@ -203,5 +244,18 @@ test("Floot audit reports browser preflight as a non-blocking Floot limitation",
     "options_payment_header_missing",
   ]);
   assert.deepEqual(result.warnings, result.preflightProblems);
+  assert.equal(transport.stats().paymentHeaders, 0);
+});
+
+test("Floot audit blocks readiness when an existing PA catalog route disappears", async () => {
+  const transport = readyTransport({ omitPreservedCatalog: "pa_entity_one" });
+  const result = await verifyFlootProduct002({
+    base: BASE,
+    fetchImpl: transport.fetchImpl,
+  });
+
+  assert.equal(result.deployed, false);
+  assert.equal(result.ready, false);
+  assert.ok(result.problems.includes("preserved_pa:pa_entity_one:catalog_missing"));
   assert.equal(transport.stats().paymentHeaders, 0);
 });
