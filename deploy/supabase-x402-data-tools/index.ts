@@ -1,5 +1,6 @@
 
 const FUNCTION_NAME = "x402-data-tools";
+const BUILD_ID = "supabase-x402-v5";
 const NETWORK = "eip155:8453";
 const USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const PAY_TO = "0x708f7b52b56eafd7fc7752ed732914021";
@@ -1109,6 +1110,7 @@ Deno.serve(async (request: Request) => {
     return json({
       ok: true,
       service: "Agent Data Tools x402",
+      build: BUILD_ID,
       seller: context.base,
       price: "$0.005 USDC per route",
       network: NETWORK,
@@ -1120,6 +1122,7 @@ Deno.serve(async (request: Request) => {
     return json({
       ok: true,
       service: "Agent Data Tools x402",
+      build: BUILD_ID,
       routeCount: ROUTES.length,
     });
   }
