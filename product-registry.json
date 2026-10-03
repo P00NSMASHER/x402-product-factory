@@ -18,6 +18,7 @@
       "path": "/api/vendor-intake-gate",
       "price_usdc": "0.020",
       "production_origin": "https://api-v2.appdeploy.ai/app/pa-entity-lookup-x402-4fbm4s",
+      "release_gate": "scripts/validate-product-002.js",
       "decision_values": [
         "proceed",
         "human_review"

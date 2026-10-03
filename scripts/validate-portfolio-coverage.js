@@ -64,11 +64,53 @@ function validatePortfolioCoverage(root=path.resolve(__dirname,"..")){
     }
   }
 
+  const product002=registry.products.find(product=>product.number==="002");
+  const product002Files=[
+    "spec.json",
+    "decision.js",
+    "decision.test.js",
+    "service.js",
+    "service.test.js",
+    "paid-handler.js",
+    "paid-handler.test.js",
+    "metadata.js",
+    "metadata.test.js",
+    "live-smoke.js",
+    "DEPLOYMENT_PLAN.md"
+  ];
+  if(!product002){
+    problems.push("product-002:missing_registry_entry");
+  }else{
+    const directory=product002.module_directory||product002.id;
+    for(const name of product002Files){
+      if(!exists("products/"+directory+"/"+name)){
+        problems.push("product-002:missing_file:"+name);
+      }
+    }
+    if(product002.release_gate!=="scripts/validate-product-002.js"){
+      problems.push("product-002:release_gate_drift");
+    }
+    if(!exists("scripts/validate-product-002.js")){
+      problems.push("product-002:release_gate_file_missing");
+    }
+    if(!modules.METADATA_MODULES[product002.id]){
+      problems.push("product-002:missing_generated_metadata_module");
+    }
+    if(!modules.SERVICE_MODULES[product002.id]){
+      problems.push("product-002:missing_generated_service_module");
+    }
+    if(!modules.PAID_HANDLER_MODULES[product002.id]){
+      problems.push("product-002:missing_generated_paid_handler_module");
+    }
+  }
+
   const architectureChecks=[
     ["ci_dynamic_tests",ci.includes("scripts/run-all-tests.js")],
     ["ci_dynamic_release_gates",ci.includes("scripts/run-release-gates.js")],
     ["ci_generated_registry_check",ci.includes("generate-product-module-registry.js --check")],
-    ["smoke_dynamic_runner",smokeWorkflow.includes("scripts/run-live-smokes.js")]
+    ["smoke_dynamic_runner",smokeWorkflow.includes("scripts/run-live-smokes.js")],
+    ["product_002_ci_gate",ci.includes("scripts/validate-product-002.js")],
+    ["product_002_live_smoke",smokeWorkflow.includes("products/pa-vendor-gate/live-smoke.js")]
   ];
   for(const [name,ok] of architectureChecks){
     if(!ok)problems.push("factory:"+name+":missing");
