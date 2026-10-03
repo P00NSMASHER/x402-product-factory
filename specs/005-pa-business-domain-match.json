@@ -71,7 +71,8 @@
         "paid",
         "price"
       ]
-    }
+    },
+    "input_rule": null
   },
   "sources": [
     {
