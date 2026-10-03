@@ -99,7 +99,13 @@ function createStandardPaidHandler({
 
     let normalized;
     try{
-      normalized=validateInput(query);
+      const validationInput=Object.fromEntries(
+        (product.inputs||[]).map(input=>[
+          input.name,
+          query?.[input.name]??""
+        ])
+      );
+      normalized=validateInput(validationInput);
     }catch(error){
       return json(400,{
         error:"invalid_request",
