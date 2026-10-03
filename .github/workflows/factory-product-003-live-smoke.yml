@@ -22,6 +22,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Audit Product 002 Floot cutover readiness without payment
+        run: node scripts/verify-floot-product-002.js
       - name: Run Product 002 zero-spend live-source smoke
         run: node products/pa-vendor-gate/live-smoke.js
       - name: Run every staging product live smoke

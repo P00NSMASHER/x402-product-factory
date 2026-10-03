@@ -45,6 +45,8 @@ It returns `proceed` or `human_review`, never an automatic rejection. The factor
 
 The durable PA seller remains on Floot. Product 002 is not claimed as cut over to Floot until its paid route and same-origin discovery entry are both live there; the historical AppDeploy URL remains reference evidence only.
 
+`node scripts/verify-floot-product-002.js` performs a read-only, zero-payment audit of that cutover boundary. Strict acceptance uses `--require-ready` only after a deployment is expected to be live.
+
 ## Product 003
 
 Combines:

@@ -60,12 +60,13 @@ The deployment must preserve:
 Before changing the production status or discovery surfaces:
 
 1. Product 002 deterministic release gate passes.
-2. Product 002 decision, service, paid-handler, and metadata tests pass.
-3. Zero-spend direct-source smoke completes without source failures.
-4. The Floot deployment source is backed up in a versioned rollback artifact.
-5. The existing Floot PA entity routes and prices are unchanged.
-6. The Product 002 handler is wired to the shared seller wallet and facilitator contract.
-7. No paid probe, self-purchase, credit purchase, or hosting upgrade is used.
+2. `node scripts/verify-floot-product-002.js --require-ready` passes against the deployed seller.
+3. Product 002 decision, service, paid-handler, metadata, and Floot-auditor tests pass.
+4. Zero-spend direct-source smoke completes without source failures.
+5. The Floot deployment source is backed up in a versioned rollback artifact.
+6. The existing Floot PA entity routes and prices are unchanged.
+7. The Product 002 handler is wired to the shared seller wallet and facilitator contract.
+8. No paid probe, self-purchase, credit purchase, or hosting upgrade is used.
 
 ## Post-cutover acceptance
 

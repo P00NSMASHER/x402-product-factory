@@ -110,7 +110,8 @@ function validatePortfolioCoverage(root=path.resolve(__dirname,"..")){
     ["ci_generated_registry_check",ci.includes("generate-product-module-registry.js --check")],
     ["smoke_dynamic_runner",smokeWorkflow.includes("scripts/run-live-smokes.js")],
     ["product_002_ci_gate",ci.includes("scripts/validate-product-002.js")],
-    ["product_002_live_smoke",smokeWorkflow.includes("products/pa-vendor-gate/live-smoke.js")]
+    ["product_002_live_smoke",smokeWorkflow.includes("products/pa-vendor-gate/live-smoke.js")],
+    ["product_002_floot_audit",smokeWorkflow.includes("scripts/verify-floot-product-002.js")]
   ];
   for(const [name,ok] of architectureChecks){
     if(!ok)problems.push("factory:"+name+":missing");
