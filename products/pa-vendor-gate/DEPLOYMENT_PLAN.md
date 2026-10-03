@@ -63,7 +63,7 @@ The server-to-server production boundary requires:
 2. `node scripts/verify-floot-product-002.js --require-ready` passes against the deployed seller. Browser preflight remains a separately reported Floot limitation and is not part of this gate.
 3. Product 002 decision, service, paid-handler, metadata, and Floot-auditor tests pass.
 4. Zero-spend direct-source smoke completes without source failures.
-5. The Floot deployment source is backed up in a versioned rollback artifact.
+5. The Floot deployment source is pinned by SHA-256 and immutable commit in `deploy/floot-pa-vendor-gate/rollback-manifest.json`; its remote bytes pass `node scripts/verify-floot-product-002-rollback.js --verify-remote`.
 6. The existing Floot PA entity routes and prices are unchanged.
 7. The Product 002 handler is wired to the shared seller wallet and facilitator contract.
 8. No paid probe, self-purchase, credit purchase, or hosting upgrade is used.

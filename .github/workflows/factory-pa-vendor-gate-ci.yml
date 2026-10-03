@@ -10,6 +10,7 @@ on:
       - 'MIGRATION_MANIFEST.json'
       - 'products/**'
       - 'packages/**'
+      - 'deploy/floot-pa-vendor-gate/**'
       - 'scripts/**'
       - 'runtime/**'
       - '.github/workflows/factory-pa-vendor-gate-ci.yml'
@@ -46,6 +47,9 @@ jobs:
 
       - name: Validate Product 002 readiness boundary
         run: node scripts/validate-product-002.js
+
+      - name: Validate Product 002 rollback manifest
+        run: node scripts/verify-floot-product-002-rollback.js
 
       - name: Build deterministic deployment bundle
         run: node scripts/write-deployment-bundle.js https://candidate.example /tmp/x402-factory-bundle

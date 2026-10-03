@@ -102,6 +102,12 @@ function validatePortfolioCoverage(root=path.resolve(__dirname,"..")){
     if(!modules.PAID_HANDLER_MODULES[product002.id]){
       problems.push("product-002:missing_generated_paid_handler_module");
     }
+    if(!exists("deploy/floot-pa-vendor-gate/rollback-manifest.json")){
+      problems.push("product-002:missing_floot_rollback_manifest");
+    }
+    if(!exists("scripts/verify-floot-product-002-rollback.js")){
+      problems.push("product-002:missing_floot_rollback_verifier");
+    }
   }
 
   const architectureChecks=[
@@ -111,7 +117,9 @@ function validatePortfolioCoverage(root=path.resolve(__dirname,"..")){
     ["smoke_dynamic_runner",smokeWorkflow.includes("scripts/run-live-smokes.js")],
     ["product_002_ci_gate",ci.includes("scripts/validate-product-002.js")],
     ["product_002_live_smoke",smokeWorkflow.includes("products/pa-vendor-gate/live-smoke.js")],
-    ["product_002_floot_audit",smokeWorkflow.includes("scripts/verify-floot-product-002.js")]
+    ["product_002_floot_audit",smokeWorkflow.includes("scripts/verify-floot-product-002.js")],
+    ["product_002_rollback_gate",ci.includes("scripts/verify-floot-product-002-rollback.js")],
+    ["product_002_rollback_live_audit",smokeWorkflow.includes("scripts/verify-floot-product-002-rollback.js --verify-remote")]
   ];
   for(const [name,ok] of architectureChecks){
     if(!ok)problems.push("factory:"+name+":missing");

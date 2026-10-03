@@ -47,6 +47,8 @@ The durable PA seller remains on Floot. Product 002's paid route, unpaid x402 ch
 
 `node scripts/verify-floot-product-002.js` performs a read-only, zero-payment audit of that cutover boundary. `--require-ready` strictly gates the server-to-server route, discovery, and payment contract. The audit reports browser preflight separately through `browserPreflightReady` and warnings; `--require-browser-preflight` is diagnostic only and is not a Floot production gate.
 
+The Product 002 Floot endpoint and schema are pinned to an immutable source commit with byte lengths, Git blob IDs, and SHA-256 hashes in `deploy/floot-pa-vendor-gate/rollback-manifest.json`. `node scripts/verify-floot-product-002-rollback.js --verify-remote` validates those rollback bytes without sending payment headers or changing Floot.
+
 ## Product 003
 
 Combines:
