@@ -1085,6 +1085,15 @@ async function handlePaid(
     );
   }
 
+  console.info(JSON.stringify({
+    event: "x402_settlement_succeeded",
+    product_id: route.path.replace(/^\\/api\\//, ""),
+    route: route.path,
+    amount_usd: "0.005",
+    network: NETWORK,
+    settled_at: new Date().toISOString(),
+  }));
+
   return json(
     { ...result, paid: true },
     200,
