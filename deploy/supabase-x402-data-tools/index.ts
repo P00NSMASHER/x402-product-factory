@@ -1087,7 +1087,7 @@ async function handlePaid(
 
   console.info(JSON.stringify({
     event: "x402_settlement_succeeded",
-    product_id: route.path.replace(/^\\/api\\//, ""),
+    product_id: route.path.slice("/api/".length),
     route: route.path,
     amount_usd: "0.005",
     network: NETWORK,
