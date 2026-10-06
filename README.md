@@ -366,3 +366,15 @@ No upgrade/payment has been authorized. Products 003–023 therefore remain stag
 Shared packages, product modules, runtime wiring, release gates, discovery generators, and maintained GitHub workflows live directly at repository root. The former `permitplate-nyc/x402-product-factory-bootstrap` branch is retained only as migration history/source evidence and is no longer the canonical development location.
 
 See each product's `DEPLOYMENT_PLAN.md` and release gate before any production deployment.
+
+
+## Revenue-growth freeze
+
+Effective 2026-10-06, Products 025+ are frozen. Do not design, register, implement, stage, or deploy a new numbered product until at least one existing product satisfies either demand-unlock condition:
+
+- 5 distinct genuine external buyers; or
+- $1.00 USDC of genuine external revenue.
+
+Self-purchases, operator-controlled wallets, synthetic settlements, test payments, and manufactured traffic do not count toward either threshold. Existing Products 001-024 may be improved, composed, documented, deployed, repriced, or consolidated while the freeze is active.
+
+The purpose of this freeze is to move the factory from catalog expansion to external demand validation. Once a threshold is independently evidenced, record the evidence before creating Product 025.
