@@ -378,3 +378,29 @@ Effective 2026-10-06, Products 025+ are frozen. Do not design, register, impleme
 Self-purchases, operator-controlled wallets, synthetic settlements, test payments, and manufactured traffic do not count toward either threshold. Existing Products 001-024 may be improved, composed, documented, deployed, repriced, or consolidated while the freeze is active.
 
 The purpose of this freeze is to move the factory from catalog expansion to external demand validation. Once a threshold is independently evidenced, record the evidence before creating Product 025.
+
+
+## Revenue operating scoreboard
+
+The factory is now measured by external demand rather than product count.
+
+### Primary proof target
+
+Reach Agent402's proven-seller floor using only genuine external activity:
+
+- at least 20 outside settlements;
+- from at least 3 distinct outside payers.
+
+Current independently verified baseline: at least 1 outside settlement for Product 001. Do not infer additional buyers or settlements without evidence.
+
+### 30-day targets
+
+- 20+ genuine outside settlements and 3+ distinct payers;
+- 10 distinct external x402 payers across the portfolio;
+- at least one route with a repeat external buyer;
+- at least one higher-priced composed decision product with genuine external revenue;
+- no Product 025+ until the revenue-growth freeze unlocks.
+
+### Counting rules
+
+Operator-controlled wallets, self-purchases, synthetic/test payments, marketplace crawler price checks, and manufactured traffic never count as demand. Record only independently attributable external settlements.
