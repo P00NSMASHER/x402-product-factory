@@ -71,8 +71,7 @@ not sufficient by itself to classify a buyer as external.
 Do not overwrite or edit raw observation records to mark them verified.
 A separate reconciliation ledger should reference the original event
 and immutable transaction evidence, with explicit verification status,
-reviewer/provenance, amount, currency, and exclusion reason. No such ledger
-or live on-chain verification has been deployed as part of this PR.
+reviewer/provenance, amount, currency, and exclusion reason. No reconciliation ledger or live reconciliation service has been deployed as part of this PR. A separate, read-only CLI verifier is available for operator-supplied observations, but it cannot certify outside buyers or automatically count sales.
 
 ## Operational scope
 
@@ -84,3 +83,44 @@ or live on-chain verification has been deployed as part of this PR.
 
 References: [x402 v2 specification](https://github.com/x402-foundation/x402/blob/main/specs/x402-specification-v2.md);
 [PayAI facilitator developer reference](https://payai.network/developers).
+
+## Read-only Base transaction check (operator run only)
+
+The optional `reconcile-settlements.js` command reads a **local JSON array** of
+the sanitized v2 settlement events. It uses the operator's separately chosen
+Base HTTPS JSON-RPC endpoint only for `eth_chainId`, `eth_blockNumber`,
+and `eth_getTransactionReceipt`. It never signs or broadcasts a transaction.
+
+```bash
+BASE_RPC_URL='https://YOUR_TRUSTED_BASE_RPC_ENDPOINT' \
+  node deploy/supabase-x402-data-tools/reconcile-settlements.js \
+  path/to/private-settlement-observations.json \
+  > private-reconciliation-results.json
+```
+
+Do not commit actual receipt logs or wallet lists to GitHub. Keep the input and
+output files outside the repository and protect them as pseudonymous customer
+information. The endpoint URL may contain a provider token; keep it in the
+environment, never in source or logs.
+
+Validation is intentionally conservative: canonical Supabase route and price,
+exact reported network, expected amount, a non-null transaction and payer,
+RPC chain ID 8453, a successful receipt, at least 12 observed block
+confirmations, and exactly one matching USDC `Transfer` log with the correct
+payer, canonical receiver and 5,000 atomic USDC. Duplicates **within the input
+batch** are rejected. Missing receipts, provider errors, invalid RPC evidence,
+insufficient confirmations, conflicting transfers and mismatched amounts
+remain unverified.
+
+This is independent RPC **corroboration**, not a cryptographic light-client
+proof; data authenticity depends on the chosen RPC provider. Batch
+deduplication is not a persistent global payment ledger. The report always
+returns `external_buyer_verified=false` and
+`eligible_for_revenue_scoreboard=false` even when a transfer matches.
+A human-reviewed, persistent cross-batch ledger, independent buyer provenance,
+and operator-wallet exclusions are still necessary before booking revenue
+or satisfying demand-unlock thresholds.
+
+No live chain verification is executed by CI. Tests use deterministic mocked
+RPC receipts. This tool does not change the deployed Supabase Edge Function,
+live wallet, payment facilitator, pricing or authorized spending.
