@@ -28,14 +28,14 @@ test("five canonical agent descriptions match live source exactly",()=>{
 });
 test("changing the x402 payment rail, recipient or price always fails",()=>{
   const mutations=[
-    ['eip155:8453','eip155:1'],
-    ['0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    [reference.payment_constants.NETWORK,'eip155:1'],
+    [reference.payment_constants.USDC,
       '0x0000000000000000000000000000000000000000'],
-    ['0x708f7b52b56eafd7fc1de65fc7752ed732914021',
+    [reference.payment_constants.PAY_TO,
       '0x0000000000000000000000000000000000000000'],
-    ['https://facilitator.payai.network','https://example.invalid'],
-    ['const PRICE = "$0.005";','const PRICE = "$0.01";'],
-    ['const AMOUNT = "5000";','const AMOUNT = "10000";']
+    [reference.payment_constants.FACILITATOR,'https://example.invalid'],
+    ['const PRICE = "'+reference.payment_constants.PRICE+'";','const PRICE = "$0.01";'],
+    ['const AMOUNT = "'+reference.payment_constants.AMOUNT+'";','const AMOUNT = "10000";']
   ];
   for(const [before,after] of mutations) {
     assert.ok(SOURCE.includes(before),before);
