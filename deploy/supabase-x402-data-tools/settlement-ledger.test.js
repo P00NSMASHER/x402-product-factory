@@ -625,3 +625,108 @@ test("corrupt prior journal is rejected before any RPC query",async()=>{
     assert.equal(fs.existsSync(ledgerPath+".lock"),false);
   });
 });
+
+
+test("same-byte journal inode replacement during RPC is rejected",async()=>{
+  await privateLedger(async ({dir,ledgerPath})=>{
+    await commit(observation(A),ledgerPath);
+    const bytes=fs.readFileSync(ledgerPath);
+    const initial=fs.statSync(ledgerPath);
+    const rpcBase=rpc();
+    let swapped=false;
+    const racedRpc=async (method,params)=>{
+      if(method==="eth_getTransactionReceipt"&&!swapped){
+        const replacement=path.join(dir,"replacement.jsonl");
+        fs.writeFileSync(replacement,bytes,{mode:0o600});
+        fs.renameSync(replacement,ledgerPath);
+        swapped=true;
+      }
+      return rpcBase(method,params);
+    };
+    await assert.rejects(appendReconciledObservations([observation(B)],{
+      ledgerPath,rpcCall:racedRpc
+    }),/LEDGER_CONCURRENT_FILE_REPLACED/);
+    assert.equal(swapped,true);
+    assert.notEqual(fs.statSync(ledgerPath).ino,initial.ino);
+    assert.equal(fs.readFileSync(ledgerPath).equals(bytes),true);
+    assert.equal(readLedger(ledgerPath).records.length,1);
+    assert.equal(fs.existsSync(ledgerPath+".lock"),false);
+  });
+});
+
+test("journal swapped after final validated read cannot receive a new append",async()=>{
+  await privateLedger(async ({dir,ledgerPath})=>{
+    await commit(observation(A),ledgerPath);
+    const original=fs.readFileSync(ledgerPath);
+    let changed=false;
+    await assert.rejects(appendReconciledObservations([observation(B)],{
+      ledgerPath,rpcCall:rpc(),
+      now:()=>{
+        const replacement=path.join(dir,"atomic-swap.jsonl");
+        fs.writeFileSync(replacement,original,{mode:0o600});
+        fs.renameSync(replacement,ledgerPath);
+        changed=true;
+        return "2026-10-10T01:03:00.000Z";
+      }
+    }),/LEDGER_CONCURRENT_FILE_REPLACED/);
+    assert.equal(changed,true);
+    assert.equal(fs.readFileSync(ledgerPath).equals(original),true);
+    assert.equal(readLedger(ledgerPath).records.length,1);
+  });
+});
+
+test("same-length in-place journal tampering is detected at append descriptor",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    await commit(observation(A),ledgerPath);
+    const original=fs.readFileSync(ledgerPath,"utf8");
+    const anotherWallet="0x"+"e".repeat(40);
+    const replacement=original.replace('"payer":"'+PAYER+'"',
+      '"payer":"'+anotherWallet+'"');
+    assert.notEqual(replacement,original);
+    assert.equal(Buffer.byteLength(replacement),Buffer.byteLength(original));
+    await assert.rejects(appendReconciledObservations([observation(B)],{
+      ledgerPath,rpcCall:rpc(),
+      now:()=>{
+        fs.writeFileSync(ledgerPath,replacement);
+        return "2026-10-10T01:03:00.000Z";
+      }
+    }),/LEDGER_CONCURRENT_CONTENT_CHANGE/);
+    assert.equal(fs.readFileSync(ledgerPath,"utf8"),replacement);
+    assert.throws(()=>readLedger(ledgerPath),/LEDGER_HASH_MISMATCH/);
+    assert.equal(fs.existsSync(ledgerPath+".lock"),false);
+    // Test fixture recovery is explicit and never part of the production flow.
+    fs.writeFileSync(ledgerPath,original);
+    assert.equal(readLedger(ledgerPath).records.length,1);
+  });
+});
+
+test("genesis file appearing between check and append is not silently adopted",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    let injected=false;
+    await assert.rejects(appendReconciledObservations([observation(A)],{
+      ledgerPath,rpcCall:rpc(),
+      now:()=>{
+        fs.writeFileSync(ledgerPath,"",{mode:0o600});
+        injected=true;
+        return "2026-10-10T01:03:00.000Z";
+      }
+    }),/LEDGER_CONCURRENT_FILE_CREATED/);
+    assert.equal(injected,true);
+    assert.equal(fs.readFileSync(ledgerPath,"utf8"),"");
+    assert.equal(readLedger(ledgerPath).records.length,0);
+    assert.equal(fs.existsSync(ledgerPath+".lock"),false);
+  });
+});
+
+test("successful append replays exactly the expected journal head and record count",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    const first=await commit(observation(A),ledgerPath);
+    const second=await commit(observation(B),ledgerPath);
+    const final=readLedger(ledgerPath);
+    assert.equal(final.records.length,2);
+    assert.equal(final.head,second.head_hash);
+    assert.equal(final.records[0].hash,first.head_hash);
+    assert.equal(final.fileIdentity!==null,true);
+    assert.match(final.bytesHash,/^[0-9a-f]{64}$/);
+  });
+});
