@@ -203,8 +203,16 @@ BASE_RPC_URL='https://YOUR_TRUSTED_BASE_RPC' \
   --expect-records 12
 ```
 
-The command checks the pinned **prior** journal while holding its
-exclusive writer lock. Capture and externally preserve the resulting
+Before any RPC request, the command briefly acquires its exclusive
+writer lock and verifies that the prior journal is readable, non-legacy,
+internally consistent, and, when specified, matches the externally pinned
+checkpoint. It releases the lock during RPC reads, then locks again and
+**rejects any intervening change to the journal head or record count**.
+A stale checkpoint, another active writer, incomplete record or corrupted
+prior journal is rejected before external RPC calls. A concurrent append
+during RPC is also rejected without rewriting the other writer's entries.
+
+Capture and externally preserve the resulting
 `head_hash` and updated record count before the next append. For a new
 journal, the checkpoint is 64 lowercase zero characters (genesis) and
 count 0. If the append succeeds but the external checkpoint update fails,
