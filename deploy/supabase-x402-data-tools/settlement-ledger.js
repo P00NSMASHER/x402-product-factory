@@ -67,6 +67,7 @@ function appendOnlyPayload(row, sequence, previous_hash, checkedAt) {
     token_contract: USDC,
     amount_atomic_usdc: row.confirmed_transfer_amount_atomic_usdc,
     block_number: row.block_number,
+    canonical_block_hash: row.canonical_block_hash,
     confirmations_at_check: row.confirmations_at_check,
     evidence_source: "independent_base_rpc_receipt",
     observed_at: checkedAt,
@@ -80,7 +81,7 @@ function validatePayload(item, sequence, previous) {
   if (Object.keys(item).join(",") !== [
     "schema_version", "sequence", "previous_hash", "network", "route",
     "transaction", "transaction_log_index", "payer", "receiver", "token_contract",
-    "amount_atomic_usdc", "block_number", "confirmations_at_check",
+    "amount_atomic_usdc", "block_number", "canonical_block_hash", "confirmations_at_check",
     "evidence_source", "observed_at", "onchain_verified",
     "external_buyer_verified", "eligible_for_revenue_scoreboard"
   ].join(",")) fail("LEDGER_RECORD_SHAPE");
@@ -90,6 +91,7 @@ function validatePayload(item, sequence, previous) {
       !positiveDigits(item.transaction_log_index) || !isAddress(item.payer) ||
       item.receiver !== RECEIVER || item.token_contract !== USDC ||
       item.amount_atomic_usdc !== "5000" || !positiveDigits(item.block_number) ||
+      !isHash(item.canonical_block_hash) ||
       !positiveDigits(item.confirmations_at_check) ||
       BigInt(item.confirmations_at_check) < 12n ||
       item.evidence_source !== "independent_base_rpc_receipt" ||
@@ -190,6 +192,7 @@ function checkVerifiedRow(row) {
     row.receiver === RECEIVER && row.token_contract === USDC &&
     row.confirmed_transfer_amount_atomic_usdc === "5000" &&
     positiveDigits(row.block_number) &&
+    isHash(row.canonical_block_hash) &&
     positiveDigits(row.transaction_log_index) &&
     positiveDigits(row.confirmations_at_check) &&
     BigInt(row.confirmations_at_check) >= 12n &&
