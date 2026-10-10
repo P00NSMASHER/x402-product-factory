@@ -80,7 +80,10 @@ function readPrivateExclusions(filename) {
       doc.schema_version !== 1) {
     invalid("BUYER_REVIEW_EXCLUSIONS_SCHEMA_INVALID");
   }
-  return validateExclusions(doc.excluded_wallets);
+  validateExclusions(doc.excluded_wallets);
+  // Keep the private provenance reference available for the downstream
+  // validation gate; it is never included in the emitted report.
+  return doc.excluded_wallets;
 }
 function buildBuyerReviewQueue(journalPath, {
   keyHex, exclusions = [], checkpoint
