@@ -109,6 +109,19 @@ test("review queue groups wallet reuse but never treats wallet counts as buyers"
     assert.equal(queue.eligible_external_revenue_atomic_usdc,"0");
     assert.equal(queue.product_025_unlock_evidence,false);
     assert.equal(queue.cases.length,2);
+    assert.equal(queue.route_evidence.length,5);
+    const domain=queue.route_evidence.find(x=>x.route==="/api/domain-rdap");
+    const sec=queue.route_evidence.find(x=>x.route==="/api/sec-filings");
+    assert.equal(domain.historical_transfer_evidence,2);
+    assert.equal(domain.distinct_wallets_not_distinct_buyers,2);
+    assert.equal(sec.historical_transfer_evidence,1);
+    assert.equal(sec.distinct_wallets_not_distinct_buyers,1);
+    assert.equal(queue.route_evidence.reduce((n,x)=>
+      n+x.historical_transfer_evidence,0),3);
+    assert.ok(queue.route_evidence.every(x=>
+      x.independently_verified_external_buyers===0 &&
+      x.eligible_external_revenue_atomic_usdc==="0"
+    ));
     const repeated=queue.cases.find(row=>row.repeat_wallet_signal);
     assert.ok(repeated);
     assert.equal(repeated.status,"requires_independent_buyer_review");
@@ -137,6 +150,12 @@ test("operator-supplied exclusions only remove cases from pending review",async(
     assert.equal(queue.operator_declared_non_external_wallets,1);
     assert.equal(queue.operator_declared_non_external_transfer_evidence,2);
     assert.equal(queue.wallets_requiring_independent_review,1);
+    const domain=queue.route_evidence.find(x=>x.route==="/api/domain-rdap");
+    const sec=queue.route_evidence.find(x=>x.route==="/api/sec-filings");
+    assert.equal(domain.operator_declared_excluded_transfer_evidence,1);
+    assert.equal(domain.wallets_requiring_review,1);
+    assert.equal(sec.operator_declared_excluded_transfer_evidence,1);
+    assert.equal(sec.wallets_requiring_review,0);
     const excluded=queue.cases.find(x=>x.status==="operator_declared_non_external");
     assert.ok(excluded);
     assert.equal(excluded.exclusion_reason,"operator_controlled");
@@ -270,4 +289,26 @@ test("CLI reports only pseudonymous review cases and preserves no secrets",async
     assert.equal(mismatch.stdout,"");
     assert.ok(!mismatch.stderr.includes(SECRET));
   });
+});
+
+
+test("empty private journal has canonical zero-valued route coverage and no buyers",async()=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),"x402-empty-review-"));
+  const journal=path.join(dir,"empty.jsonl");
+  try{
+    fs.writeFileSync(journal,"",{mode:0o600});
+    const report=buildBuyerReviewQueue(journal,{keyHex:SECRET});
+    assert.equal(report.route_evidence.length,5);
+    assert.ok(report.route_evidence.every(x=>
+      x.historical_transfer_evidence===0 &&
+      x.distinct_wallets_not_distinct_buyers===0 &&
+      x.wallets_requiring_review===0 &&
+      x.independently_verified_external_buyers===0 &&
+      x.eligible_external_revenue_atomic_usdc==="0"
+    ));
+    assert.equal(report.cases.length,0);
+    assert.equal(report.product_025_unlock_evidence,false);
+  }finally{
+    fs.rmSync(dir,{recursive:true,force:true});
+  }
 });
