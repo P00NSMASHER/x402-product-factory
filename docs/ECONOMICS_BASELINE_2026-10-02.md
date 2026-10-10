@@ -1,5 +1,16 @@
 # Factory economics baseline — 2026-10-02
 
+> **Interpretation correction (2026-10-10):** This document is a
+> historical snapshot, not the current PayAI rate or a measured-profit
+> statement. The field named "lower-bound contribution" subtracts known
+> facilitator/configured cash-source charges but omits unknown hosting,
+> retry, refund, and other operating costs. It is therefore an **optimistic
+> contribution ceiling before unknown costs**, not a guaranteed lower
+> bound. Historical numbers and JSON fields remain preserved for audit.
+> For the updated public rate and current sensitivity analysis, see
+> [ECONOMICS_RATE_REFRESH_2026-10-10.md](ECONOMICS_RATE_REFRESH_2026-10-10.md).
+
+
 This records the first two increments of Phase 1: a registry-wide settlement-cost screen plus a source/hosting measurement pass for five canonical factory-managed products. Full unit economics and profitability remain unmeasured.
 
 ## Evidence and assumptions
