@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "source_url": "https://facilitator.payai.network/pricing",
+  "observed_date": "2026-10-10",
+  "source_capture_scope": "Selected publicly published Base exact/eip3009 rate only; not a full-provider response.",
+  "provider_response_subset": {
+    "creditUsd": "0.001",
+    "marginBps": 3000,
+    "asOf": "2026-10-10T11:56:30.014Z",
+    "rates": [
+      {
+        "network": "eip155:8453",
+        "scheme": "exact",
+        "transferMethod": "eip3009",
+        "credits": "2.18",
+        "usd": "0.00218",
+        "effectiveAt": "2026-10-07T12:00:00.003Z",
+        "rateId": "ddbd079f-72ce-467d-bde8-859151d83999",
+        "published": true
+      }
+    ],
+    "upcoming": []
+  },
+  "published_free_credit_terms": {
+    "source_url": "https://docs.payai.network/x402/facilitators/pricing",
+    "default_lifetime_credits_per_receiving_wallet": 1000,
+    "shared_pool_can_exhaust_earlier": true,
+    "legacy_wallet_entitlement_may_differ": true
+  },
+  "seller_wallet_specific_remaining_credits": null,
+  "seller_wallet_entitlement_verified": false,
+  "paid_fee_is_not_seller_revenue": true,
+  "source_fee_hosting_refund_retry_costs_measured": false,
+  "snapshot_is_historical": true
+}
