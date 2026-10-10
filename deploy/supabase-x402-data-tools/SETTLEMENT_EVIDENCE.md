@@ -400,3 +400,71 @@ Treat queue files and stable HMAC identifiers as potentially identifying
 pseudonymous data; keep them private and remove them according to your
 retention policy. No actual customer observations are shipped with the
 repository or used in CI.
+
+
+## Production v6 source parity and release-preflight gate
+
+**Observed on October 10, 2026 (read-only):** Supabase project
+`bvjtimsalbzkmulyinpg` reported the canonical `x402-data-tools` Edge
+Function as **ACTIVE version 6**, with reported deployment bundle digest
+`28d4c24a123538e6cfa437723899784275576d1467e98a836a340a986f674d9f`.
+The **independently computed source-file SHA-256** was
+`d5c5457cc8d6bbafa041528bcc15323a7e8b47093e55dc61296641914819d508`.
+These are different artifacts: the bundle digest is not the source hash.
+
+The authoritative pinned metadata lives in
+`production-baseline-20261010.json`. No second baseline manifest or copied
+Edge Function source should be maintained. The existing
+`verify-production-baseline.js` checker runs during the protected PR CI:
+
+```bash
+node deploy/supabase-x402-data-tools/verify-production-baseline.js --check
+```
+
+It removes exactly the reviewed 36-line post-settlement telemetry insertion
+from the staged `index.ts` and compares the **entire remaining source**
+byte-for-byte via SHA-256 to the observed live v6 source. It also checks
+canonical payment constants, five route identifiers and live agent-discovery
+descriptions, and rejects absent/duplicate telemetry or unsafe evidence
+classification. A pass proves **historical source parity only**. It does
+not establish that Supabase is *still* running v6.
+
+Immediately before any separately authorized release, acquire a **fresh,
+read-only, directly retrieved** Edge Function source file and provider metadata
+(version, slug, status, bundle digest) from the authorized Supabase project.
+Protect the temporary files in a directory with permissions 0700, with
+owner-only 0600 files, outside GitHub and the working checkout. Run:
+
+```bash
+node deploy/supabase-x402-data-tools/verify-production-baseline.js \
+  --preflight /ABSOLUTE/PRIVATE/live-index.ts \
+  /ABSOLUTE/PRIVATE/live-metadata.json \
+  2026-10-10T06:30:00.000Z
+```
+
+**Use the actual UTC time the provider snapshot was fetched**, not the
+example timestamp. The gate rejects a future timestamp or any snapshot
+over 15 minutes old, a new source hash, a changed function version/status,
+or a changed deployment bundle digest. Never fabricate a fresh timestamp.
+The CLI cannot cryptographically authenticate an operator-supplied file or
+timestamp: the operator must ensure the snapshot truly came from Supabase.
+The response deliberately marks independent provider authentication and
+deployment authorization **false**, even on a passing comparison.
+
+If production advances to v7 or changes its source, **do not deploy the
+old candidate, rewrite the baseline opportunistically, or merge solely
+because CI passed**. First compare the newly fetched live version, reconcile
+its features into the one canonical repository source, re-review the payment
+invariants and regression suite, and generate a new explicit acceptance
+baseline after independent approval.
+
+The live-only buyer-task descriptions discovered in Supabase v6 are now
+preserved by PR #4; `main` still contains five older descriptions. This
+parity gate prevents accidental regression to those older descriptions.
+Supabase's runtime build string may remain `supabase-x402-v5` inside the
+source while the provider-reported **deployment version** is v6; neither
+value should be silently rewritten.
+
+No step above sends payments, deploys code, changes secrets, grants production
+access, books revenue, or unlocks Product 025+. The PR remains a draft until
+independent integration/security review and a separately approved deployment.
