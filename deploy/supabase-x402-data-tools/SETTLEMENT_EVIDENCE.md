@@ -111,7 +111,12 @@ receipt block hash, and exactly one matching USDC `Transfer` log with the correc
 payer, canonical receiver and 5,000 atomic USDC. Duplicates **within the input
 batch** are rejected. Missing receipts, provider errors, invalid RPC evidence,
 insufficient confirmations, conflicting transfers and mismatched amounts
-remain unverified.
+remain unverified. Every apparent Base USDC transfer from the supplied payer
+to the canonical receiver is counted **before** individual log validation:
+two such candidates remain ambiguous even when one is malformed, and a
+single malformed candidate cannot be promoted to evidence. Oversized
+receipt log arrays (more than 2,500 entries) fail closed rather than
+consuming unbounded reconciliation work.
 
 This is independent RPC **corroboration**, not a cryptographic light-client
 proof; data authenticity depends on the chosen RPC provider. Batch
@@ -253,10 +258,22 @@ The journal uses exclusive `.lock` acquisition, 0600 file creation,
 append-and-fsync writes, a strictly validated sequential SHA-256 hash chain,
 and **transaction-level deduplication across all prior batches in that
 journal**. A corrupted, truncated, non-private, conflicting, or locked
-journal fails closed. If a process dies while holding the lock, do not
-automatically delete the lock or truncate data: investigate and preserve
-original bytes before manual recovery. Records are immutable; corrections
-must be separately documented, never silently overwritten.
+journal fails closed. The append path also preserves the exact audited
+file identity (device/inode) and journal-content SHA-256 across its read-only
+RPC phase, reopens the existing ledger without following symlinks, checks
+that the *opened file descriptor* still matches the audited bytes, and
+replays the resulting hash chain after fsync. A journal appearing at genesis,
+being replaced with identical bytes, or receiving an in-place same-size
+mutation between checks is rejected instead of silently adopted. This
+protects against specific path-swap and accidental uncoordinated-writer
+races; it is **not** a guarantee against an adversary with unrestricted
+filesystem access. Never treat this as a replacement for ownership,
+externally preserved checkpoints, or backup/restore controls.
+
+If a process dies while holding the lock, do not automatically delete the
+lock or truncate data: investigate and preserve original bytes before
+manual recovery. Records are immutable; corrections must be separately
+documented, never silently overwritten.
 
 **Trust boundaries:** The hash chain can detect local corruption but is
 **not tamper-proof against a party capable of rewriting the entire journal**.
