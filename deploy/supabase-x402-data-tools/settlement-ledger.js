@@ -234,14 +234,31 @@ async function appendReconciledObservations(events, {
   ledgerPath, rpcCall, now = () => new Date().toISOString(), checkpoint
 } = {}) {
   const location = privatePath(ledgerPath);
+  // Fail early on locks, legacy/corrupt data and stale external checkpoints:
+  // no RPC work begins until the pre-existing private ledger is validated.
+  const preflightRelease = lock(location);
+  let priorHead, priorCount;
+  try {
+    const prior = readLedger(location);
+    verifyExternalCheckpoint(prior, checkpoint);
+    if (prior.legacyCount) fail("LEDGER_LEGACY_REVIEW_REQUIRED");
+    priorHead = prior.head;
+    priorCount = prior.records.length;
+  } finally { preflightRelease(); }
+
   // Do NOT accept a supplied "verified" report. The library derives all proof
   // from raw observations and a read-only RPC call in the same operation.
+  // Release the filesystem lock during network reads; reject stale evidence
+  // if another independent operator appended while those reads were underway.
   const report = await reconcileEvents(events, { rpcCall, minConfirmations: 12 });
   const release = lock(location);
   try {
     const journal = readLedger(location);
     const checkpointVerified = verifyExternalCheckpoint(journal, checkpoint);
     if (journal.legacyCount) fail("LEDGER_LEGACY_REVIEW_REQUIRED");
+    if (journal.head !== priorHead || journal.records.length !== priorCount) {
+      fail("LEDGER_CONCURRENT_HEAD_CHANGE");
+    }
     const pending = [], seen = new Set(journal.seen);
     let head = journal.head, duplicates = 0, unverified = 0;
     const checkedAt = now();
