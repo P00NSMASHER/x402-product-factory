@@ -6,7 +6,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const {
-  GENESIS, readLedger, appendReconciledObservations
+  GENESIS, readLedger, appendReconciledObservations, auditLedgerAgainstChain
 } = require("./settlement-ledger");
 const {
   CHAIN, CHAIN_ID, USDC, RECEIVER, TRANSFER_TOPIC
@@ -316,5 +316,66 @@ test("a tampered canonical block hash is caught during offline audit",async()=>{
     fs.writeFileSync(ledgerPath,original.replace('"canonical_block_hash":"'+BLOCK+'"',
       '"canonical_block_hash":"0x'+"f".repeat(64)+'"'));
     assert.throws(()=>readLedger(ledgerPath),/LEDGER_HASH_MISMATCH/);
+  });
+});
+
+test("a later read-only audit rechecks the current canonical block hash without changing evidence",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    await commit(observation(A),ledgerPath);
+    await commit(observation(B),ledgerPath);
+    const before=fs.readFileSync(ledgerPath,"utf8");
+    const result=await auditLedgerAgainstChain(ledgerPath,{rpcCall:rpc()});
+    assert.equal(result.records,2);
+    assert.equal(result.canonical,2);
+    assert.equal(result.block_mismatch,0);
+    assert.equal(result.block_unavailable,0);
+    assert.equal(result.insufficient_confirmations,0);
+    assert.equal(result.all_recorded_blocks_still_canonical,true);
+    assert.equal(result.eligible_external_revenue_atomic_usdc,"0");
+    assert.equal(result.product_025_unlock_evidence,false);
+    assert.equal(fs.readFileSync(ledgerPath,"utf8"),before);
+    assert.equal(JSON.stringify(result).includes(PAYER),false);
+  });
+});
+
+test("re-audit detects a post-ingestion fork and fail-closes unsupported provider evidence",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    await commit(observation(A),ledgerPath);
+    const old=fs.readFileSync(ledgerPath,"utf8");
+    const fork=await auditLedgerAgainstChain(ledgerPath,{
+      rpcCall:rpc({canonicalHash:"0x"+"f".repeat(64)})
+    });
+    assert.equal(fork.block_mismatch,1);
+    assert.equal(fork.canonical,0);
+    assert.equal(fork.all_recorded_blocks_still_canonical,false);
+    const noRPC=await auditLedgerAgainstChain(ledgerPath,{
+      rpcCall:rpc({failures:["eth_getBlockByNumber"]})
+    });
+    assert.equal(noRPC.block_unavailable,1);
+    assert.equal(noRPC.all_recorded_blocks_still_canonical,false);
+    const immature=await auditLedgerAgainstChain(ledgerPath,{
+      rpcCall:rpc({latest:"0x66"})
+    });
+    assert.equal(immature.insufficient_confirmations,1);
+    assert.equal(immature.all_recorded_blocks_still_canonical,false);
+    await assert.rejects(
+      auditLedgerAgainstChain(ledgerPath,{rpcCall:rpc({chain:"0x1"})}),
+      /wrong_rpc_chain/
+    );
+    assert.equal(fs.readFileSync(ledgerPath,"utf8"),old);
+  });
+});
+
+test("offline corruption is rejected before any later on-chain check",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    await commit(observation(A),ledgerPath);
+    const before=fs.readFileSync(ledgerPath,"utf8");
+    fs.writeFileSync(ledgerPath,before.replace('"block_number":"100"','"block_number":"101"'));
+    let called=0;
+    await assert.rejects(
+      auditLedgerAgainstChain(ledgerPath,{rpcCall:async()=>{called++; return CHAIN_ID;}}),
+      /LEDGER_HASH_MISMATCH/
+    );
+    assert.equal(called,0);
   });
 });
