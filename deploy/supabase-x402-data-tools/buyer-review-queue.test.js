@@ -195,10 +195,11 @@ test("private exclusion source enforces schema, file permissions and provenance 
     const valid={schema_version:1,excluded_wallets:[exclusion(WALLET_A)]};
     fs.writeFileSync(file,JSON.stringify(valid),{mode:0o600});
     assert.deepEqual(readPrivateExclusions(file),[
-      {address:WALLET_A,reason:"operator_controlled"}
+      exclusion(WALLET_A)
     ]);
     fs.chmodSync(file,0o644);
-    assert.throws(()=>readPrivateExclusions(file),/BUYER_REVIEW_EXCLUSIONS_FILE_NOT_PRIVATE/);
+    assert.throws(()=>readPrivateExclusions(file),
+      /LEDGER_FILE_NOT_PRIVATE|BUYER_REVIEW_EXCLUSIONS_FILE_NOT_PRIVATE/);
     fs.chmodSync(file,0o600);
     const link=path.join(dir,"exclusions-link.json");
     fs.symlinkSync(file,link);
