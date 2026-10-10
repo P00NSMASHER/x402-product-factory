@@ -124,3 +124,67 @@ or satisfying demand-unlock thresholds.
 No live chain verification is executed by CI. Tests use deterministic mocked
 RPC receipts. This tool does not change the deployed Supabase Edge Function,
 live wallet, payment facilitator, pricing or authorized spending.
+
+
+## Private append-only settlement evidence ledger
+
+The optional `settlement-ledger.js` can reconcile a batch and persist
+**independently RPC-corroborated Base USDC transfer evidence** to an operator-
+controlled local JSONL journal. It is not part of the deployed Supabase
+Edge Function and must not be run automatically against production
+transactions without a separately reviewed operational procedure.
+
+Create a private directory **outside the checkout** on a trusted local system:
+
+```bash
+mkdir -m 700 -p "$HOME/.private-x402-settlements"
+BASE_RPC_URL='https://YOUR_TRUSTED_BASE_RPC' \
+  node deploy/supabase-x402-data-tools/settlement-ledger.js \
+  "$HOME/.private-x402-settlements/observations.json" \
+  "$HOME/.private-x402-settlements/journal.jsonl"
+```
+
+The observations argument must be an absolute path to a local JSON array of
+v2 `x402_settlement_succeeded` events, **not** a previously generated
+reconciliation report. The ledger path must be absolute, outside the
+repository, in a real (non-symlink) owner-only (0700) directory; an existing
+ledger must also be owner-only (0600).
+
+The tool recalculates the chain evidence from scratch using a trusted HTTPS
+JSON-RPC endpoint, validates canonical Supabase route, payer, exact price,
+token, receiver, confirmed transfer amount, 12+ confirmations, and a single
+unambiguous matching transfer. It writes only minimal evidence fields.
+It **never** persists signed payment data, source query strings, or user-supplied
+"verified" claims.
+
+The journal uses exclusive `.lock` acquisition, 0600 file creation,
+append-and-fsync writes, a strictly validated sequential SHA-256 hash chain,
+and **transaction-level deduplication across all prior batches in that
+journal**. A corrupted, truncated, non-private, conflicting, or locked
+journal fails closed. If a process dies while holding the lock, do not
+automatically delete the lock or truncate data: investigate and preserve
+original bytes before manual recovery. Records are immutable; corrections
+must be separately documented, never silently overwritten.
+
+**Trust boundaries:** The hash chain can detect local corruption but is
+**not tamper-proof against a party capable of rewriting the entire journal**.
+Store an external, read-only copy of the journal's latest hash and maintain
+secure encrypted backups. JSON-RPC verification relies on the provider's
+honesty and chain availability; 12 confirmations are not absolute finality.
+A journal is local to one operator: it does not prevent collisions across
+other devices, copied ledgers, or alternate operator environments. The ledger
+does not establish buyer identity or outside ownership, and it intentionally
+reports zero verified external buyers and zero eligible revenue regardless
+of transfer count. Before commercial revenue recognition, add a separately
+reviewed, protected, globally unique provenance ledger and cross-check
+genuine buyer classification with independent evidence.
+
+CI only uses deterministic mock RPC fixtures and private temporary
+directories; it creates no wallet transactions, customer records, database
+tables, or live production writes. Run the tests with:
+
+```bash
+node --test deploy/supabase-x402-data-tools/settlement-telemetry.test.js \
+  deploy/supabase-x402-data-tools/reconcile-settlements.test.js \
+  deploy/supabase-x402-data-tools/settlement-ledger.test.js
+```
