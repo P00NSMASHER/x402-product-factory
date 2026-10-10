@@ -78,10 +78,32 @@ The pinned, nonsecret release metadata is maintained in
 node deploy/supabase-x402-data-tools/verify-production-baseline.js
 ```
 
-checks the canonical five route descriptions and the network, token,
-receiver, facilitator, price and atomic amount against that
-captured baseline. The verifier and associated regression tests run in
-the existing PR CI.
+checks **every pre-existing byte** of the live v6 source against the
+pinned raw-source SHA-256
+`d5c5457cc8d6bbafa041528bcc15323a7e8b47093e55dc61296641914819d508`,
+after removing only the reviewed, byte-pinned post-settlement telemetry
+block (SHA-256
+`84e2da4ea3ab311974b282c6f27b580d5cdc686bfd63e401434c340f7b5f1c2e`).
+It additionally validates the five live buyer-task descriptions and all
+network/token/receiver/facilitator/price/amount constants. The existing PR
+CI runs this offline check and negative tests for behavior drift.
+
+A separately reviewed release must also pass the **fresh provider
+snapshot** mode against a recently fetched live source and metadata
+stored in temporary private 0600 files outside the repository:
+
+```bash
+node deploy/supabase-x402-data-tools/verify-production-baseline.js \
+  --preflight /PRIVATE/ABSOLUTE/live-index.ts \
+  /PRIVATE/ABSOLUTE/live-metadata.json ACTUAL_UTC_OBSERVATION_TIME
+```
+
+The snapshot may be no more than 15 minutes old, and its deployed
+version, status, bundle digest and raw source must all match the pinned
+v6 reference. The snapshot origin is still a manual trust responsibility:
+the CLI cannot cryptographically verify an operator-supplied source.
+A successful preflight explicitly reports that **deployment is not
+authorized**. See `SETTLEMENT_EVIDENCE.md` for the complete runbook.
 
 **Required before any release:** independently retrieve the current live
 Supabase `x402-data-tools` source and deployed version again. Stop if
