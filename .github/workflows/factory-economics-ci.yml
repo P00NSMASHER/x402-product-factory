@@ -6,6 +6,7 @@ on:
       - 'economics/**'
       - 'docs/ECONOMICS_*.md'
       - 'product-registry.json'
+      - 'README.md'
       - '.github/workflows/factory-economics-ci.yml'
   push:
     branches: [main]
@@ -13,6 +14,7 @@ on:
       - 'economics/**'
       - 'docs/ECONOMICS_*.md'
       - 'product-registry.json'
+      - 'README.md'
       - '.github/workflows/factory-economics-ci.yml'
   workflow_dispatch:
 
