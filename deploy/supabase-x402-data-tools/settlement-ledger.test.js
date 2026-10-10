@@ -6,7 +6,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const {
-  GENESIS, readLedger, appendReconciledObservations, auditLedgerAgainstChain
+  GENESIS, seal, readLedger, appendReconciledObservations, auditLedger, auditLedgerAgainstChain
 } = require("./settlement-ledger");
 const {
   CHAIN, CHAIN_ID, USDC, RECEIVER, TRANSFER_TOPIC
@@ -100,6 +100,7 @@ test("records corroborated transfer, validates hash chain and omits sensitive in
     assert.equal(replay.head,out.head_hash);
     assert.equal(replay.records[0].transaction,A);
     assert.equal(replay.records[0].sequence,1);
+    assert.equal(replay.records[0].schema_version,2);
     assert.equal(replay.records[0].previous_hash,GENESIS);
     assert.equal(replay.records[0].canonical_block_hash,BLOCK);
     assert.equal(replay.records[0].external_buyer_verified,false);
@@ -377,5 +378,57 @@ test("offline corruption is rejected before any later on-chain check",async()=>{
       /LEDGER_HASH_MISMATCH/
     );
     assert.equal(called,0);
+  });
+});
+
+test("pre-block-hash v1 journal is readable but cannot silently mix with v2 entries",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    await commit(observation(A),ledgerPath);
+    const {hash,...payload}=readLedger(ledgerPath).records[0];
+    delete payload.canonical_block_hash;
+    payload.schema_version=1;
+    // This exactly reproduces the old chained evidence record layout.
+    const old=JSON.stringify(seal(payload))+"\\n";
+    fs.writeFileSync(ledgerPath,old);
+    const snapshot=readLedger(ledgerPath);
+    assert.equal(snapshot.legacyCount,1);
+    assert.equal(snapshot.records.length,1);
+    assert.equal(auditLedger(ledgerPath).legacy_records_requiring_review,1);
+    const rechecked=await auditLedgerAgainstChain(ledgerPath,{rpcCall:rpc()});
+    assert.equal(rechecked.legacy_records_requiring_review,1);
+    assert.equal(rechecked.all_recorded_blocks_still_canonical,false);
+    assert.equal(rechecked.canonical,0);
+    await assert.rejects(commit(observation(B),ledgerPath),
+      /LEDGER_LEGACY_REVIEW_REQUIRED/);
+    assert.equal(fs.readFileSync(ledgerPath,"utf8"),old);
+  });
+});
+
+test("mixed compatible schemas preserve chain audit but remain append-frozen for review",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    await commit(observation(A),ledgerPath);
+    const rows=readLedger(ledgerPath).records;
+    const {hash,...payload}=rows[0];
+    delete payload.canonical_block_hash;
+    payload.schema_version=1;
+    const legacy=seal(payload);
+    const {hash:secondHash,...next}=rows[0];
+    next.schema_version=2;
+    next.transaction=B;
+    next.sequence=2;
+    next.previous_hash=legacy.hash;
+    const newer=seal(next);
+    const mixed=JSON.stringify(legacy)+"\\n"+JSON.stringify(newer)+"\\n";
+    fs.writeFileSync(ledgerPath,mixed);
+    const replay=readLedger(ledgerPath);
+    assert.equal(replay.legacyCount,1);
+    assert.equal(replay.records.length,2);
+    const report=await auditLedgerAgainstChain(ledgerPath,{rpcCall:rpc()});
+    assert.equal(report.canonical,1);
+    assert.equal(report.legacy_records_requiring_review,1);
+    assert.equal(report.all_recorded_blocks_still_canonical,false);
+    await assert.rejects(commit(observation("0x"+"e".repeat(64)),ledgerPath),
+      /LEDGER_LEGACY_REVIEW_REQUIRED/);
+    assert.equal(fs.readFileSync(ledgerPath,"utf8"),mixed);
   });
 });
