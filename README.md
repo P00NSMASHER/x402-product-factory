@@ -333,6 +333,15 @@ a *fee-only optimistic contribution ceiling*, not measured net profit.
 The seller wallet's free-credit balance, source/hosting/retry costs and
 genuine customer demand are not established by the economics report.
 
+The read-only [Supabase usage evidence guide](docs/SUPABASE_USAGE_EVIDENCE_2026-10-10.md)
+and `node economics/supabase-usage-readiness.js /ABSOLUTE/PRIVATE/aggregates.json`
+classify **private, already aggregated** x402 Edge Function logs. HTTP 402
+challenges consume invocation capacity but are not purchases; paid-route HTTP
+200 alone does not prove settlement. Actual organization invoice charges,
+source costs and hosting cost per verified sale remain unknown. Do not commit
+the private aggregate input, customer requests, wallet identifiers or billing
+records into this public repository.
+
 Products 025+ remain frozen pending independently proven outside demand.
 No command above buys credits, moves funds, modifies prices, registers products,
 or deploys a seller.
