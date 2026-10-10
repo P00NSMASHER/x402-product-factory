@@ -57,7 +57,10 @@ function receipt(change = {}) {
     ...change
   };
 }
-function mockRpc({ chain = CHAIN_ID, latest = "0x80", found = receipt(), fail = false } = {}) {
+function mockRpc({
+  chain = CHAIN_ID, latest = "0x80", found = receipt(), fail = false,
+  canonical = {number:"0x64",hash:BLOCK_HASH}, canonicalFail = false
+} = {}) {
   const calls = [];
   return {
     calls,
@@ -68,6 +71,11 @@ function mockRpc({ chain = CHAIN_ID, latest = "0x80", found = receipt(), fail = 
       if (method === "eth_getTransactionReceipt") {
         if (fail) throw new Error("provider down");
         return found;
+      }
+      if (method === "eth_getBlockByNumber") {
+        assert.deepEqual(params, ["0x64",false]);
+        if (canonicalFail) throw new Error("canonical block RPC unavailable");
+        return canonical;
       }
       throw new Error("unexpected RPC");
     }
@@ -90,13 +98,16 @@ test("confirms one canonical USDC transfer without treating it as a real externa
   assert.equal(row.receiver, RECEIVER);
   assert.equal(row.token_contract, USDC);
   assert.equal(row.block_number, "100");
+  assert.equal(row.canonical_block_hash, BLOCK_HASH);
   assert.equal(row.transaction_log_index, "3");
   assert.equal(row.external_buyer_verified, false);
   assert.equal(row.eligible_for_revenue_scoreboard, false);
   assert.equal(result.verified_external_buyers, 0);
   assert.equal(result.eligible_external_revenue_atomic_usdc, "0");
   assert.equal(result.product_025_unlock_evidence, false);
-  assert.deepEqual(h.calls.map(x => x[0]), ["eth_chainId", "eth_blockNumber", "eth_getTransactionReceipt"]);
+  assert.deepEqual(h.calls.map(x => x[0]), [
+    "eth_chainId", "eth_blockNumber", "eth_getTransactionReceipt", "eth_getBlockByNumber"
+  ]);
 });
 
 test("all repeated transaction observations are rejected independent of ordering", async () => {
@@ -218,4 +229,36 @@ test("RPC errors and malformed JSON-RPC envelopes do not pass", async () => {
     fetchImpl: async () => ({ ok: true, json: async () => ({ jsonrpc: "2.0", id: 1, error: { code: -32000 } }) })
   });
   await assert.rejects(call("eth_chainId", []), /rpc_invalid_response/);
+});
+
+test("orphaned, missing or inconsistent canonical block fails closed", async () => {
+  const variants = [
+    [{ canonical:null }, "canonical_block_unavailable"],
+    [{ canonical:{ hash:"0x" + "f".repeat(64),number:"0x64" } }, "receipt_noncanonical"],
+    [{ canonical:{ hash:BLOCK_HASH,number:"0x63" } }, "receipt_noncanonical"],
+    [{ canonical:{ hash:BLOCK_HASH,number:"bad-number" } }, "canonical_block_unavailable"],
+    [{ canonical:{ hash:"corrupt",number:"0x64" } }, "canonical_block_unavailable"],
+    [{ canonicalFail:true }, "canonical_block_unavailable"]
+  ];
+  for(const [config,expected] of variants) {
+    const {row}=await one({},config);
+    assert.equal(row.status,expected);
+    assert.equal(row.onchain_verified,false);
+    assert.equal(row.eligible_for_revenue_scoreboard,false);
+  }
+});
+
+test("canonical-block lookup uses only an allowed read-only RPC method",async()=>{
+  const requests=[];
+  const call=makeRpc("https://rpc.example.invalid",{
+    fetchImpl:async (_url,options)=>{
+      const body=JSON.parse(options.body);
+      requests.push({method:body.method,params:body.params});
+      return {ok:true,json:async()=>({jsonrpc:"2.0",id:body.id,result:{number:"0x64",hash:BLOCK_HASH}})};
+    }
+  });
+  assert.deepEqual(await call("eth_getBlockByNumber",["0x64",false]),{
+    number:"0x64",hash:BLOCK_HASH
+  });
+  assert.deepEqual(requests,[{method:"eth_getBlockByNumber",params:["0x64",false]}]);
 });
