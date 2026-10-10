@@ -442,6 +442,27 @@ function parseCheckpointOptions(args) {
   if (!Number.isSafeInteger(records)) fail("LEDGER_CHECKPOINT_OPTIONS_INVALID");
   return { head: args[1], records };
 }
+function loadPrivateObservations(file) {
+  const location = privatePath(file);
+  if (!fs.existsSync(location)) fail("OBSERVATIONS_NOT_FOUND");
+  const fd = fs.openSync(location, fs.constants.O_RDONLY | O_NOFOLLOW);
+  let raw;
+  try {
+    const stat = fs.fstatSync(fd);
+    if (!stat.isFile() || stat.nlink !== 1 || (stat.mode & 0o077) !== 0) {
+      fail("OBSERVATIONS_FILE_NOT_PRIVATE");
+    }
+    if (stat.size > 1000000) fail("OBSERVATIONS_TOO_LARGE");
+    raw = fs.readFileSync(fd, "utf8");
+  } finally { fs.closeSync(fd); }
+  let value;
+  try { value = JSON.parse(raw); }
+  catch { fail("OBSERVATIONS_INVALID_JSON"); }
+  if (!Array.isArray(value) || value.length > 250) {
+    fail("OBSERVATIONS_INVALID_BATCH");
+  }
+  return value;
+}
 async function main() {
   const args = process.argv.slice(2);
   const mode = args[0];
@@ -464,11 +485,7 @@ async function main() {
     fail("USAGE_PRIVATE_LEDGER_AND_BASE_RPC_URL_REQUIRED");
   }
   const checkpoint = parseCheckpointOptions(args.slice(2));
-  const observationsFile = args[0];
-  if (!path.isAbsolute(observationsFile)) fail("OBSERVATIONS_ABSOLUTE_PATH_REQUIRED");
-  const observationSize = fs.statSync(observationsFile).size;
-  if (observationSize > 1000000) fail("OBSERVATIONS_TOO_LARGE");
-  const observations = JSON.parse(fs.readFileSync(observationsFile, "utf8"));
+  const observations = loadPrivateObservations(args[0]);
   const summary = await appendReconciledObservations(observations, {
     ledgerPath: args[1],
     rpcCall: makeRpc(process.env.BASE_RPC_URL),
@@ -486,5 +503,6 @@ if (require.main === module) {
 module.exports = {
   GENESIS, MAX_BYTES, sha256, seal, readLedger, privatePath,
   checkVerifiedRow, appendReconciledObservations, auditLedger,
-  auditLedgerAgainstChain, verifyExternalCheckpoint, parseCheckpointOptions
+  auditLedgerAgainstChain, verifyExternalCheckpoint, parseCheckpointOptions,
+  loadPrivateObservations
 };
