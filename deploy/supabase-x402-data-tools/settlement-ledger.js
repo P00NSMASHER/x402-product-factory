@@ -53,9 +53,10 @@ function privatePath(file) {
   return resolved;
 }
 function appendOnlyPayload(row, sequence, previous_hash, checkedAt) {
+  // V2 anchors evidence to the RPC canonical block hash; V1 remains read-only.
   // Intentionally minimal metadata; no source queries, auth, or signed payloads.
   return {
-    schema_version: 1,
+    schema_version: 2,
     sequence,
     previous_hash,
     network: CHAIN,
@@ -78,20 +79,23 @@ function appendOnlyPayload(row, sequence, previous_hash, checkedAt) {
 }
 function validatePayload(item, sequence, previous) {
   if (!item || typeof item !== "object" || Array.isArray(item)) fail("LEDGER_INVALID_RECORD");
+  const legacy = item.schema_version === 1;
+  if (!legacy && item.schema_version !== 2) fail("LEDGER_UNSUPPORTED_VERSION");
   if (Object.keys(item).join(",") !== [
     "schema_version", "sequence", "previous_hash", "network", "route",
     "transaction", "transaction_log_index", "payer", "receiver", "token_contract",
-    "amount_atomic_usdc", "block_number", "canonical_block_hash", "confirmations_at_check",
+    "amount_atomic_usdc", "block_number",
+    ...(legacy ? [] : ["canonical_block_hash"]), "confirmations_at_check",
     "evidence_source", "observed_at", "onchain_verified",
     "external_buyer_verified", "eligible_for_revenue_scoreboard"
   ].join(",")) fail("LEDGER_RECORD_SHAPE");
-  if (item.schema_version !== 1 || item.sequence !== sequence ||
+  if (item.sequence !== sequence ||
       item.previous_hash !== previous || item.network !== CHAIN ||
       !ROUTE_IDS.has(item.route) || !isHash(item.transaction) ||
       !positiveDigits(item.transaction_log_index) || !isAddress(item.payer) ||
       item.receiver !== RECEIVER || item.token_contract !== USDC ||
       item.amount_atomic_usdc !== "5000" || !positiveDigits(item.block_number) ||
-      !isHash(item.canonical_block_hash) ||
+      (!legacy && !isHash(item.canonical_block_hash)) ||
       !positiveDigits(item.confirmations_at_check) ||
       BigInt(item.confirmations_at_check) < 12n ||
       item.evidence_source !== "independent_base_rpc_receipt" ||
@@ -109,7 +113,7 @@ function seal(payload) {
 }
 function readLedger(file) {
   const location = privatePath(file);
-  if (!fs.existsSync(location)) return { records: [], head: GENESIS, seen: new Set(), bytes: 0 };
+  if (!fs.existsSync(location)) return { records: [], head: GENESIS, seen: new Set(), bytes: 0, legacyCount: 0 };
   const fd = fs.openSync(location, fs.constants.O_RDONLY | O_NOFOLLOW);
   let raw;
   try {
@@ -120,7 +124,7 @@ function readLedger(file) {
   if (raw.length && !raw.endsWith("\n")) fail("LEDGER_INCOMPLETE_WRITE");
   const lines = raw ? raw.slice(0, -1).split("\n") : [];
   const records = [], seen = new Set();
-  let head = GENESIS;
+  let head = GENESIS, legacyCount = 0;
   for (const line of lines) {
     if (!line || line.length > 10000) fail("LEDGER_INVALID_LINE");
     let parsed;
@@ -133,10 +137,11 @@ function readLedger(file) {
     // This is intentionally transaction-level, not merely in-batch/log-index.
     if (seen.has(payload.transaction)) fail("LEDGER_DUPLICATE_TRANSACTION");
     seen.add(payload.transaction);
+    if (payload.schema_version === 1) legacyCount++;
     records.push(parsed);
     head = hash;
   }
-  return { records, head, seen, bytes: Buffer.byteLength(raw) };
+  return { records, head, seen, bytes: Buffer.byteLength(raw), legacyCount };
 }
 function lock(file) {
   const name = file + ".lock";
@@ -208,6 +213,7 @@ async function appendReconciledObservations(events, {
   const release = lock(location);
   try {
     const journal = readLedger(location);
+    if (journal.legacyCount) fail("LEDGER_LEGACY_REVIEW_REQUIRED");
     const pending = [], seen = new Set(journal.seen);
     let head = journal.head, duplicates = 0, unverified = 0;
     const checkedAt = now();
@@ -249,6 +255,7 @@ function auditLedger(file) {
     integrity: "validated_local_hash_chain",
     records: replay.records.length,
     head_hash: replay.head,
+    legacy_records_requiring_review: replay.legacyCount,
     external_buyer_verified: false,
     eligible_external_revenue_atomic_usdc: "0",
     product_025_unlock_evidence: false
@@ -270,9 +277,14 @@ async function auditLedgerAgainstChain(file, { rpcCall } = {}) {
     canonical: 0,
     block_mismatch: 0,
     block_unavailable: 0,
-    insufficient_confirmations: 0
+    insufficient_confirmations: 0,
+    legacy_records_requiring_review: 0
   };
   for (const row of journal.records) {
+    if (row.schema_version === 1) {
+      statuses.legacy_records_requiring_review++;
+      continue;
+    }
     const blockNumber = BigInt(row.block_number);
     if (blockNumber > height || height - blockNumber + 1n < 12n) {
       statuses.insufficient_confirmations++;
@@ -312,7 +324,8 @@ async function auditLedgerAgainstChain(file, { rpcCall } = {}) {
       statuses.canonical === local.records &&
       statuses.block_mismatch === 0 &&
       statuses.block_unavailable === 0 &&
-      statuses.insufficient_confirmations === 0,
+      statuses.insufficient_confirmations === 0 &&
+      statuses.legacy_records_requiring_review === 0,
     external_buyer_verified: false,
     eligible_external_revenue_atomic_usdc: "0",
     product_025_unlock_evidence: false
