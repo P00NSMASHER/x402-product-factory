@@ -203,8 +203,35 @@ function checkVerifiedRow(row) {
     BigInt(row.confirmations_at_check) >= 12n &&
     row.evidence_source === "independent_base_rpc_receipt";
 }
+function verifyExternalCheckpoint(journal, checkpoint) {
+  if (checkpoint === undefined) return false;
+  if (!checkpoint || typeof checkpoint !== "object" ||
+      !/^[0-9a-f]{64}$/.test(checkpoint.head || "") ||
+      !Number.isSafeInteger(checkpoint.records) || checkpoint.records < 0) {
+    fail("LEDGER_CHECKPOINT_INVALID");
+  }
+  if (journal.head !== checkpoint.head ||
+      journal.records.length !== checkpoint.records) {
+    fail("LEDGER_CHECKPOINT_MISMATCH");
+  }
+  return true;
+}
+function auditReplay(journal, checkpoint) {
+  const verified = verifyExternalCheckpoint(journal, checkpoint);
+  return {
+    schema_version: 1,
+    integrity: "validated_local_hash_chain",
+    checkpoint_verified: verified,
+    records: journal.records.length,
+    head_hash: journal.head,
+    legacy_records_requiring_review: journal.legacyCount,
+    external_buyer_verified: false,
+    eligible_external_revenue_atomic_usdc: "0",
+    product_025_unlock_evidence: false
+  };
+}
 async function appendReconciledObservations(events, {
-  ledgerPath, rpcCall, now = () => new Date().toISOString()
+  ledgerPath, rpcCall, now = () => new Date().toISOString(), checkpoint
 } = {}) {
   const location = privatePath(ledgerPath);
   // Do NOT accept a supplied "verified" report. The library derives all proof
@@ -213,6 +240,7 @@ async function appendReconciledObservations(events, {
   const release = lock(location);
   try {
     const journal = readLedger(location);
+    const checkpointVerified = verifyExternalCheckpoint(journal, checkpoint);
     if (journal.legacyCount) fail("LEDGER_LEGACY_REVIEW_REQUIRED");
     const pending = [], seen = new Set(journal.seen);
     let head = journal.head, duplicates = 0, unverified = 0;
@@ -240,31 +268,25 @@ async function appendReconciledObservations(events, {
       unresolved_or_rejected_observations: unverified,
       total_verified_transfer_evidence: journal.records.length + pending.length,
       head_hash: head,
+      prior_checkpoint_verified: checkpointVerified,
       eligible_external_revenue_atomic_usdc: "0",
       verified_external_buyers: 0,
       product_025_unlock_evidence: false
     };
   } finally { release(); }
 }
-function auditLedger(file) {
+function auditLedger(file, { checkpoint } = {}) {
   const location = privatePath(file);
   if (!fs.existsSync(location)) fail("LEDGER_NOT_FOUND");
-  const replay = readLedger(location);
-  return {
-    schema_version: 1,
-    integrity: "validated_local_hash_chain",
-    records: replay.records.length,
-    head_hash: replay.head,
-    legacy_records_requiring_review: replay.legacyCount,
-    external_buyer_verified: false,
-    eligible_external_revenue_atomic_usdc: "0",
-    product_025_unlock_evidence: false
-  };
+  return auditReplay(readLedger(location), checkpoint);
 }
-async function auditLedgerAgainstChain(file, { rpcCall } = {}) {
+async function auditLedgerAgainstChain(file, { rpcCall, checkpoint } = {}) {
   if (typeof rpcCall !== "function") fail("LEDGER_RPC_REQUIRED");
-  const local = auditLedger(file);
-  const journal = readLedger(file);
+  const location = privatePath(file);
+  if (!fs.existsSync(location)) fail("LEDGER_NOT_FOUND");
+  // One validated immutable in-memory snapshot for both journal and RPC audit.
+  const journal = readLedger(location);
+  const local = auditReplay(journal, checkpoint);
   const chain = await rpcCall("eth_chainId", []);
   if (chain !== "0x2105") fail("wrong_rpc_chain");
   const current = await rpcCall("eth_blockNumber", []);
@@ -316,6 +338,7 @@ async function auditLedgerAgainstChain(file, { rpcCall } = {}) {
     integrity: local.integrity,
     records: local.records,
     head_hash: local.head_hash,
+    checkpoint_verified: local.checkpoint_verified,
     chain: CHAIN,
     chain_head_at_check: height.toString(),
     ...statuses,
