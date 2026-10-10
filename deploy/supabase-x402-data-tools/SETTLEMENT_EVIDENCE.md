@@ -303,5 +303,91 @@ tables, or live production writes. Run the tests with:
 ```bash
 node --test deploy/supabase-x402-data-tools/settlement-telemetry.test.js \
   deploy/supabase-x402-data-tools/reconcile-settlements.test.js \
-  deploy/supabase-x402-data-tools/settlement-ledger.test.js
+  deploy/supabase-x402-data-tools/settlement-ledger.test.js \
+  deploy/supabase-x402-data-tools/buyer-review-queue.test.js
 ```
+
+
+## Offline buyer-review queue (no revenue recognition)
+
+The optional `buyer-review-queue.js` reads **only** the operator's existing
+private, hash-chain-verified settlement journal. It groups transfer evidence
+by payer wallet to help an operator identify wallets that require follow-up,
+without asserting wallet ownership or upgrading payment evidence to a sale.
+
+It does **not** connect to GitHub, Supabase, CRM systems, wallets, or a
+public data service; it makes **zero RPC calls**. It never books revenue,
+changes the journal, approves an external buyer, or unlocks Product 025+.
+
+Prepare a stable, random 32-byte HMAC key **outside the repository**. Set it
+as exactly 64 hexadecimal characters in `X402_REVIEW_HMAC_KEY` using an
+operator-controlled secret manager. Never write this key to the journal,
+an exclusion file, GitHub Actions, a public source tree, or shared logs.
+Changing or losing the key changes case identifiers and prevents stable
+comparison across reports.
+
+Example invocation (replace placeholders with trusted private values):
+
+```bash
+umask 077
+X402_REVIEW_HMAC_KEY="$YOUR_PRIVATE_64_HEX_KEY" \
+  node deploy/supabase-x402-data-tools/buyer-review-queue.js \
+  "$HOME/.private-x402-settlements/journal.jsonl" \
+  > "$HOME/.private-x402-settlements/buyer-review.json"
+```
+
+To mark wallet *exclusions* for operator-controlled, test/synthetic, or
+marketplace-probe wallets, prepare an optional **private** JSON file in an
+owner-only (0700) directory with 0600 permissions:
+
+```json
+{
+  "schema_version": 1,
+  "excluded_wallets": [
+    {
+      "address": "0xREPLACE_WITH_YOUR_ACTUAL_40_HEX_CHARACTER_ADDRESS",
+      "reason": "operator_controlled",
+      "evidence_reference": "private-operator-wallet-inventory-20261010"
+    }
+  ]
+}
+```
+
+The example address is intentionally a placeholder, not a usable address.
+Valid `reason` values are `operator_controlled`, `test_or_synthetic`, and
+`marketplace_probe`. An evidence reference is required for each exclusion,
+but the tool does **not** independently verify it; exclusion classifications
+are visibly labeled **operator-declared** and can only reduce the review
+queue, never make a wallet eligible for revenue.
+
+Pass the exclusion file as the second positional argument. Optionally
+require exact previously preserved journal head/count using
+`--expect-head HASH --expect-records COUNT` at the end, as in the journal
+audit. Keep the checkpoint in a separately controlled location.
+
+**Output safety:** Each wallet receives a deterministic, keyed HMAC-SHA256
+case ID and local journal sequence references. The report does not contain
+raw wallet addresses, transaction hashes, private exclusion evidence
+references, HMAC keys, or source queries. It reports possible wallet reuse
+as a **repeat-wallet signal**, not a repeat customer. Distinct wallets are
+**not** unique people, organizations, or verified independent buyers.
+
+Every report explicitly sets:
+
+- `independently_verified_external_buyers: 0`
+- `eligible_external_revenue_atomic_usdc: "0"`
+- `product_025_unlock_evidence: false`
+- `current_chain_reverified: false`
+
+The last flag is important: the queue replays stored evidence but does not
+recheck the current chain. Run the separate read-only `--audit-chain` before
+relying on chain history for manual review. Independently corroborate buyer
+identity, economic independence, transaction-to-service attribution, refunds
+or reversal risk, test-wallet exclusions, and demand provenance through a
+separately reviewed procedure. Until then, this is **triage**, not a sales
+ledger, customer count, or evidence satisfying a growth-unlock target.
+
+Treat queue files and stable HMAC identifiers as potentially identifying
+pseudonymous data; keep them private and remove them according to your
+retention policy. No actual customer observations are shipped with the
+repository or used in CI.
