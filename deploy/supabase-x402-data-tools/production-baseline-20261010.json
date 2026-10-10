@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "observed_date": "2026-10-10",
+  "project_ref": "bvjtimsalbzkmulyinpg",
+  "function_slug": "x402-data-tools",
+  "deployed_version": 6,
+  "deployed_status": "ACTIVE",
+  "supabase_reported_bundle_sha256": "28d4c24a123538e6cfa437723899784275576d1467e98a836a340a986f674d9f",
+  "purpose": "Pinned live v6 agent discovery and payment settings for source-drift review; not proof of current future deployment",
+  "payment_constants": {
+    "NETWORK": "eip155:8453",
+    "USDC": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "PAY_TO": "0x708f7b52b56eafd7fc7752ed732914021",
+    "FACILITATOR": "https://facilitator.payai.network",
+    "PRICE": "$0.005",
+    "AMOUNT": "5000"
+  },
+  "route_descriptions": {
+    "/api/sec-filings": "Check a public company's latest SEC filings when an agent needs to verify whether a filing exists or inspect recent filing activity before continuing research or diligence.",
+    "/api/ofac-sdn-screen": "Check whether a submitted person or organization name produces current OFAC SDN review candidates before an agent continues a compliance-sensitive workflow. No-match is not sanctions clearance.",
+    "/api/us-address-geocode": "Verify and normalize a U.S. street address with official Census data when an agent needs location consistency or geography identifiers before continuing a workflow.",
+    "/api/domain-rdap": "Check authoritative domain registration, registrar, lifecycle dates, and nameservers when an agent needs domain-age or identity evidence before trusting a counterparty.",
+    "/api/treasury-average-rates": "Get the latest official monthly average Treasury rate for a requested security category when an agent needs a government-source rate input for a decision or calculation."
+  }
+}
