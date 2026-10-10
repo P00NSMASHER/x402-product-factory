@@ -121,6 +121,30 @@ async function reconcileEvents(events, { rpcCall, minConfirmations = 12 } = {}) 
     if (block > latest || latest - block + 1n < BigInt(minConfirmations)) {
       output.push(record(event, "insufficient_confirmations")); continue;
     }
+    // Receipt data alone may describe an orphaned block after a chain reorg.
+    // Confirm the block number still resolves to the exact receipt block hash
+    // on the RPC provider's currently canonical chain.
+    let canonicalBlock;
+    try {
+      canonicalBlock = await rpcCall("eth_getBlockByNumber", [
+        "0x" + block.toString(16),
+        false
+      ]);
+    } catch {
+      output.push(record(event, "canonical_block_unavailable")); continue;
+    }
+    if (!canonicalBlock || !isHash(canonicalBlock.hash)) {
+      output.push(record(event, "canonical_block_unavailable")); continue;
+    }
+    let canonicalHeight;
+    try { canonicalHeight = quantity(canonicalBlock.number); }
+    catch {
+      output.push(record(event, "canonical_block_unavailable")); continue;
+    }
+    if (canonicalHeight !== block ||
+        norm(canonicalBlock.hash) !== norm(receipt.blockHash)) {
+      output.push(record(event, "receipt_noncanonical")); continue;
+    }
     // Detect any matching payer -> recipient USDC transfer before checking
     // its amount; multiple matches make attribution ambiguous.
     const matches = receipt.logs
@@ -140,6 +164,7 @@ async function reconcileEvents(events, { rpcCall, minConfirmations = 12 } = {}) 
       receiver: RECEIVER,
       token_contract: USDC,
       block_number: block.toString(),
+      canonical_block_hash: norm(canonicalBlock.hash),
       transaction_log_index: matches[0].logIndex,
       confirmations_at_check: (latest - block + 1n).toString(),
       evidence_source: "independent_base_rpc_receipt"
@@ -169,7 +194,7 @@ function makeRpc(url, { fetchImpl = fetch, timeoutMs = 8000 } = {}) {
   }
   let nextId = 0;
   return async (method, params) => {
-    if (!["eth_chainId", "eth_blockNumber", "eth_getTransactionReceipt"].includes(method)) {
+    if (!["eth_chainId", "eth_blockNumber", "eth_getTransactionReceipt", "eth_getBlockByNumber"].includes(method)) {
       throw new TypeError("unsupported read-only RPC method");
     }
     const id = ++nextId;
