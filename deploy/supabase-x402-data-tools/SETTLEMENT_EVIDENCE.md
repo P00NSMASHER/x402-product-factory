@@ -157,6 +157,19 @@ unambiguous matching transfer. It writes only minimal evidence fields.
 It **never** persists signed payment data, source query strings, or user-supplied
 "verified" claims.
 
+For an **offline integrity check** that requires no RPC access, payment
+authorization, or input event file, run:
+
+```bash
+node deploy/supabase-x402-data-tools/settlement-ledger.js \
+  --audit "$HOME/.private-x402-settlements/journal.jsonl"
+```
+
+The audit reports the record count and final hash without printing payer
+addresses; missing or noncanonical files fail rather than reporting a
+misleading empty ledger. Store the final hash outside the writable journal
+as a checkpoint for detecting full-file replacement.
+
 The journal uses exclusive `.lock` acquisition, 0600 file creation,
 append-and-fsync writes, a strictly validated sequential SHA-256 hash chain,
 and **transaction-level deduplication across all prior batches in that
