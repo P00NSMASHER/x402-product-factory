@@ -1,0 +1,28 @@
+name: Supabase x402 settlement contract
+
+on:
+  pull_request:
+    paths:
+      - 'deploy/supabase-x402-data-tools/**'
+      - '.github/workflows/supabase-x402-settlement-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/supabase-x402-data-tools/**'
+      - '.github/workflows/supabase-x402-settlement-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  settlement-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify Supabase settlement observability and failure semantics
+        run: node --test deploy/supabase-x402-data-tools/settlement-telemetry.test.js
