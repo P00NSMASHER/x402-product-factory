@@ -308,6 +308,7 @@ async function auditLedgerAgainstChain(file, { rpcCall } = {}) {
     chain_head_at_check: height.toString(),
     ...statuses,
     all_recorded_blocks_still_canonical:
+      local.records > 0 &&
       statuses.canonical === local.records &&
       statuses.block_mismatch === 0 &&
       statuses.block_unavailable === 0 &&
