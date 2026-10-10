@@ -432,3 +432,123 @@ test("mixed compatible schemas preserve chain audit but remain append-frozen for
     assert.equal(fs.readFileSync(ledgerPath,"utf8"),mixed);
   });
 });
+
+test("trusted checkpoint permits a matching next append and rejects an old restored prefix",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    const first=await commit(observation(A),ledgerPath);
+    const pinned={head:first.head_hash,records:1};
+    const second=await appendReconciledObservations([observation(B)],{
+      ledgerPath,rpcCall:rpc(),checkpoint:pinned,
+      now:()=>"2026-10-10T01:02:04.000Z"
+    });
+    assert.equal(second.prior_checkpoint_verified,true);
+    assert.equal(second.verified_transfer_evidence_added,1);
+    assert.equal(readLedger(ledgerPath).records.length,2);
+    assert.equal(auditLedger(ledgerPath,{
+      checkpoint:{head:second.head_hash,records:2}
+    }).checkpoint_verified,true);
+    const original=fs.readFileSync(ledgerPath,"utf8");
+    const oldPrefix=original.split("\n")[0]+"\n";
+    fs.writeFileSync(ledgerPath,oldPrefix);
+    await assert.rejects(appendReconciledObservations([observation(B)],{
+      ledgerPath,rpcCall:rpc(),checkpoint:{head:second.head_hash,records:2}
+    }),/LEDGER_CHECKPOINT_MISMATCH/);
+    assert.equal(fs.readFileSync(ledgerPath,"utf8"),oldPrefix);
+  });
+});
+
+test("external checkpoint detects a wholly rewritten but locally valid journal",async()=>{
+  await privateLedger(async ({ledgerPath,dir})=>{
+    const original=await commit(observation(A),ledgerPath);
+    const pinned={head:original.head_hash,records:1};
+    const rewritten=path.join(dir,"rewritten.jsonl");
+    await commit(observation(B),rewritten);
+    // Both files are internally correct and contain one entry.
+    assert.equal(readLedger(rewritten).records.length,1);
+    fs.copyFileSync(rewritten,ledgerPath);
+    assert.equal(auditLedger(ledgerPath).records,1);
+    assert.equal(auditLedger(ledgerPath).checkpoint_verified,false);
+    assert.throws(()=>auditLedger(ledgerPath,{checkpoint:pinned}),
+      /LEDGER_CHECKPOINT_MISMATCH/);
+    const before=fs.readFileSync(ledgerPath,"utf8");
+    await assert.rejects(appendReconciledObservations([observation(A)],{
+      ledgerPath,rpcCall:rpc(),checkpoint:pinned
+    }),/LEDGER_CHECKPOINT_MISMATCH/);
+    assert.equal(fs.readFileSync(ledgerPath,"utf8"),before);
+  });
+});
+
+test("pinning a nonempty checkpoint rejects deleted journals and empty replacement",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    const first=await commit(observation(A),ledgerPath);
+    fs.unlinkSync(ledgerPath);
+    const pinned={head:first.head_hash,records:1};
+    await assert.rejects(appendReconciledObservations([observation(B)],{
+      ledgerPath,rpcCall:rpc(),checkpoint:pinned
+    }),/LEDGER_CHECKPOINT_MISMATCH/);
+    assert.equal(fs.existsSync(ledgerPath),false);
+  });
+});
+
+test("malformed checkpoint and record count fail closed without journal writes",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    await commit(observation(A),ledgerPath);
+    const before=fs.readFileSync(ledgerPath,"utf8");
+    const invalid=[
+      null,{}, {head:"0x"+"0".repeat(64),records:1},
+      {head:"F".repeat(64),records:1},
+      {head:"0".repeat(64),records:-1},
+      {head:"0".repeat(64),records:1.5},
+      {head:"0".repeat(64),records:"1"}
+    ];
+    for(const checkpoint of invalid) {
+      assert.throws(()=>auditLedger(ledgerPath,{checkpoint}),
+        /LEDGER_CHECKPOINT_INVALID/);
+      await assert.rejects(appendReconciledObservations([observation(B)],{
+        ledgerPath,rpcCall:rpc(),checkpoint
+      }),/LEDGER_CHECKPOINT_INVALID/);
+    }
+    assert.equal(fs.readFileSync(ledgerPath,"utf8"),before);
+  });
+});
+
+test("chain re-audit checks external checkpoint before any RPC call",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    await commit(observation(A),ledgerPath);
+    let calls=0;
+    await assert.rejects(auditLedgerAgainstChain(ledgerPath,{
+      checkpoint:{head:"0".repeat(64),records:0},
+      rpcCall:async()=>{calls++;return CHAIN_ID;}
+    }),/LEDGER_CHECKPOINT_MISMATCH/);
+    assert.equal(calls,0);
+    const current=readLedger(ledgerPath);
+    const result=await auditLedgerAgainstChain(ledgerPath,{
+      checkpoint:{head:current.head,records:1},rpcCall:rpc()
+    });
+    assert.equal(result.checkpoint_verified,true);
+    assert.equal(result.all_recorded_blocks_still_canonical,true);
+    assert.equal(result.eligible_external_revenue_atomic_usdc,"0");
+  });
+});
+
+test("CLI audited checkpoint verifies out-of-band head and count",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    const first=await commit(observation(A),ledgerPath);
+    const args=[
+      path.join(__dirname,"settlement-ledger.js"),
+      "--audit",ledgerPath,
+      "--expect-head",first.head_hash,
+      "--expect-records","1"
+    ];
+    const good=spawnSync(process.execPath,args,{encoding:"utf8",env:{...process.env,BASE_RPC_URL:""}});
+    assert.equal(good.status,0,good.stderr);
+    const result=JSON.parse(good.stdout);
+    assert.equal(result.checkpoint_verified,true);
+    assert.equal(result.records,1);
+    const tampered=spawnSync(process.execPath,[
+      ...args.slice(0,4),"0".repeat(64),...args.slice(5)
+    ],{encoding:"utf8",env:{...process.env,BASE_RPC_URL:""}});
+    assert.notEqual(tampered.status,0);
+    assert.equal(tampered.stdout,"");
+  });
+});
