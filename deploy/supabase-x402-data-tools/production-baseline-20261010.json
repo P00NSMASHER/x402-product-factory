@@ -25,5 +25,7 @@
   "observed_live_source_sha256": "d5c5457cc8d6bbafa041528bcc15323a7e8b47093e55dc61296641914819d508",
   "telemetry_only_delta_expected": true,
   "release_preflight_requires_fresh_live_snapshot": true,
-  "deployment_authorized": false
+  "deployment_authorized": false,
+  "reviewed_settlement_telemetry_sha256": "84e2da4ea3ab311974b282c6f27b580d5cdc686bfd63e401434c340f7b5f1c2e",
+  "reviewed_settlement_telemetry_bytes": 1279
 }
