@@ -89,7 +89,7 @@ References: [x402 v2 specification](https://github.com/x402-foundation/x402/blob
 The optional `reconcile-settlements.js` command reads a **local JSON array** of
 the sanitized v2 settlement events. It uses the operator's separately chosen
 Base HTTPS JSON-RPC endpoint only for `eth_chainId`, `eth_blockNumber`,
-and `eth_getTransactionReceipt`. It never signs or broadcasts a transaction.
+`eth_getTransactionReceipt`, and `eth_getBlockByNumber`. It never signs or broadcasts a transaction.
 
 ```bash
 BASE_RPC_URL='https://YOUR_TRUSTED_BASE_RPC_ENDPOINT' \
@@ -106,7 +106,8 @@ environment, never in source or logs.
 Validation is intentionally conservative: canonical Supabase route and price,
 exact reported network, expected amount, a non-null transaction and payer,
 RPC chain ID 8453, a successful receipt, at least 12 observed block
-confirmations, and exactly one matching USDC `Transfer` log with the correct
+confirmations, a canonical block-by-number lookup whose hash matches the
+receipt block hash, and exactly one matching USDC `Transfer` log with the correct
 payer, canonical receiver and 5,000 atomic USDC. Duplicates **within the input
 batch** are rejected. Missing receipts, provider errors, invalid RPC evidence,
 insufficient confirmations, conflicting transfers and mismatched amounts
@@ -153,7 +154,9 @@ ledger must also be owner-only (0600).
 The tool recalculates the chain evidence from scratch using a trusted HTTPS
 JSON-RPC endpoint, validates canonical Supabase route, payer, exact price,
 token, receiver, confirmed transfer amount, 12+ confirmations, and a single
-unambiguous matching transfer. It writes only minimal evidence fields.
+unambiguous matching transfer. New journal records use schema version 2 and
+preserve the corroborated canonical block hash alongside the transaction.
+It writes only minimal evidence fields.
 It **never** persists signed payment data, source query strings, or user-supplied
 "verified" claims.
 
@@ -169,6 +172,29 @@ The audit reports the record count and final hash without printing payer
 addresses; missing or noncanonical files fail rather than reporting a
 misleading empty ledger. Store the final hash outside the writable journal
 as a checkpoint for detecting full-file replacement.
+
+For a **later read-only canonical-chain recheck** of previously saved V2
+records (no journal writes and no new payment attempts), run:
+
+```bash
+BASE_RPC_URL='https://YOUR_TRUSTED_BASE_RPC' \
+  node deploy/supabase-x402-data-tools/settlement-ledger.js \
+  --audit-chain "$HOME/.private-x402-settlements/journal.jsonl"
+```
+
+The chain recheck validates chain ID, current height, at least 12
+confirmations, and the saved block hash against the provider's canonical
+block at the recorded height. A mismatch, unavailable block, or insufficient
+confirmations prevents an all-canonical result. It does **not** prove payer
+independence, verify a customer's real-world identity, or establish finality
+outside the chosen RPC provider's trust boundary.
+
+**Backward compatibility:** Legacy V1 journal records without a saved
+canonical block hash remain independently readable and hash-chain auditable,
+but they are classified as `legacy_records_requiring_review`. Do not
+automatically upgrade them or append new V2 records to any journal containing
+V1 rows. Preserve original bytes and trusted head checkpoints; use a
+separately reviewed migration/reconciliation process instead.
 
 The journal uses exclusive `.lock` acquisition, 0600 file creation,
 append-and-fsync writes, a strictly validated sequential SHA-256 hash chain,
