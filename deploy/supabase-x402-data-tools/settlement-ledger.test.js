@@ -6,7 +6,8 @@ const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const {
-  GENESIS, seal, readLedger, appendReconciledObservations, auditLedger, auditLedgerAgainstChain
+  GENESIS, seal, readLedger, appendReconciledObservations, auditLedger,
+  auditLedgerAgainstChain, loadPrivateObservations
 } = require("./settlement-ledger");
 const {
   CHAIN, CHAIN_ID, USDC, RECEIVER, TRANSFER_TOPIC
@@ -728,5 +729,63 @@ test("successful append replays exactly the expected journal head and record cou
     assert.equal(final.records[0].hash,first.head_hash);
     assert.equal(final.fileIdentity!==null,true);
     assert.match(final.bytesHash,/^[0-9a-f]{64}$/);
+  });
+});
+
+
+test("private observations loader accepts an owner-only local event array",async()=>{
+  await privateLedger(async({dir})=>{
+    const source=path.join(dir,"observations.json");
+    const events=[observation(A),observation(B)];
+    fs.writeFileSync(source,JSON.stringify(events),{mode:0o600});
+    assert.equal(fs.statSync(source).mode & 0o777,0o600);
+    assert.deepEqual(loadPrivateObservations(source),events);
+  });
+});
+
+test("private observations loader refuses publicly readable or symlinked inputs",async()=>{
+  await privateLedger(async({dir})=>{
+    const source=path.join(dir,"observations.json");
+    const link=path.join(dir,"observations-alias.json");
+    fs.writeFileSync(source,JSON.stringify([observation(A)]),{mode:0o600});
+    fs.chmodSync(source,0o644);
+    assert.throws(()=>loadPrivateObservations(source),/LEDGER_FILE_NOT_PRIVATE/);
+    fs.chmodSync(source,0o600);
+    fs.symlinkSync(source,link);
+    assert.throws(()=>loadPrivateObservations(link),/LEDGER_FILE_NOT_PRIVATE/);
+  });
+});
+
+test("private observations loader refuses hardlinks, public directories and repo paths",async()=>{
+  await privateLedger(async({dir})=>{
+    const source=path.join(dir,"observations.json");
+    const duplicate=path.join(dir,"hardlink.json");
+    fs.writeFileSync(source,JSON.stringify([observation(A)]),{mode:0o600});
+    fs.linkSync(source,duplicate);
+    assert.throws(()=>loadPrivateObservations(source),/LEDGER_FILE_NOT_PRIVATE/);
+    fs.unlinkSync(duplicate);
+    fs.chmodSync(dir,0o755);
+    assert.throws(()=>loadPrivateObservations(source),/LEDGER_DIRECTORY_NOT_PRIVATE/);
+    fs.chmodSync(dir,0o700);
+    assert.throws(()=>loadPrivateObservations(path.join(__dirname,"not-real.json")),
+      /LEDGER_MUST_BE_OUTSIDE_REPOSITORY/);
+    assert.throws(()=>loadPrivateObservations("relative.json"),
+      /LEDGER_ABSOLUTE_PATH_REQUIRED/);
+  });
+});
+
+test("invalid observations JSON, oversized inputs, and non-array batches fail closed",async()=>{
+  await privateLedger(async({dir})=>{
+    const source=path.join(dir,"observations.json");
+    fs.writeFileSync(source,"{invalid",{mode:0o600});
+    assert.throws(()=>loadPrivateObservations(source),/OBSERVATIONS_INVALID_JSON/);
+    fs.writeFileSync(source,JSON.stringify({items:[observation(A)]}),{mode:0o600});
+    assert.throws(()=>loadPrivateObservations(source),/OBSERVATIONS_INVALID_BATCH/);
+    fs.writeFileSync(source,JSON.stringify(Array(251).fill(observation(A))),{mode:0o600});
+    assert.throws(()=>loadPrivateObservations(source),/OBSERVATIONS_INVALID_BATCH/);
+    fs.writeFileSync(source,"x".repeat(1000001),{mode:0o600});
+    assert.throws(()=>loadPrivateObservations(source),/OBSERVATIONS_TOO_LARGE/);
+    assert.throws(()=>loadPrivateObservations(path.join(dir,"missing.json")),
+      /OBSERVATIONS_NOT_FOUND/);
   });
 });
