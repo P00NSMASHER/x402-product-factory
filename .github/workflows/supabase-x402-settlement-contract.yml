@@ -24,6 +24,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Verify pinned production v6 source parity (offline only)
+        run: node deploy/supabase-x402-data-tools/verify-production-baseline.js --check
+
       - name: Verify Supabase settlement observability and failure semantics
         run: |
           node --test \
