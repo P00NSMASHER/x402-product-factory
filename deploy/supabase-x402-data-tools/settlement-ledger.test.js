@@ -388,7 +388,7 @@ test("pre-block-hash v1 journal is readable but cannot silently mix with v2 entr
     delete payload.canonical_block_hash;
     payload.schema_version=1;
     // This exactly reproduces the old chained evidence record layout.
-    const old=JSON.stringify(seal(payload))+"\\n";
+    const old=JSON.stringify(seal(payload))+"\n";
     fs.writeFileSync(ledgerPath,old);
     const snapshot=readLedger(ledgerPath);
     assert.equal(snapshot.legacyCount,1);
@@ -418,7 +418,7 @@ test("mixed compatible schemas preserve chain audit but remain append-frozen for
     next.sequence=2;
     next.previous_hash=legacy.hash;
     const newer=seal(next);
-    const mixed=JSON.stringify(legacy)+"\\n"+JSON.stringify(newer)+"\\n";
+    const mixed=JSON.stringify(legacy)+"\n"+JSON.stringify(newer)+"\n";
     fs.writeFileSync(ledgerPath,mixed);
     const replay=readLedger(ledgerPath);
     assert.equal(replay.legacyCount,1);
