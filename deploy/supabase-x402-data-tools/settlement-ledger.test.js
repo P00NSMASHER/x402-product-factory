@@ -57,7 +57,10 @@ function receipt(tx, { amount = 5000, statuses = "0x1" } = {}) {
     }]
   };
 }
-function rpc({ chain = CHAIN_ID, amount = 5000, failures = [], latest = "0x90" } = {}) {
+function rpc({
+  chain = CHAIN_ID, amount = 5000, failures = [], latest = "0x90",
+  canonicalHash = BLOCK
+} = {}) {
   return async (method, params) => {
     if (method === "eth_chainId") {
       if (failures.includes(method)) throw new Error("RPC unavailable");
@@ -67,6 +70,11 @@ function rpc({ chain = CHAIN_ID, amount = 5000, failures = [], latest = "0x90" }
     if (method === "eth_getTransactionReceipt") {
       if (failures.includes(method)) throw new Error("RPC unavailable");
       return receipt(params[0], {amount});
+    }
+    if (method === "eth_getBlockByNumber") {
+      if (failures.includes(method)) throw new Error("RPC unavailable");
+      assert.deepEqual(params, ["0x64", false]);
+      return {number:"0x64", hash:canonicalHash};
     }
     throw new Error("unexpected method");
   };
@@ -93,6 +101,7 @@ test("records corroborated transfer, validates hash chain and omits sensitive in
     assert.equal(replay.records[0].transaction,A);
     assert.equal(replay.records[0].sequence,1);
     assert.equal(replay.records[0].previous_hash,GENESIS);
+    assert.equal(replay.records[0].canonical_block_hash,BLOCK);
     assert.equal(replay.records[0].external_buyer_verified,false);
     assert.equal(replay.records[0].eligible_for_revenue_scoreboard,false);
     const raw=fs.readFileSync(ledgerPath,"utf8");
@@ -274,5 +283,38 @@ test("refuses hard-linked journal files to prevent writing another location",asy
     fs.linkSync(target,ledgerPath);
     await assert.rejects(commit(observation(A),ledgerPath),/LEDGER_FILE_NOT_PRIVATE/);
     assert.equal(fs.readFileSync(target,"utf8"),"outside original");
+  });
+});
+
+test("orphaned block evidence is never appended to the journal",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    const first=await commit(observation(A),ledgerPath,rpc({canonicalHash:"0x"+"f".repeat(64)}));
+    assert.equal(first.verified_transfer_evidence_added,0);
+    assert.equal(first.unresolved_or_rejected_observations,1);
+    assert.equal(fs.existsSync(ledgerPath),false);
+    const healthy=await commit(observation(A),ledgerPath,rpc());
+    assert.equal(healthy.verified_transfer_evidence_added,1);
+    assert.equal(readLedger(ledgerPath).records[0].canonical_block_hash,BLOCK);
+  });
+});
+
+test("canonical-block RPC failure cannot corrupt a prior journal",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    await commit(observation(A),ledgerPath);
+    const original=fs.readFileSync(ledgerPath,"utf8");
+    const attempt=await commit(observation(B),ledgerPath,rpc({failures:["eth_getBlockByNumber"]}));
+    assert.equal(attempt.verified_transfer_evidence_added,0);
+    assert.equal(attempt.unresolved_or_rejected_observations,1);
+    assert.equal(fs.readFileSync(ledgerPath,"utf8"),original);
+  });
+});
+
+test("a tampered canonical block hash is caught during offline audit",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    await commit(observation(A),ledgerPath);
+    const original=fs.readFileSync(ledgerPath,"utf8");
+    fs.writeFileSync(ledgerPath,original.replace('"canonical_block_hash":"'+BLOCK+'"',
+      '"canonical_block_hash":"0x'+"f".repeat(64)+'"'));
+    assert.throws(()=>readLedger(ledgerPath),/LEDGER_HASH_MISMATCH/);
   });
 });
