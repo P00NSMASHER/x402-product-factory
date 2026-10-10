@@ -5,6 +5,7 @@ on:
     paths:
       - 'economics/**'
       - 'docs/ECONOMICS_*.md'
+      - 'docs/SUPABASE_USAGE_EVIDENCE_*.md'
       - 'product-registry.json'
       - 'README.md'
       - '.github/workflows/factory-economics-ci.yml'
@@ -13,6 +14,7 @@ on:
     paths:
       - 'economics/**'
       - 'docs/ECONOMICS_*.md'
+      - 'docs/SUPABASE_USAGE_EVIDENCE_*.md'
       - 'product-registry.json'
       - 'README.md'
       - '.github/workflows/factory-economics-ci.yml'
