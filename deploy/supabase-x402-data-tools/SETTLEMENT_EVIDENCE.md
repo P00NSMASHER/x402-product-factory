@@ -170,8 +170,53 @@ node deploy/supabase-x402-data-tools/settlement-ledger.js \
 
 The audit reports the record count and final hash without printing payer
 addresses; missing or noncanonical files fail rather than reporting a
-misleading empty ledger. Store the final hash outside the writable journal
-as a checkpoint for detecting full-file replacement.
+misleading empty ledger. Store the final hash and record count **outside**
+the writable journal, in a separately controlled audit record. A hash
+retrieved from the same potentially compromised journal is not independent.
+
+For **rollback-aware verification**, supply the previously preserved,
+trusted checkpoint values verbatim (the shown hash is illustrative only):
+
+```bash
+node deploy/supabase-x402-data-tools/settlement-ledger.js \
+  --audit "$HOME/.private-x402-settlements/journal.jsonl" \
+  --expect-head YOUR_PREVIOUSLY_PRESERVED_64_LOWERCASE_HEX_HASH \
+  --expect-records 12
+```
+
+Both the journal head and exact count must match. Missing, rewritten,
+rolled-back or truncated histories fail closed. The CLI prints
+`checkpoint_verified=true` only for a match to the **caller-supplied**
+checkpoint; it does not prove that checkpoint originated from an external
+trusted witness.
+
+To require the same gate **before an append**, add
+`--expect-head HASH --expect-records COUNT` after the normal two file
+arguments:
+
+```bash
+BASE_RPC_URL='https://YOUR_TRUSTED_BASE_RPC' \
+  node deploy/supabase-x402-data-tools/settlement-ledger.js \
+  "$HOME/.private-x402-settlements/observations.json" \
+  "$HOME/.private-x402-settlements/journal.jsonl" \
+  --expect-head YOUR_PRIOR_TRUSTED_HEAD \
+  --expect-records 12
+```
+
+The command checks the pinned **prior** journal while holding its
+exclusive writer lock. Capture and externally preserve the resulting
+`head_hash` and updated record count before the next append. For a new
+journal, the checkpoint is 64 lowercase zero characters (genesis) and
+count 0. If the append succeeds but the external checkpoint update fails,
+investigate and preserve the existing journal: do not silently rewind,
+force the previous checkpoint, or reset the ledger. Optionally add the same
+four checkpoint arguments to `--audit-chain` to gate RPC rechecks.
+
+This is an optional high-assurance mode; runs omitting a checkpoint still
+verify the internal chain but report `checkpoint_verified=false` (or
+`prior_checkpoint_verified=false` for writes) and cannot detect a
+self-consistent full-journal rewrite. Never embed the expected head in the
+same mutable JSONL file.
 
 For a **later read-only canonical-chain recheck** of previously saved V2
 records (no journal writes and no new payment attempts), run:
