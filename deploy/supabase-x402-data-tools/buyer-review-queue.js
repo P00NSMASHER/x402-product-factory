@@ -9,6 +9,7 @@ const crypto = require("node:crypto");
 const {
   readLedger, privatePath, verifyExternalCheckpoint, parseCheckpointOptions
 } = require("./settlement-ledger");
+const {ROUTE_IDS} = require("./reconcile-settlements");
 
 const EXCLUSION_REASONS = new Set([
   "operator_controlled", "test_or_synthetic", "marketplace_probe"
@@ -102,6 +103,9 @@ function buildBuyerReviewQueue(journalPath, {
     excluded.map(item => [item.address, item.reason])
   );
   const groups = new Map();
+  const routeStats = new Map([...ROUTE_IDS].map(([route, productId]) => [
+    route, {productId, transferEvidence:0, wallets:new Map(), excludedEvidence:0}
+  ]));
   for (const item of journal.records) {
     // These are on-chain transfer evidence rows, not actual sale records.
     if (item.schema_version !== 2 ||
@@ -111,6 +115,11 @@ function buildBuyerReviewQueue(journalPath, {
       invalid("BUYER_REVIEW_UNTRUSTED_LEDGER_ROW");
     }
     const wallet = item.payer;
+    const perRoute = routeStats.get(item.route);
+    if (!perRoute) invalid("BUYER_REVIEW_UNKNOWN_CANONICAL_ROUTE");
+    perRoute.transferEvidence++;
+    perRoute.wallets.set(wallet,(perRoute.wallets.get(wallet)||0)+1);
+    if (exclusionsByWallet.has(wallet)) perRoute.excludedEvidence++;
     let current = groups.get(wallet);
     if (!current) {
       current = {
@@ -157,6 +166,26 @@ function buildBuyerReviewQueue(journalPath, {
     });
   }
   cases.sort((a, b) => a.case_id.localeCompare(b.case_id));
+  const routeEvidence = [...routeStats].sort(([a],[b])=>a.localeCompare(b))
+    .map(([route, stats])=>{
+      const allWallets=[...stats.wallets];
+      return {
+        route,
+        product_id:stats.productId,
+        historical_transfer_evidence:stats.transferEvidence,
+        distinct_wallets_not_distinct_buyers:allWallets.length,
+        repeated_wallet_signals_on_route:allWallets.filter(([,count])=>count>1).length,
+        operator_declared_excluded_transfer_evidence:stats.excludedEvidence,
+        wallets_requiring_review:allWallets.filter(([wallet])=>
+          !exclusionsByWallet.has(wallet)).length,
+        independently_verified_external_buyers:0,
+        eligible_external_revenue_atomic_usdc:"0"
+      };
+    });
+  if (routeEvidence.reduce((sum,item)=>sum+item.historical_transfer_evidence,0)
+      !== journal.records.length) {
+    invalid("BUYER_REVIEW_ROUTE_TOTAL_RECONCILIATION_FAILED");
+  }
   return {
     schema_version: 1,
     report_type: "wallet_review_queue_not_revenue_ledger",
@@ -174,6 +203,7 @@ function buildBuyerReviewQueue(journalPath, {
     independently_verified_external_buyers: 0,
     eligible_external_revenue_atomic_usdc: "0",
     product_025_unlock_evidence: false,
+    route_evidence: routeEvidence,
     cases
   };
 }
