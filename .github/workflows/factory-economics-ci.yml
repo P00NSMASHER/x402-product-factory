@@ -32,6 +32,6 @@ jobs:
           node-version: '22'
       - name: Verify historical five-product economics and live-rate screening
         run: |
-          node --test economics/phase1-five-product-costs.test.js economics/live-fee-economics.test.js
+          node --test economics/phase1-five-product-costs.test.js economics/live-fee-economics.test.js economics/supabase-usage-readiness.test.js
       - name: Reproduce saved snapshot fee-only economics without network calls
         run: node economics/live-fee-economics.js --check
