@@ -152,9 +152,17 @@ BASE_RPC_URL='https://YOUR_TRUSTED_BASE_RPC' \
 
 The observations argument must be an absolute path to a local JSON array of
 v2 `x402_settlement_succeeded` events, **not** a previously generated
-reconciliation report. The ledger path must be absolute, outside the
-repository, in a real (non-symlink) owner-only (0700) directory; an existing
-ledger must also be owner-only (0600).
+reconciliation report. The operator ledger CLI requires this input file
+to reside outside the checkout, inside a genuine (non-symlink) owner-only
+(0700) directory, with owner-only file permissions (0600) and one hardlink.
+The input may contain at most 250 events and 1 MB of JSON. Use a restrictive
+`umask 077` when preparing the file and verify its permissions before use.
+A symlinked, public-readable, hard-linked, malformed or oversized input
+is rejected *before* an RPC call or journal modification.
+
+The ledger path must also be absolute, outside the repository, in a real
+(non-symlink) owner-only (0700) directory; an existing ledger must be
+owner-only (0600).
 
 The tool recalculates the chain evidence from scratch using a trusted HTTPS
 JSON-RPC endpoint, validates canonical Supabase route, payer, exact price,
