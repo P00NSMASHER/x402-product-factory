@@ -6,7 +6,7 @@
   "deployed_version": 6,
   "deployed_status": "ACTIVE",
   "supabase_reported_bundle_sha256": "28d4c24a123538e6cfa437723899784275576d1467e98a836a340a986f674d9f",
-  "purpose": "Pinned live v6 agent discovery and payment settings for source-drift review; not proof of current future deployment",
+  "purpose": "Pinned exact Supabase v6 source and existing discovery/payment semantics; CI parity alone cannot prove the live deployment is still v6 or authorize a release.",
   "payment_constants": {
     "NETWORK": "eip155:8453",
     "USDC": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
@@ -21,5 +21,9 @@
     "/api/us-address-geocode": "Verify and normalize a U.S. street address with official Census data when an agent needs location consistency or geography identifiers before continuing a workflow.",
     "/api/domain-rdap": "Check authoritative domain registration, registrar, lifecycle dates, and nameservers when an agent needs domain-age or identity evidence before trusting a counterparty.",
     "/api/treasury-average-rates": "Get the latest official monthly average Treasury rate for a requested security category when an agent needs a government-source rate input for a decision or calculation."
-  }
+  },
+  "observed_live_source_sha256": "d5c5457cc8d6bbafa041528bcc15323a7e8b47093e55dc61296641914819d508",
+  "telemetry_only_delta_expected": true,
+  "release_preflight_requires_fresh_live_snapshot": true,
+  "deployment_authorized": false
 }
