@@ -176,12 +176,18 @@ test("wrong token, payer, receiver, amount, log integrity and ambiguous transfer
     [[transfer({ topics: [TRANSFER_TOPIC, addressTopic("0x" + "f".repeat(40)), addressTopic(RECEIVER)] })], "transfer_not_found"],
     [[transfer({ topics: [TRANSFER_TOPIC, addressTopic(PAYER), addressTopic("0x" + "f".repeat(40))] })], "transfer_not_found"],
     [[transfer({ data: word(4999) })], "amount_mismatch"],
-    [[transfer({ removed: true })], "transfer_not_found"],
-    [[transfer({ blockHash: "0x" + "f".repeat(64) })], "transfer_not_found"],
-    [[transfer({ transactionHash: "0x" + "f".repeat(64) })], "transfer_not_found"],
-    [[transfer({ data: "0x5" })], "transfer_not_found"],
+    [[transfer({ removed: true })], "malformed_transfer_log"],
+    [[transfer({ blockHash: "0x" + "f".repeat(64) })], "malformed_transfer_log"],
+    [[transfer({ transactionHash: "0x" + "f".repeat(64) })], "malformed_transfer_log"],
+    [[transfer({ data: "0x5" })], "malformed_transfer_log"],
     [[transfer(), transfer({ logIndex: "0x4" })], "ambiguous_transfers"],
-    [[transfer({ data: word(0) }), transfer({ logIndex: "0x4" })], "ambiguous_transfers"]
+    [[transfer({ data: word(0) }), transfer({ logIndex: "0x4" })], "ambiguous_transfers"],
+    [[transfer({ logIndex: "invalid" })], "malformed_transfer_log"],
+    [[transfer({ topics: [
+      TRANSFER_TOPIC, addressTopic(PAYER), addressTopic(RECEIVER), word(0)
+    ] })], "malformed_transfer_log"],
+    [[transfer(), transfer({ data: "0x5", logIndex: "0x4" })], "ambiguous_transfers"],
+    [[transfer(), transfer({ removed: true, logIndex: "0x4" })], "ambiguous_transfers"]
   ];
   for (const [logs, status] of cases) {
     const { row } = await one({}, { found: receipt({ logs }) });
@@ -261,4 +267,28 @@ test("canonical-block lookup uses only an allowed read-only RPC method",async()=
     number:"0x64",hash:BLOCK_HASH
   });
   assert.deepEqual(requests,[{method:"eth_getBlockByNumber",params:["0x64",false]}]);
+});
+
+
+test("bounded receipt log count avoids treating oversized RPC data as proof",async()=>{
+  const logs=Array(2501).fill(transfer());
+  const {row}=await one({}, {found:receipt({logs})});
+  assert.equal(row.status,"malformed_receipt");
+  assert.equal(row.onchain_verified,false);
+  assert.equal(row.eligible_for_revenue_scoreboard,false);
+});
+
+test("nonmatching ERC-20 transfers do not create false ambiguity",async()=>{
+  const otherPayer="0x"+"f".repeat(40);
+  const logs=[
+    transfer(),
+    transfer({topics:[
+      TRANSFER_TOPIC, addressTopic(otherPayer), addressTopic(RECEIVER)
+    ],logIndex:"0x4"})
+  ];
+  const {row}=await one({}, {found:receipt({logs})});
+  assert.equal(row.status,"verified_onchain_transfer");
+  assert.equal(row.onchain_verified,true);
+  assert.equal(row.external_buyer_verified,false);
+  assert.equal(row.eligible_for_revenue_scoreboard,false);
 });
