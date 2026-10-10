@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { spawnSync } = require("node:child_process");
 const {
   GENESIS, readLedger, appendReconciledObservations
 } = require("./settlement-ledger");
@@ -224,5 +225,54 @@ test("RPC outage cannot append a new settlement or damage existing journal",asyn
     await assert.rejects(commit(observation(B),ledgerPath,rpc({failures:["eth_chainId"]})),/RPC unavailable/);
     assert.equal(fs.readFileSync(ledgerPath,"utf8"),before);
     assert.equal(readLedger(ledgerPath).records.length,1);
+  });
+});
+
+
+test("offline --audit validates the journal without RPC access or wallet operations", async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    await commit(observation(A),ledgerPath);
+    const child=spawnSync(process.execPath,[
+      path.join(__dirname,"settlement-ledger.js"),"--audit",ledgerPath
+    ],{encoding:"utf8",env:{...process.env,BASE_RPC_URL:""}});
+    assert.equal(child.status,0,child.stderr);
+    const audit=JSON.parse(child.stdout);
+    assert.equal(audit.integrity,"validated_local_hash_chain");
+    assert.equal(audit.records,1);
+    assert.match(audit.head_hash,/^[a-f0-9]{64}$/);
+    assert.equal(audit.eligible_external_revenue_atomic_usdc,"0");
+    assert.equal(audit.product_025_unlock_evidence,false);
+    assert.equal(child.stderr,"");
+  });
+});
+
+test("offline --audit refuses missing journal rather than reporting an empty ledger",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    const child=spawnSync(process.execPath,[
+      path.join(__dirname,"settlement-ledger.js"),"--audit",ledgerPath
+    ],{encoding:"utf8",env:{...process.env,BASE_RPC_URL:""}});
+    assert.notEqual(child.status,0);
+    assert.equal(child.stdout,"");
+  });
+});
+
+test("journal parser rejects noncanonical serialization even if JSON can be parsed",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    await commit(observation(A),ledgerPath);
+    const valid=fs.readFileSync(ledgerPath,"utf8");
+    fs.writeFileSync(ledgerPath," "+valid);
+    assert.throws(()=>readLedger(ledgerPath),/LEDGER_NONCANONICAL_LINE/);
+    fs.writeFileSync(ledgerPath,valid);
+    assert.equal(readLedger(ledgerPath).records.length,1);
+  });
+});
+
+test("refuses hard-linked journal files to prevent writing another location",async()=>{
+  await privateLedger(async ({dir,ledgerPath})=>{
+    const target=path.join(dir,"foreign");
+    fs.writeFileSync(target,"outside original",{mode:0o600});
+    fs.linkSync(target,ledgerPath);
+    await assert.rejects(commit(observation(A),ledgerPath),/LEDGER_FILE_NOT_PRIVATE/);
+    assert.equal(fs.readFileSync(target,"utf8"),"outside original");
   });
 });
