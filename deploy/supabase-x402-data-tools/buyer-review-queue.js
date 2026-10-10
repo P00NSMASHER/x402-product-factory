@@ -87,6 +87,9 @@ function buildBuyerReviewQueue(journalPath, {
 } = {}) {
   const key = hmacKey(keyHex);
   const excluded = validateExclusions(exclusions);
+  if (!fs.existsSync(privatePath(journalPath))) {
+    invalid("BUYER_REVIEW_JOURNAL_NOT_FOUND");
+  }
   const journal = readLedger(journalPath);
   if (journal.legacyCount > 0) {
     invalid("BUYER_REVIEW_LEGACY_JOURNAL_REQUIRES_RECONCILIATION");
@@ -137,7 +140,7 @@ function buildBuyerReviewQueue(journalPath, {
     cases.push({
       case_id: pseudonym(key, "wallet", group.wallet),
       status: exclusionReason
-        ? "known_non_external_exclusion"
+        ? "operator_declared_non_external"
         : "requires_independent_buyer_review",
       exclusion_reason: exclusionReason,
       transfer_evidence_count: group.sequences.length,
@@ -158,12 +161,12 @@ function buildBuyerReviewQueue(journalPath, {
     journal_record_count: journal.records.length,
     checkpoint_verified: checkpointVerified,
     current_chain_reverified: false,
-    known_exclusion_records_supplied: excluded.length,
+    operator_declared_exclusion_records_supplied: excluded.length,
     historical_transfer_evidence: journal.records.length,
     distinct_payer_wallets_not_distinct_buyers: cases.length,
     repeat_wallet_signals_not_repeat_customers: repeatedWalletSignals,
-    known_non_external_wallets: excludedWallets,
-    known_non_external_transfer_evidence: excludedEvidence,
+    operator_declared_non_external_wallets: excludedWallets,
+    operator_declared_non_external_transfer_evidence: excludedEvidence,
     wallets_requiring_independent_review: cases.length - excludedWallets,
     independently_verified_external_buyers: 0,
     eligible_external_revenue_atomic_usdc: "0",
