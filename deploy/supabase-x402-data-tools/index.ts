@@ -872,7 +872,7 @@ const ROUTES: RouteDef[] = [
     path: "/api/sec-filings",
     serviceName: "SEC Recent Filings",
     description:
-      "Retrieve recent SEC EDGAR filing metadata for a public company by ticker or CIK, optionally filtered by form type.",
+      "Check a public company's latest SEC filings when an agent needs to verify whether a filing exists or inspect recent filing activity before continuing research or diligence.",
     tags: ["SEC", "EDGAR", "filings", "finance", "company-data"],
     example: { ticker: "AAPL", form: "10-K", limit: 5 },
     outputExample: { company: { name: "Apple Inc." }, count: 1, filings: [], paid: true },
@@ -888,7 +888,7 @@ const ROUTES: RouteDef[] = [
     path: "/api/ofac-sdn-screen",
     serviceName: "OFAC Name Screen",
     description:
-      "Screen a name against current OFAC SDN primary names and aliases. Returns ranked review candidates; no-match is not clearance.",
+      "Check whether a submitted person or organization name produces current OFAC SDN review candidates before an agent continues a compliance-sensitive workflow. No-match is not sanctions clearance.",
     tags: ["OFAC", "sanctions", "compliance", "name-screening", "risk"],
     example: { name: "VLADIMIR PUTIN", limit: 5, minScore: 85 },
     outputExample: { query: "VLADIMIR PUTIN", count: 1, candidates: [], paid: true },
@@ -903,7 +903,7 @@ const ROUTES: RouteDef[] = [
     path: "/api/us-address-geocode",
     serviceName: "US Census Geocoder",
     description:
-      "Geocode one U.S. address with the official Census Bureau Geocoding Services API and return Census geography identifiers.",
+      "Verify and normalize a U.S. street address with official Census data when an agent needs location consistency or geography identifiers before continuing a workflow.",
     tags: ["geocoding", "Census", "address", "geography", "US"],
     example: { address: "4600 Silver Hill Rd, Washington, DC 20233" },
     outputExample: { matched: true, matchedAddress: "4600 SILVER HILL RD, WASHINGTON, DC, 20233", paid: true },
@@ -916,7 +916,7 @@ const ROUTES: RouteDef[] = [
     path: "/api/domain-rdap",
     serviceName: "Domain RDAP Lookup",
     description:
-      "Get live authoritative RDAP registration data for one domain using IANA bootstrap and the authoritative registry.",
+      "Check authoritative domain registration, registrar, lifecycle dates, and nameservers when an agent needs domain-age or identity evidence before trusting a counterparty.",
     tags: ["RDAP", "domain", "registration", "DNS", "internet"],
     example: { domain: "example.com" },
     outputExample: { domain: "example.com", registered: true, paid: true },
@@ -929,7 +929,7 @@ const ROUTES: RouteDef[] = [
     path: "/api/treasury-average-rates",
     serviceName: "Treasury Avg Rates",
     description:
-      "Return the latest monthly average interest rates on outstanding U.S. Treasury securities from official Fiscal Data.",
+      "Get the latest official monthly average Treasury rate for a requested security category when an agent needs a government-source rate input for a decision or calculation.",
     tags: ["Treasury", "interest-rates", "government", "macro", "finance"],
     example: { security: "Total Marketable" },
     outputExample: { recordDate: "2026-09-30", count: 1, rates: [], paid: true },
