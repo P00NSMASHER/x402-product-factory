@@ -85,6 +85,8 @@ test("every pre-existing byte matches the pinned live v6 source SHA256",()=>{
   assert.equal(validateBaseline(SOURCE).deployment_authorized,false);
   assert.notEqual(reference.observed_live_source_sha256,
     reference.supabase_reported_bundle_sha256);
+  assert.equal(hash(telemetry),reference.reviewed_settlement_telemetry_sha256);
+  assert.equal(Buffer.byteLength(telemetry,"utf8"),reference.reviewed_settlement_telemetry_bytes);
 });
 
 test("exact source guard rejects unreviewed behavior changes beyond telemetry",()=>{
@@ -113,6 +115,11 @@ test("missing duplicate or weakened telemetry evidence cannot pass the source ga
   const overclaim=SOURCE.replace("external_buyer_verified: false",
     "external_buyer_verified: true");
   assert.throws(()=>validateBaseline(overclaim),/PRODUCTION_BASELINE_DRIFT/);
+  const unreviewed=SOURCE.replace(
+    "const expectedNetwork = receipt.network === NETWORK;",
+    "const expectedNetwork = receipt.network !== NETWORK;"
+  );
+  assert.throws(()=>validateBaseline(unreviewed),/PRODUCTION_BASELINE_DRIFT/);
   const leakage=SOURCE.replace('event: "x402_settlement_succeeded"',
     'event: "x402_settlement_succeeded", paymentPayload');
   assert.throws(()=>validateBaseline(leakage),/PRODUCTION_BASELINE_DRIFT/);
