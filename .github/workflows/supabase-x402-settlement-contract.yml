@@ -25,4 +25,9 @@ jobs:
         with:
           node-version: '22'
       - name: Verify Supabase settlement observability and failure semantics
-        run: node --test deploy/supabase-x402-data-tools/settlement-telemetry.test.js deploy/supabase-x402-data-tools/reconcile-settlements.test.js deploy/supabase-x402-data-tools/settlement-ledger.test.js
+        run: |
+          node --test \
+            deploy/supabase-x402-data-tools/settlement-telemetry.test.js \
+            deploy/supabase-x402-data-tools/reconcile-settlements.test.js \
+            deploy/supabase-x402-data-tools/settlement-ledger.test.js \
+            deploy/supabase-x402-data-tools/buyer-review-queue.test.js
