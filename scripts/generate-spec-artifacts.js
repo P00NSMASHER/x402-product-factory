@@ -2,6 +2,7 @@
 
 const fs=require("node:fs");
 const path=require("node:path");
+const {validateSpecSet}=require("./validate-product-spec-contract");
 const {NETWORK,USDC,PAY_TO}=require("../packages/x402/payment");
 
 const ROOT=path.resolve(__dirname,"..");
@@ -23,9 +24,11 @@ function discoverSpecFiles(){
 }
 
 function loadSpecs(){
-  return discoverSpecFiles().map(name=>
+  const filenames=discoverSpecFiles();
+  const specs=filenames.map(name=>
     JSON.parse(fs.readFileSync(path.join(SPEC_DIR,name),"utf8"))
   );
+  return validateSpecSet(specs,{filenames});
 }
 
 function fixedSix(value){
