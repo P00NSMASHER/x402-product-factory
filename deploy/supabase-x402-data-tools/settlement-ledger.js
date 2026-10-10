@@ -111,14 +111,26 @@ function validatePayload(item, sequence, previous) {
 function seal(payload) {
   return { ...payload, hash: sha256(JSON.stringify(payload)) };
 }
+function fileIdentity(stat) {
+  return { dev: String(stat.dev), ino: String(stat.ino) };
+}
+function sameFileIdentity(first, second) {
+  if (first === null || second === null) return first === second;
+  return first.dev === second.dev && first.ino === second.ino;
+}
 function readLedger(file) {
   const location = privatePath(file);
-  if (!fs.existsSync(location)) return { records: [], head: GENESIS, seen: new Set(), bytes: 0, legacyCount: 0 };
+  if (!fs.existsSync(location)) return {
+    records: [], head: GENESIS, seen: new Set(), bytes: 0,
+    legacyCount: 0, fileIdentity: null, bytesHash: sha256("")
+  };
   const fd = fs.openSync(location, fs.constants.O_RDONLY | O_NOFOLLOW);
-  let raw;
+  let raw, identity;
   try {
     const st = fs.fstatSync(fd);
-    if (!st.isFile() || st.nlink !== 1 || st.size > MAX_BYTES) fail("LEDGER_TOO_LARGE_OR_NOT_FILE");
+    if (!st.isFile() || st.nlink !== 1 || (st.mode & 0o077) !== 0 ||
+        st.size > MAX_BYTES) fail("LEDGER_TOO_LARGE_OR_NOT_FILE");
+    identity = fileIdentity(st);
     raw = fs.readFileSync(fd, "utf8");
   } finally { fs.closeSync(fd); }
   if (raw.length && !raw.endsWith("\n")) fail("LEDGER_INCOMPLETE_WRITE");
@@ -141,7 +153,10 @@ function readLedger(file) {
     records.push(parsed);
     head = hash;
   }
-  return { records, head, seen, bytes: Buffer.byteLength(raw), legacyCount };
+  return {
+    records, head, seen, bytes: Buffer.byteLength(raw), legacyCount,
+    fileIdentity: identity, bytesHash: sha256(raw)
+  };
 }
 function lock(file) {
   const name = file + ".lock";
@@ -160,17 +175,50 @@ function lock(file) {
   } finally { fs.closeSync(fd); }
   return () => fs.unlinkSync(name);
 }
-function appendRows(file, rows, priorBytes) {
+function appendRows(file, rows, journal) {
   if (!rows.length) return;
   const buffer = Buffer.from(rows.map(row => JSON.stringify(row) + "\n").join(""), "utf8");
-  if (buffer.length + priorBytes > MAX_BYTES) fail("LEDGER_SIZE_LIMIT");
-  const fd = fs.openSync(file,
-    fs.constants.O_WRONLY | fs.constants.O_APPEND | fs.constants.O_CREAT | O_NOFOLLOW,
-    0o600);
+  if (buffer.length + journal.bytes > MAX_BYTES) fail("LEDGER_SIZE_LIMIT");
+  const previouslyExisted = journal.fileIdentity !== null;
+  // Never silently append to a newly created same-size file. Exclusive
+  // creation for genesis, and exact inode/device matching for existing logs.
+  const flags = previouslyExisted
+    ? fs.constants.O_RDWR | fs.constants.O_APPEND | O_NOFOLLOW
+    : fs.constants.O_WRONLY | fs.constants.O_APPEND |
+      fs.constants.O_CREAT | fs.constants.O_EXCL | O_NOFOLLOW;
+  let fd;
+  try {
+    fd = fs.openSync(file, flags, 0o600);
+  } catch (error) {
+    if (!previouslyExisted && error.code === "EEXIST") fail("LEDGER_CONCURRENT_FILE_CREATED");
+    if (previouslyExisted && error.code === "ENOENT") fail("LEDGER_CONCURRENT_FILE_REMOVED");
+    throw error;
+  }
   try {
     const st = fs.fstatSync(fd);
-    if (!st.isFile() || st.nlink !== 1 || (st.mode & 0o077) !== 0 || st.size !== priorBytes) {
-      fail("LEDGER_CHANGED_DURING_WRITE");
+    if (!st.isFile() || st.nlink !== 1 || (st.mode & 0o077) !== 0 ||
+        st.size !== journal.bytes) fail("LEDGER_CHANGED_DURING_WRITE");
+    if (previouslyExisted &&
+        !sameFileIdentity(fileIdentity(st), journal.fileIdentity)) {
+      fail("LEDGER_CONCURRENT_FILE_REPLACED");
+    }
+    if (previouslyExisted) {
+      // Re-read the exact open descriptor, not the pathname, immediately
+      // before appending. A same-length in-place mutation must not pass.
+      const hash = crypto.createHash("sha256");
+      const chunk = Buffer.allocUnsafe(65536);
+      let position = 0;
+      while (position < journal.bytes) {
+        const n = fs.readSync(fd, chunk, 0,
+          Math.min(chunk.length, journal.bytes - position), position);
+        if (n < 1) fail("LEDGER_CONCURRENT_CONTENT_CHANGE");
+        hash.update(chunk.subarray(0, n));
+        position += n;
+      }
+      if (hash.digest("hex") !== journal.bytesHash ||
+          fs.fstatSync(fd).size !== journal.bytes) {
+        fail("LEDGER_CONCURRENT_CONTENT_CHANGE");
+      }
     }
     let offset = 0;
     while (offset < buffer.length) {
@@ -237,13 +285,15 @@ async function appendReconciledObservations(events, {
   // Fail early on locks, legacy/corrupt data and stale external checkpoints:
   // no RPC work begins until the pre-existing private ledger is validated.
   const preflightRelease = lock(location);
-  let priorHead, priorCount;
+  let priorHead, priorCount, priorIdentity, priorBytesHash;
   try {
     const prior = readLedger(location);
     verifyExternalCheckpoint(prior, checkpoint);
     if (prior.legacyCount) fail("LEDGER_LEGACY_REVIEW_REQUIRED");
     priorHead = prior.head;
     priorCount = prior.records.length;
+    priorIdentity = prior.fileIdentity;
+    priorBytesHash = prior.bytesHash;
   } finally { preflightRelease(); }
 
   // Do NOT accept a supplied "verified" report. The library derives all proof
@@ -258,6 +308,10 @@ async function appendReconciledObservations(events, {
     if (journal.legacyCount) fail("LEDGER_LEGACY_REVIEW_REQUIRED");
     if (journal.head !== priorHead || journal.records.length !== priorCount) {
       fail("LEDGER_CONCURRENT_HEAD_CHANGE");
+    }
+    if (!sameFileIdentity(journal.fileIdentity, priorIdentity) ||
+        journal.bytesHash !== priorBytesHash) {
+      fail("LEDGER_CONCURRENT_FILE_REPLACED");
     }
     const pending = [], seen = new Set(journal.seen);
     let head = journal.head, duplicates = 0, unverified = 0;
@@ -276,7 +330,12 @@ async function appendReconciledObservations(events, {
       seen.add(row.transaction);
       head = saved.hash;
     }
-    appendRows(location, pending, journal.bytes);
+    appendRows(location, pending, journal);
+    const confirmed = readLedger(location);
+    if (confirmed.head !== head ||
+        confirmed.records.length !== journal.records.length + pending.length) {
+      fail("LEDGER_POST_WRITE_VERIFICATION_FAILED");
+    }
     // This total is transfer evidence, *never* confirmed outside revenue.
     return {
       schema_version: 1,
