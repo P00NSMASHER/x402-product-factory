@@ -100,8 +100,9 @@ test("only a successful verified and settled request emits telemetry",async()=>{
   assert.equal(event.schema_version,2);
   assert.equal(event.route,"/api/domain-rdap");
   assert.equal(event.product_id,"domain-rdap");
-  assert.equal(event.amount_usd,"0.005");
-  assert.equal(event.amount_atomic_usdc,"5000");
+  assert.equal(event.listed_price_usdc,"0.005");
+  assert.equal(event.expected_amount_atomic_usdc,"5000");
+  assert.equal(Object.hasOwn(event,"amount_usd"),false);
   assert.equal(event.network,"eip155:8453");
   assert.equal(event.transaction,TX.toLowerCase());
   assert.equal(event.payer,PAYER.toLowerCase());
