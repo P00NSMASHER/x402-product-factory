@@ -372,6 +372,15 @@ references, HMAC keys, or source queries. It reports possible wallet reuse
 as a **repeat-wallet signal**, not a repeat customer. Distinct wallets are
 **not** unique people, organizations, or verified independent buyers.
 
+The report also contains a `route_evidence` section covering all five
+canonical Supabase seller routes, including those with zero recorded
+transfers. Per-route counters report historical transfer evidence,
+distinct payer wallets (not buyers), repeat-wallet signals on that route,
+and operator-declared excluded activity. Route totals must reconcile
+exactly with the private journal record count. This helps prioritize
+which **existing** x402 tools merit manual demand research; it does not
+establish transactions as paid API purchases or genuine customer demand.
+
 Every report explicitly sets:
 
 - `independently_verified_external_buyers: 0`
