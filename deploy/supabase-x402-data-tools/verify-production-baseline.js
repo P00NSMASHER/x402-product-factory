@@ -104,7 +104,10 @@ function validateBaseline(source, reference=baseline) {
       reference.release_preflight_requires_fresh_live_snapshot!==true ||
       reference.deployment_authorized!==false ||
       !SHA256_PATTERN.test(reference.observed_live_source_sha256||"") ||
-      !SHA256_PATTERN.test(reference.supabase_reported_bundle_sha256||"")) {
+      !SHA256_PATTERN.test(reference.supabase_reported_bundle_sha256||"") ||
+      !SHA256_PATTERN.test(reference.reviewed_settlement_telemetry_sha256||"") ||
+      !Number.isSafeInteger(reference.reviewed_settlement_telemetry_bytes) ||
+      reference.reviewed_settlement_telemetry_bytes < 1) {
     drift("invalid pinned production manifest");
   }
   const candidate = extractCandidate(source);
@@ -124,6 +127,10 @@ function validateBaseline(source, reference=baseline) {
     }
   }
   const { original,telemetry } = stripTelemetry(source);
+  if (hash(telemetry)!==reference.reviewed_settlement_telemetry_sha256 ||
+      Buffer.byteLength(telemetry,"utf8")!==reference.reviewed_settlement_telemetry_bytes) {
+    drift("post-settlement telemetry differs from reviewed exact block");
+  }
   if (hash(original)!==reference.observed_live_source_sha256) {
     drift("complete source diverged from observed live v6");
   }
@@ -136,6 +143,7 @@ function validateBaseline(source, reference=baseline) {
     source_sha256:hash(source),
     pinned_live_source_sha256:hash(original),
     telemetry_bytes:Buffer.byteLength(telemetry,"utf8"),
+    telemetry_sha256:hash(telemetry),
     live_parity_scope:"exact_live_v6_source_except_settlement_telemetry",
     current_live_deployment_verified:false,
     deployment_authorized:false
