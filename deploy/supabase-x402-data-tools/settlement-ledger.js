@@ -46,7 +46,7 @@ function privatePath(file) {
   if (fs.realpathSync(parent) !== parent) fail("LEDGER_PARENT_SYMLINK");
   if (fs.existsSync(resolved)) {
     const stat = fs.lstatSync(resolved);
-    if (!stat.isFile() || stat.isSymbolicLink() || (stat.mode & 0o077) !== 0) {
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || (stat.mode & 0o077) !== 0) {
       fail("LEDGER_FILE_NOT_PRIVATE");
     }
   }
@@ -112,7 +112,7 @@ function readLedger(file) {
   let raw;
   try {
     const st = fs.fstatSync(fd);
-    if (!st.isFile() || st.size > MAX_BYTES) fail("LEDGER_TOO_LARGE_OR_NOT_FILE");
+    if (!st.isFile() || st.nlink !== 1 || st.size > MAX_BYTES) fail("LEDGER_TOO_LARGE_OR_NOT_FILE");
     raw = fs.readFileSync(fd, "utf8");
   } finally { fs.closeSync(fd); }
   if (raw.length && !raw.endsWith("\n")) fail("LEDGER_INCOMPLETE_WRITE");
@@ -123,6 +123,7 @@ function readLedger(file) {
     if (!line || line.length > 10000) fail("LEDGER_INVALID_LINE");
     let parsed;
     try { parsed = JSON.parse(line); } catch { fail("LEDGER_INVALID_JSON"); }
+    if (line !== JSON.stringify(parsed)) fail("LEDGER_NONCANONICAL_LINE");
     const { hash, ...payload } = parsed || {};
     validatePayload(payload, records.length + 1, head);
     if (typeof hash !== "string" || !/^[0-9a-f]{64}$/.test(hash) ||
@@ -161,7 +162,7 @@ function appendRows(file, rows, priorBytes) {
     0o600);
   try {
     const st = fs.fstatSync(fd);
-    if (!st.isFile() || (st.mode & 0o077) !== 0 || st.size !== priorBytes) {
+    if (!st.isFile() || st.nlink !== 1 || (st.mode & 0o077) !== 0 || st.size !== priorBytes) {
       fail("LEDGER_CHANGED_DURING_WRITE");
     }
     let offset = 0;
@@ -236,7 +237,25 @@ async function appendReconciledObservations(events, {
     };
   } finally { release(); }
 }
+function auditLedger(file) {
+  const location = privatePath(file);
+  if (!fs.existsSync(location)) fail("LEDGER_NOT_FOUND");
+  const replay = readLedger(location);
+  return {
+    schema_version: 1,
+    integrity: "validated_local_hash_chain",
+    records: replay.records.length,
+    head_hash: replay.head,
+    external_buyer_verified: false,
+    eligible_external_revenue_atomic_usdc: "0",
+    product_025_unlock_evidence: false
+  };
+}
 async function main() {
+  if (process.argv.length === 4 && process.argv[2] === "--audit") {
+    process.stdout.write(JSON.stringify(auditLedger(process.argv[3]), null, 2) + "\n");
+    return;
+  }
   if (process.argv.length !== 4 || !process.env.BASE_RPC_URL) {
     fail("USAGE_PRIVATE_LEDGER_AND_BASE_RPC_URL_REQUIRED");
   }
@@ -260,5 +279,5 @@ if (require.main === module) {
 }
 module.exports = {
   GENESIS, MAX_BYTES, sha256, seal, readLedger, privatePath,
-  checkVerifiedRow, appendReconciledObservations
+  checkVerifiedRow, appendReconciledObservations, auditLedger
 };
