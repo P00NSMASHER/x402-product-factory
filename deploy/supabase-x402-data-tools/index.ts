@@ -1085,14 +1085,41 @@ async function handlePaid(
     );
   }
 
-  console.info(JSON.stringify({
-    event: "x402_settlement_succeeded",
-    product_id: route.path.slice("/api/".length),
-    route: route.path,
-    amount_usd: "0.005",
-    network: NETWORK,
-    settled_at: new Date().toISOString(),
-  }));
+  // Observability is best-effort: logging must never break a paid response.
+  // Facilitator claims are NOT independent on-chain or outside-buyer evidence.
+  try {
+    const receipt = settlement.receipt ?? {};
+    const transaction =
+      typeof receipt.transaction === "string" &&
+      /^0x[0-9a-fA-F]{64}$/.test(receipt.transaction)
+        ? receipt.transaction.toLowerCase()
+        : null;
+    const payer =
+      typeof receipt.payer === "string" &&
+      /^0x[0-9a-fA-F]{40}$/.test(receipt.payer)
+        ? receipt.payer.toLowerCase()
+        : null;
+    const expectedNetwork = receipt.network === NETWORK;
+
+    console.info(JSON.stringify({
+      event: "x402_settlement_succeeded",
+      schema_version: 2,
+      product_id: route.path.slice("/api/".length),
+      route: route.path,
+      amount_usd: PRICE.slice(1),
+      amount_atomic_usdc: AMOUNT,
+      network: expectedNetwork ? NETWORK : null,
+      transaction,
+      payer,
+      evidence_source: "facilitator_settle_response",
+      onchain_verified: false,
+      external_buyer_verified: false,
+      eligible_for_revenue_scoreboard: false,
+      settled_at: new Date().toISOString(),
+    }));
+  } catch {
+    // Successful settlement and the client's receipt take priority over logs.
+  }
 
   return json(
     { ...result, paid: true },
