@@ -354,30 +354,49 @@ async function auditLedgerAgainstChain(file, { rpcCall, checkpoint } = {}) {
     product_025_unlock_evidence: false
   };
 }
+function parseCheckpointOptions(args) {
+  if (args.length === 0) return undefined;
+  if (args.length !== 4 ||
+      args[0] !== "--expect-head" || args[2] !== "--expect-records" ||
+      !/^[0-9a-f]{64}$/.test(args[1] || "") ||
+      !/^(0|[1-9][0-9]*)$/.test(args[3] || "")) {
+    fail("LEDGER_CHECKPOINT_OPTIONS_INVALID");
+  }
+  const records = Number(args[3]);
+  if (!Number.isSafeInteger(records)) fail("LEDGER_CHECKPOINT_OPTIONS_INVALID");
+  return { head: args[1], records };
+}
 async function main() {
-  if (process.argv.length === 4 && process.argv[2] === "--audit-chain") {
-    if (!process.env.BASE_RPC_URL) fail("BASE_RPC_URL_REQUIRED");
-    process.stdout.write(JSON.stringify(
-      await auditLedgerAgainstChain(process.argv[3], {
-        rpcCall: makeRpc(process.env.BASE_RPC_URL)
-      }), null, 2) + "\n");
+  const args = process.argv.slice(2);
+  const mode = args[0];
+  if (mode === "--audit" || mode === "--audit-chain") {
+    if (args.length < 2) fail("LEDGER_AUDIT_FILE_REQUIRED");
+    const checkpoint = parseCheckpointOptions(args.slice(2));
+    if (mode === "--audit-chain") {
+      if (!process.env.BASE_RPC_URL) fail("BASE_RPC_URL_REQUIRED");
+      process.stdout.write(JSON.stringify(
+        await auditLedgerAgainstChain(args[1], {
+          rpcCall: makeRpc(process.env.BASE_RPC_URL),
+          checkpoint
+        }), null, 2) + "\n");
+    } else {
+      process.stdout.write(JSON.stringify(auditLedger(args[1], { checkpoint }), null, 2) + "\n");
+    }
     return;
   }
-  if (process.argv.length === 4 && process.argv[2] === "--audit") {
-    process.stdout.write(JSON.stringify(auditLedger(process.argv[3]), null, 2) + "\n");
-    return;
-  }
-  if (process.argv.length !== 4 || !process.env.BASE_RPC_URL) {
+  if (args.length < 2 || !process.env.BASE_RPC_URL) {
     fail("USAGE_PRIVATE_LEDGER_AND_BASE_RPC_URL_REQUIRED");
   }
-  const observationsFile = process.argv[2];
+  const checkpoint = parseCheckpointOptions(args.slice(2));
+  const observationsFile = args[0];
   if (!path.isAbsolute(observationsFile)) fail("OBSERVATIONS_ABSOLUTE_PATH_REQUIRED");
   const observationSize = fs.statSync(observationsFile).size;
   if (observationSize > 1000000) fail("OBSERVATIONS_TOO_LARGE");
   const observations = JSON.parse(fs.readFileSync(observationsFile, "utf8"));
   const summary = await appendReconciledObservations(observations, {
-    ledgerPath: process.argv[3],
-    rpcCall: makeRpc(process.env.BASE_RPC_URL)
+    ledgerPath: args[1],
+    rpcCall: makeRpc(process.env.BASE_RPC_URL),
+    checkpoint
   });
   process.stdout.write(JSON.stringify(summary, null, 2) + "\n");
 }
@@ -391,5 +410,5 @@ if (require.main === module) {
 module.exports = {
   GENESIS, MAX_BYTES, sha256, seal, readLedger, privatePath,
   checkVerifiedRow, appendReconciledObservations, auditLedger,
-  auditLedgerAgainstChain
+  auditLedgerAgainstChain, verifyExternalCheckpoint, parseCheckpointOptions
 };
