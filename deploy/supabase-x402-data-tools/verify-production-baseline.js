@@ -156,8 +156,16 @@ function readPrivateSnapshot(filename,limit) {
       (dirInfo.mode&0o077)!==0 || fs.realpathSync(dir)!==dir) {
     drift("live snapshot directory not private");
   }
-  const fd=fs.openSync(resolved,fs.constants.O_RDONLY |
-    (fs.constants.O_NOFOLLOW||0));
+  let fd;
+  try {
+    fd=fs.openSync(resolved,fs.constants.O_RDONLY |
+      (fs.constants.O_NOFOLLOW||0));
+  } catch(e) {
+    if (["ELOOP","ENOENT","EISDIR","EACCES","EPERM"].includes(e?.code)) {
+      drift("live snapshot missing or disallowed filesystem object");
+    }
+    throw e;
+  }
   try {
     const info=fs.fstatSync(fd);
     if (!info.isFile() || info.nlink!==1 || (info.mode&0o077)!==0 ||
