@@ -552,3 +552,76 @@ test("CLI audited checkpoint verifies out-of-band head and count",async()=>{
     assert.equal(tampered.stdout,"");
   });
 });
+
+test("bad external checkpoint fails before any RPC query",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    const first=await commit(observation(A),ledgerPath);
+    const before=fs.readFileSync(ledgerPath,"utf8");
+    let calls=0;
+    await assert.rejects(appendReconciledObservations([observation(B)],{
+      ledgerPath,
+      checkpoint:{head:"0".repeat(64),records:0},
+      rpcCall:async()=>{calls++;return CHAIN_ID;}
+    }),/LEDGER_CHECKPOINT_MISMATCH/);
+    assert.equal(calls,0);
+    assert.equal(fs.readFileSync(ledgerPath,"utf8"),before);
+    assert.equal(fs.existsSync(ledgerPath+".lock"),false);
+    assert.match(first.head_hash,/^[0-9a-f]{64}$/);
+  });
+});
+
+test("busy journal is rejected before any RPC query",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    fs.writeFileSync(ledgerPath+".lock","active writer",{mode:0o600});
+    let calls=0;
+    await assert.rejects(appendReconciledObservations([observation(A)],{
+      ledgerPath,rpcCall:async()=>{calls++;return CHAIN_ID;}
+    }),/LEDGER_LOCKED_REVIEW_REQUIRED/);
+    assert.equal(calls,0);
+    assert.equal(fs.readFileSync(ledgerPath+".lock","utf8"),"active writer");
+    fs.unlinkSync(ledgerPath+".lock");
+  });
+});
+
+test("concurrent append during RPC aborts stale write without reverting the other writer",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    const first=await commit(observation(A),ledgerPath);
+    const thirdTransaction="0x"+"e".repeat(64);
+    const baselineRpc=rpc();
+    let wroteDuringRpc=false;
+    let count=0;
+    const racedRpc=async(method,params)=>{
+      count++;
+      if(method==="eth_getTransactionReceipt"&&!wroteDuringRpc){
+        wroteDuringRpc=true;
+        const other=await commit(observation(thirdTransaction),ledgerPath);
+        assert.equal(other.verified_transfer_evidence_added,1);
+      }
+      return baselineRpc(method,params);
+    };
+    await assert.rejects(appendReconciledObservations([observation(B)],{
+      ledgerPath,rpcCall:racedRpc,
+      checkpoint:{head:first.head_hash,records:1}
+    }),/LEDGER_CHECKPOINT_MISMATCH|LEDGER_CONCURRENT_HEAD_CHANGE/);
+    assert.equal(wroteDuringRpc,true);
+    assert.ok(count>=3);
+    const rows=readLedger(ledgerPath).records;
+    assert.equal(rows.length,2);
+    assert.deepEqual(rows.map(x=>x.transaction),[A,thirdTransaction]);
+    assert.equal(fs.existsSync(ledgerPath+".lock"),false);
+  });
+});
+
+test("corrupt prior journal is rejected before any RPC query",async()=>{
+  await privateLedger(async ({ledgerPath})=>{
+    await commit(observation(A),ledgerPath);
+    const original=fs.readFileSync(ledgerPath,"utf8");
+    fs.writeFileSync(ledgerPath,original.slice(0,-1));
+    let calls=0;
+    await assert.rejects(appendReconciledObservations([observation(B)],{
+      ledgerPath,rpcCall:async()=>{calls++;return CHAIN_ID;}
+    }),/LEDGER_INCOMPLETE_WRITE/);
+    assert.equal(calls,0);
+    assert.equal(fs.existsSync(ledgerPath+".lock"),false);
+  });
+});
