@@ -254,7 +254,78 @@ function auditLedger(file) {
     product_025_unlock_evidence: false
   };
 }
+async function auditLedgerAgainstChain(file, { rpcCall } = {}) {
+  if (typeof rpcCall !== "function") fail("LEDGER_RPC_REQUIRED");
+  const local = auditLedger(file);
+  const journal = readLedger(file);
+  const chain = await rpcCall("eth_chainId", []);
+  if (chain !== "0x2105") fail("wrong_rpc_chain");
+  const current = await rpcCall("eth_blockNumber", []);
+  if (typeof current !== "string" ||
+      !/^0x(0|[1-9a-fA-F][0-9a-fA-F]*)$/.test(current)) {
+    fail("LEDGER_INVALID_CHAIN_HEAD");
+  }
+  const height = BigInt(current);
+  const statuses = {
+    canonical: 0,
+    block_mismatch: 0,
+    block_unavailable: 0,
+    insufficient_confirmations: 0
+  };
+  for (const row of journal.records) {
+    const blockNumber = BigInt(row.block_number);
+    if (blockNumber > height || height - blockNumber + 1n < 12n) {
+      statuses.insufficient_confirmations++;
+      continue;
+    }
+    let block;
+    try {
+      block = await rpcCall("eth_getBlockByNumber", [
+        "0x" + blockNumber.toString(16), false
+      ]);
+    } catch {
+      statuses.block_unavailable++;
+      continue;
+    }
+    if (!block || typeof block.hash !== "string" ||
+        !isHash(block.hash.toLowerCase()) ||
+        typeof block.number !== "string" ||
+        !/^0x(0|[1-9a-fA-F][0-9a-fA-F]*)$/.test(block.number)) {
+      statuses.block_unavailable++;
+    } else if (BigInt(block.number) !== blockNumber ||
+               block.hash.toLowerCase() !== row.canonical_block_hash) {
+      statuses.block_mismatch++;
+    } else {
+      statuses.canonical++;
+    }
+  }
+  return {
+    schema_version: 1,
+    integrity: local.integrity,
+    records: local.records,
+    head_hash: local.head_hash,
+    chain: CHAIN,
+    chain_head_at_check: height.toString(),
+    ...statuses,
+    all_recorded_blocks_still_canonical:
+      statuses.canonical === local.records &&
+      statuses.block_mismatch === 0 &&
+      statuses.block_unavailable === 0 &&
+      statuses.insufficient_confirmations === 0,
+    external_buyer_verified: false,
+    eligible_external_revenue_atomic_usdc: "0",
+    product_025_unlock_evidence: false
+  };
+}
 async function main() {
+  if (process.argv.length === 4 && process.argv[2] === "--audit-chain") {
+    if (!process.env.BASE_RPC_URL) fail("BASE_RPC_URL_REQUIRED");
+    process.stdout.write(JSON.stringify(
+      await auditLedgerAgainstChain(process.argv[3], {
+        rpcCall: makeRpc(process.env.BASE_RPC_URL)
+      }), null, 2) + "\n");
+    return;
+  }
   if (process.argv.length === 4 && process.argv[2] === "--audit") {
     process.stdout.write(JSON.stringify(auditLedger(process.argv[3]), null, 2) + "\n");
     return;
@@ -282,5 +353,6 @@ if (require.main === module) {
 }
 module.exports = {
   GENESIS, MAX_BYTES, sha256, seal, readLedger, privatePath,
-  checkVerifiedRow, appendReconciledObservations, auditLedger
+  checkVerifiedRow, appendReconciledObservations, auditLedger,
+  auditLedgerAgainstChain
 };
