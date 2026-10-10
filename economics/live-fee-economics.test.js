@@ -52,7 +52,8 @@ test("fee screening covers exactly 24 existing registered products, not staged s
   assert.equal(r.summary.fee_only_target_possible_count,2);
   assert.equal(r.summary.fee_only_target_impossible_count,22);
   assert.equal(r.entries[23].number,"024");
-  assert.equal(r.entries[23].registry_status,"design");
+  assert.equal(r.entries[23].registry_status,
+    registry.products.find(p=>p.number==="024").status);
   assert.equal(r.product_025_unlocked,false);
   assert.equal(r.price_changes_applied,false);
   assert.equal(r.summary.actual_profitable_products_verified,0);
@@ -150,7 +151,7 @@ test("fresh live snapshots reject staleness, future timestamp and unprocessed ef
     /ECONOMICS_PROVIDER_SNAPSHOT_STALE/);
   assert.throws(()=>validate(BASE,{requireFresh:true,
     nowMs:Date.parse("2026-10-10T11:00:00Z")}),
-    /ECONOMICS_PROVIDER_SNAPSHOT_STALE/);
+    /ECONOMICS_FUTURE_PROVIDER_TIMESTAMP/);
   const upcoming=clone(BASE);
   upcoming.upcoming.push({
     network:"eip155:8453",scheme:"exact",transferMethod:"eip3009",
