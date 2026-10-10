@@ -2,6 +2,7 @@
 
 const fs=require("node:fs");
 const path=require("node:path");
+const {validateSpecSet}=require("./validate-product-spec-contract");
 
 const ROOT=path.resolve(__dirname,"..");
 const SPEC_DIR=path.join(ROOT,"specs");
@@ -14,9 +15,11 @@ function discoverSpecFiles(){
 }
 
 function loadSpecs(){
-  return discoverSpecFiles().map(name=>
+  const filenames=discoverSpecFiles();
+  const specs=filenames.map(name=>
     JSON.parse(fs.readFileSync(path.join(SPEC_DIR,name),"utf8"))
   );
+  return validateSpecSet(specs,{filenames});
 }
 
 function buildIndex(specs=loadSpecs()){
