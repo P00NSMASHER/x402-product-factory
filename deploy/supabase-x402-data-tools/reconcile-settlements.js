@@ -56,6 +56,17 @@ function validObservation(event) {
     isHash(event.transaction) &&
     isAddress(event.payer);
 }
+function candidateTransfer(log, payer) {
+  // Collect ALL apparent transfers from this payer to our receiving wallet
+  // before validating fields. An extra malformed candidate must not be
+  // silently ignored while another valid log is counted as unique evidence.
+  return log && typeof log === "object" &&
+    norm(String(log.address || "")) === USDC &&
+    Array.isArray(log.topics) &&
+    norm(String(log.topics[0] || "")) === TRANSFER_TOPIC &&
+    topicAddress(log.topics[1]) === payer &&
+    topicAddress(log.topics[2]) === RECEIVER;
+}
 function relevantTransfer(log, receipt, tx, payer) {
   if (!log || norm(String(log.address || "")) !== USDC ||
       !Array.isArray(log.topics) || log.topics.length !== 3 ||
@@ -109,7 +120,8 @@ async function reconcileEvents(events, { rpcCall, minConfirmations = 12 } = {}) 
     }
     if (!receipt || !isHash(receipt.transactionHash) ||
         norm(receipt.transactionHash) !== tx ||
-        !isHash(receipt.blockHash) || !Array.isArray(receipt.logs)) {
+        !isHash(receipt.blockHash) || !Array.isArray(receipt.logs) ||
+        receipt.logs.length > 2500) {
       output.push(record(event, "malformed_receipt")); continue;
     }
     if (receipt.status !== "0x1") {
@@ -145,16 +157,22 @@ async function reconcileEvents(events, { rpcCall, minConfirmations = 12 } = {}) 
         norm(canonicalBlock.hash) !== norm(receipt.blockHash)) {
       output.push(record(event, "receipt_noncanonical")); continue;
     }
-    // Detect any matching payer -> recipient USDC transfer before checking
-    // its amount; multiple matches make attribution ambiguous.
-    const matches = receipt.logs
-      .map(log => relevantTransfer(log, receipt, tx, norm(event.payer)))
-      .filter(Boolean);
-    if (matches.length !== 1) {
-      output.push(record(event, matches.length > 1 ? "ambiguous_transfers" : "transfer_not_found"));
+    // A malformed or duplicated candidate log cannot be ignored just because
+    // one other candidate parses correctly. Treat ambiguity as non-chargeable
+    // evidence rather than presuming the valid log identifies the purchase.
+    const candidates = receipt.logs.filter(
+      log => candidateTransfer(log, norm(event.payer))
+    );
+    if (candidates.length !== 1) {
+      output.push(record(event,
+        candidates.length > 1 ? "ambiguous_transfers" : "transfer_not_found"));
       continue;
     }
-    if (matches[0].amount !== BigInt(EXPECTED_AMOUNT)) {
+    const match = relevantTransfer(candidates[0], receipt, tx, norm(event.payer));
+    if (!match) {
+      output.push(record(event, "malformed_transfer_log")); continue;
+    }
+    if (match.amount !== BigInt(EXPECTED_AMOUNT)) {
       output.push(record(event, "amount_mismatch")); continue;
     }
     output.push(record(event, "verified_onchain_transfer", {
@@ -165,7 +183,7 @@ async function reconcileEvents(events, { rpcCall, minConfirmations = 12 } = {}) 
       token_contract: USDC,
       block_number: block.toString(),
       canonical_block_hash: norm(canonicalBlock.hash),
-      transaction_log_index: matches[0].logIndex,
+      transaction_log_index: match.logIndex,
       confirmations_at_check: (latest - block + 1n).toString(),
       evidence_source: "independent_base_rpc_receipt"
     }));
