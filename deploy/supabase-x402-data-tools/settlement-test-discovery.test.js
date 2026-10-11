@@ -161,3 +161,19 @@ test("the existing factory runner, not another hard-coded shell file list, remai
   assert.deepEqual(scopedDiscovery, globalDiscovery.sort());
   assert.ok(scopedDiscovery.length >= REQUIRED_SUITES.length);
 });
+test("workflow cannot silently fall back to manually enumerated settlement tests", () => {
+  const workflow = fs.readFileSync(
+    path.join(FACTORY_ROOT, ".github/workflows/supabase-x402-settlement-contract.yml"),
+    "utf8"
+  );
+  assert.match(workflow, /node scripts\/run-settlement-contract-tests\.js/);
+  assert.match(workflow, /verify-production-baseline\.js --check/);
+  assert.match(workflow, /permissions:\s*\n  contents: read/);
+  assert.match(workflow, /packages\/x402\/\*\*/);
+  assert.match(workflow, /packages\/sources\/\*\*/);
+  assert.match(workflow, /production-topology\.json/);
+  assert.match(workflow, /scripts\/run-all-tests\.js/);
+  assert.match(workflow, /deploy\/supabase-x402-data-tools\/\*\*/);
+  assert.doesNotMatch(workflow, /node --test\s*\\/);
+});
+
