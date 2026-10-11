@@ -128,6 +128,48 @@ function validateRegistry(data) {
   }
   return data.products.slice().sort((a,b)=>a.number.localeCompare(b.number));
 }
+// The economic launch screen is deliberately one-way: it can identify
+// unsustainable paid-fee economics, but it can NEVER approve a launch.
+// Hosting, source volatility, failure/refund overhead, customer demand and
+// actual independently reviewed financial evidence are not present here.
+function classifyLaunchRisk(price, fee, {providerRateAgeValidated=false}={}) {
+  if (typeof price !== "bigint" || price <= 0n ||
+      typeof fee !== "bigint" || fee <= 0n ||
+      typeof providerRateAgeValidated !== "boolean") {
+    reject("ECONOMICS_LAUNCH_SCREEN_INVALID_INPUT");
+  }
+  const belowPaidFee = price < fee;
+  const possibleFeeOnlyMargin =
+    (price - fee) * 100n >= price * BigInt(MARGIN_TARGET_PERCENT);
+  const category = belowPaidFee
+    ? "paid_facilitator_fee_exceeds_list_price"
+    : !possibleFeeOnlyMargin
+      ? "fee_only_margin_below_target"
+      : "fee_only_target_possible_but_total_costs_and_demand_unverified";
+  const blockers = [
+    ...(belowPaidFee ? ["listed_price_below_paid_facilitator_fee"] : []),
+    ...(!belowPaidFee && !possibleFeeOnlyMargin
+      ? ["fee_only_margin_target_mathematically_unreachable"] : []),
+    ...(!providerRateAgeValidated
+      ? ["fresh_provider_rate_not_checked_in_this_run"] : []),
+    "complete_hosting_source_retry_refund_and_support_costs_unverified",
+    "genuine_external_buyer_demand_unverified",
+    "independent_commercial_review_and_release_authorization_required"
+  ];
+  return {
+    status: "blocked",
+    category,
+    blockers,
+    provider_rate_age_checked_for_this_run: providerRateAgeValidated,
+    provider_source_identity_independently_authenticated: false,
+    fee_only_margin_target_possible: possibleFeeOnlyMargin,
+    total_unit_economics_verified: false,
+    external_demand_independently_verified: false,
+    automatic_price_change_applied: false,
+    unattended_launch_authorized: false
+  };
+}
+
 function buildReport(pricing, {
   products=registry, freeAllowanceCredits=1000, requireFresh=false,
   nowMs=Date.now(), rateObservation="historical_pinned_snapshot"
@@ -146,6 +188,13 @@ function buildReport(pricing, {
     const ceiling = price-fee;
     const targetPossibleBeforeOtherCosts = ceiling*100n >= price*BigInt(MARGIN_TARGET_PERCENT);
     const basisPointsCeiling = ceiling*10000n/price;
+    const launchScreen = classifyLaunchRisk(price, fee, {
+      providerRateAgeValidated: requireFresh
+    });
+    if (launchScreen.fee_only_margin_target_possible !==
+        targetPossibleBeforeOtherCosts) {
+      reject("ECONOMICS_LAUNCH_SCREEN_MARGIN_DISAGREEMENT");
+    }
     return {
       number:item.number,
       id:item.id,
@@ -158,7 +207,8 @@ function buildReport(pricing, {
       target_margin_possible_before_other_costs:targetPossibleBeforeOtherCosts,
       complete_unit_economics:false,
       actual_profitability_verified:false,
-      live_product_availability_verified:false
+      live_product_availability_verified:false,
+      economic_launch_screen:launchScreen
     };
   });
   const fullyUntouchedCreditsInHundredths = BigInt(freeAllowanceCredits)*100n;
@@ -166,6 +216,24 @@ function buildReport(pricing, {
     fullyUntouchedCreditsInHundredths / rate.credits_centis;
   const below = entries.filter(x=>x.price_below_paid_facilitator_fee);
   const possible = entries.filter(x=>x.target_margin_possible_before_other_costs);
+  const launchCategories = {
+    paid_facilitator_fee_exceeds_list_price: 0,
+    fee_only_margin_below_target: 0,
+    fee_only_target_possible_but_total_costs_and_demand_unverified: 0
+  };
+  for (const entry of entries) {
+    if (entry.economic_launch_screen.status !== "blocked" ||
+        entry.economic_launch_screen.unattended_launch_authorized !== false ||
+        !Object.hasOwn(launchCategories, entry.economic_launch_screen.category)) {
+      reject("ECONOMICS_LAUNCH_SCREEN_FAIL_OPEN");
+    }
+    launchCategories[entry.economic_launch_screen.category]++;
+  }
+  if (launchCategories.paid_facilitator_fee_exceeds_list_price !== below.length ||
+      launchCategories.fee_only_target_possible_but_total_costs_and_demand_unverified !== possible.length ||
+      Object.values(launchCategories).reduce((sum,value)=>sum+value,0) !== entries.length) {
+    reject("ECONOMICS_LAUNCH_SCREEN_TOTALS_DISAGREEMENT");
+  }
   return {
     schema_version:1,
     report_type:"fee_only_ceiling_not_actual_profit_or_revenue",
@@ -194,6 +262,17 @@ function buildReport(pricing, {
       source_provider_variable_costs:false,
       failed_requests_retries_refunds:false,
       development_distribution_support:false
+    },
+    launch_readiness:{
+      report_type:"blocked_prelaunch_economic_screen_not_commercial_approval",
+      classifications:launchCategories,
+      all_registered_products_screened:entries.length,
+      all_product_releases_blocked_pending_cost_demand_and_review:true,
+      unattended_release_eligible_products:0,
+      margin_target_is_fee_only_not_verified_profit:true,
+      historical_rate_not_sufficient_for_live_launch:!requireFresh,
+      pricing_changes_applied:false,
+      product_025_unlocked:false
     },
     summary:{
       registered_products:entries.length,
@@ -278,5 +357,5 @@ if(require.main===module) {
 module.exports={
   PRICING_URL,NETWORK,SCHEME,METHOD,MAX_RATE_AGE_MS,
   micros,formatMicros,centiCredits,validatePricing,validateRegistry,
-  savedSnapshot,buildReport,fetchPricing,main
+  savedSnapshot,classifyLaunchRisk,buildReport,fetchPricing,main
 };
