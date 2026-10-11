@@ -1,0 +1,40 @@
+name: Supabase x402 settlement contract
+
+on:
+  pull_request:
+    paths:
+      - 'deploy/supabase-x402-data-tools/**'
+      - '.github/workflows/supabase-x402-settlement-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/supabase-x402-data-tools/**'
+      - '.github/workflows/supabase-x402-settlement-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  settlement-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify pinned production v6 source parity (offline only)
+        run: node deploy/supabase-x402-data-tools/verify-production-baseline.js --check
+
+      - name: Verify Supabase settlement observability and failure semantics
+        run: |
+          node --test \
+            deploy/supabase-x402-data-tools/settlement-telemetry.test.js \
+            deploy/supabase-x402-data-tools/reconcile-settlements.test.js \
+            deploy/supabase-x402-data-tools/settlement-ledger.test.js \
+            deploy/supabase-x402-data-tools/buyer-review-queue.test.js \
+            deploy/supabase-x402-data-tools/cross-journal-audit.test.js \
+            deploy/supabase-x402-data-tools/buyer-provenance-preflight.test.js \
+            deploy/supabase-x402-data-tools/signed-delivery-audit.test.js \
+            deploy/supabase-x402-data-tools/verify-production-baseline.test.js
