@@ -391,4 +391,19 @@ test("saved snapshot CLI exports explicit fail-closed economic gates and no purc
   assert.equal(doc.rate_observation,"historical_pinned_snapshot");
   assert.equal(r.stderr,"");
 });
+test("quick offline economics check displays launch blockers and never approves products",()=>{
+  const script=path.join(__dirname,"live-fee-economics.js");
+  const run=spawnSync(process.execPath,[script,"--check"],{encoding:"utf8"});
+  assert.equal(run.status,0,run.stderr);
+  const output=JSON.parse(run.stdout);
+  assert.equal(output.ok,true);
+  assert.equal(output.snapshot_historical,true);
+  assert.equal(output.launch_readiness.all_registered_products_screened,24);
+  assert.equal(output.launch_readiness.unattended_release_eligible_products,0);
+  assert.equal(output.launch_readiness.classifications.paid_facilitator_fee_exceeds_list_price,7);
+  assert.equal(output.launch_readiness.classifications.fee_only_margin_below_target,15);
+  assert.equal(output.launch_readiness.classifications.fee_only_target_possible_but_total_costs_and_demand_unverified,2);
+  assert.equal(output.automatic_price_changes,false);
+  assert.equal(run.stderr,"");
+});
 
