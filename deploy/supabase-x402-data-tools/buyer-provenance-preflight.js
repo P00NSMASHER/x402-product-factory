@@ -41,7 +41,8 @@ function exactKeys(value, expected) {
 }
 function validateDossiers(doc) {
   if (!exactKeys(doc, ["schema_version", "journal_scope_id", "cases"]) ||
-      doc.schema_version !== 1 || !ID.test(doc.journal_scope_id || "") ||
+      doc.schema_version !== 1 || typeof doc.journal_scope_id !== "string" ||
+      !ID.test(doc.journal_scope_id) ||
       !Array.isArray(doc.cases) || doc.cases.length > MAX_CASES) {
     invalid("PROVENANCE_DOSSIER_DOCUMENT_INVALID");
   }
@@ -49,9 +50,11 @@ function validateDossiers(doc) {
   for (const row of doc.cases) {
     if (!exactKeys(row, [
       "case_id", "operator_reference", "reviewer_reference", "evidence"
-    ]) || !ID.test(row.case_id || "") ||
-        !REFERENCE.test(row.operator_reference || "") ||
-        !REFERENCE.test(row.reviewer_reference || "") ||
+    ]) || typeof row.case_id !== "string" || !ID.test(row.case_id) ||
+        typeof row.operator_reference !== "string" ||
+        !REFERENCE.test(row.operator_reference) ||
+        typeof row.reviewer_reference !== "string" ||
+        !REFERENCE.test(row.reviewer_reference) ||
         row.operator_reference === row.reviewer_reference ||
         !Array.isArray(row.evidence) ||
         row.evidence.length > MAX_EVIDENCE_PER_CASE) {
@@ -64,12 +67,16 @@ function validateDossiers(doc) {
       if (!exactKeys(item, [
         "type", "subject_case_id", "source_kind", "private_reference"
       ]) || typeof item.type !== "string" ||
-          !ID.test(item.subject_case_id || "") ||
-          !REFERENCE.test(item.private_reference || "")) {
+          typeof item.subject_case_id !== "string" ||
+          !ID.test(item.subject_case_id) ||
+          typeof item.private_reference !== "string" ||
+          !REFERENCE.test(item.private_reference)) {
         invalid("PROVENANCE_EVIDENCE_SCHEMA_INVALID");
       }
-      const expectedSource = WALLET_EVIDENCE[item.type] ||
-        TRANSACTION_EVIDENCE[item.type];
+      const expectedSource = Object.hasOwn(WALLET_EVIDENCE, item.type)
+        ? WALLET_EVIDENCE[item.type]
+        : Object.hasOwn(TRANSACTION_EVIDENCE, item.type)
+          ? TRANSACTION_EVIDENCE[item.type] : null;
       if (!expectedSource || item.source_kind !== expectedSource) {
         invalid("PROVENANCE_EVIDENCE_SOURCE_INVALID");
       }
