@@ -282,3 +282,183 @@ test("CLI is offline, refuses absent key, and never prints raw payment evidence"
       fs.readFileSync(b.journal_path,"utf8")
     ],before);
   }));
+test("global wallet review counts unique transactions, not duplicate journal sightings", () =>
+  withPrivateDir(directory => {
+    const a = createJournal(directory, "first.jsonl", [
+      makeRow(TX_A), makeRow(TX_B, {route: "/api/sec-filings"})
+    ]);
+    const b = createJournal(directory, "second.jsonl", [
+      makeRow(TX_A, {confirmations:"43"}), makeRow(TX_C, {payer:PAYER_B})
+    ]);
+    const output = auditCrossJournals(manifest(a,b), {keyHex:KEY});
+    const review = output.global_wallet_review;
+    assert.equal(review.report_type, "deduplicated_wallet_review_not_customer_count");
+    assert.equal(review.unique_uncontested_payer_wallets_not_buyers, 2);
+    assert.equal(review.repeated_wallet_signals_not_repeat_customers, 1);
+    assert.equal(review.wallets_requiring_independent_review, 2);
+    assert.equal(review.conflicting_transactions_quarantined, 0);
+    assert.equal(review.cases.length, 2);
+    const {hmacKey,pseudonym} = require("./buyer-review-queue");
+    const caseA=review.cases.find(item =>
+      item.case_id === pseudonym(hmacKey(KEY), "wallet", PAYER_A));
+    assert.ok(caseA);
+    assert.equal(caseA.status,"requires_independent_buyer_review");
+    assert.equal(caseA.unique_transaction_evidence_not_sales,2);
+    assert.equal(caseA.repeat_wallet_signal_not_repeat_customer,true);
+    assert.deepEqual(caseA.routes, ["/api/domain-rdap","/api/sec-filings"]);
+    assert.deepEqual(caseA.journal_indices,[1,2]);
+    const caseB=review.cases.find(item =>
+      item.case_id === pseudonym(hmacKey(KEY), "wallet", PAYER_B));
+    assert.equal(caseB.unique_transaction_evidence_not_sales,1);
+    assert.equal(caseB.repeat_wallet_signal_not_repeat_customer,false);
+    assert.ok(review.cases.every(item =>
+      item.outside_buyer_proven===false &&
+      item.eligible_revenue_atomic_usdc==="0"));
+    assert.equal(review.independently_verified_external_buyers,0);
+    assert.equal(review.eligible_external_revenue_atomic_usdc,"0");
+    assert.equal(review.product_025_unlock_evidence,false);
+    assert.equal(output.per_route_uncontested_evidence_not_sales
+      .reduce((sum,item)=>sum+item.transfer_evidence,0),3);
+    const report=JSON.stringify(output);
+    for(const secret of [KEY, TX_A, TX_B, TX_C, PAYER_A, PAYER_B, directory]) {
+      assert.equal(report.includes(secret),false);
+    }
+  }));
+
+test("transaction conflict is quarantined from all global wallet activity", () =>
+  withPrivateDir(directory => {
+    const a=createJournal(directory,"a.jsonl",[
+      makeRow(TX_A),makeRow(TX_B)
+    ]);
+    const b=createJournal(directory,"b.jsonl",[
+      makeRow(TX_A,{payer:PAYER_B,route:"/api/sec-filings"})
+    ]);
+    const output=auditCrossJournals(manifest(a,b),{keyHex:KEY});
+    const review=output.global_wallet_review;
+    assert.equal(review.conflicting_transactions_quarantined,1);
+    assert.equal(review.unique_uncontested_payer_wallets_not_buyers,1);
+    assert.equal(review.cases.length,1);
+    assert.equal(review.cases[0].unique_transaction_evidence_not_sales,1);
+    assert.equal(review.cases[0].repeat_wallet_signal_not_repeat_customer,false);
+    assert.equal(review.wallets_requiring_independent_review,1);
+    assert.equal(output.per_route_uncontested_evidence_not_sales
+      .reduce((sum,r)=>sum+r.transfer_evidence,0),1);
+    assert.equal(output.eligible_external_revenue_atomic_usdc,"0");
+  }));
+
+test("operator exclusions propagate across journals and reduce only review cases", () =>
+  withPrivateDir(directory => {
+    const a=createJournal(directory,"a.jsonl",[
+      makeRow(TX_A),makeRow(TX_B,{route:"/api/sec-filings"})
+    ]);
+    const b=createJournal(directory,"b.jsonl",[
+      makeRow(TX_A),makeRow(TX_C,{payer:PAYER_B})
+    ]);
+    const excluded=[{
+      address:PAYER_A.toUpperCase().replace(/^0X/,"0x"),
+      reason:"operator_controlled",
+      evidence_reference:"private-operator-wallet-inventory-20261010"
+    },{
+      address:"0x"+"1".repeat(40), reason:"marketplace_probe",
+      evidence_reference:"private-crawler-wallets-20261010"
+    }];
+    const output=auditCrossJournals(manifest(a,b),
+      {keyHex:KEY,exclusions:excluded});
+    const review=output.global_wallet_review;
+    assert.equal(review.operator_declared_exclusion_records_supplied,2);
+    assert.equal(review.operator_declared_non_external_wallets,1);
+    assert.equal(review.operator_declared_non_external_transaction_evidence,2);
+    assert.equal(review.wallets_requiring_independent_review,1);
+    const excludedCase=review.cases.find(item =>
+      item.status==="operator_declared_non_external");
+    assert.ok(excludedCase);
+    assert.equal(excludedCase.exclusion_reason,"operator_controlled");
+    assert.equal(excludedCase.unique_transaction_evidence_not_sales,2);
+    assert.equal(excludedCase.eligible_revenue_atomic_usdc,"0");
+    const domain=output.per_route_uncontested_evidence_not_sales
+      .find(item=>item.route==="/api/domain-rdap");
+    assert.equal(domain.operator_declared_excluded_transfer_evidence,1);
+    assert.equal(domain.wallets_requiring_independent_review,1);
+    const sec=output.per_route_uncontested_evidence_not_sales
+      .find(item=>item.route==="/api/sec-filings");
+    assert.equal(sec.operator_declared_excluded_transfer_evidence,1);
+    assert.equal(sec.wallets_requiring_independent_review,0);
+    const printed=JSON.stringify(output);
+    assert.equal(printed.includes("private-operator-wallet-inventory"),false);
+    assert.equal(printed.includes(PAYER_A),false);
+    assert.equal(printed.includes(PAYER_B),false);
+    assert.equal(review.independently_verified_external_buyers,0);
+    assert.equal(output.product_025_unlock_evidence,false);
+  }));
+
+test("malformed exclusions fail closed before wallet classification", () =>
+  withPrivateDir(directory => {
+    const a=createJournal(directory,"a.jsonl",[makeRow(TX_A)]);
+    const b=createJournal(directory,"b.jsonl",[makeRow(TX_B)]);
+    const m=manifest(a,b);
+    const valid={
+      address:PAYER_A,reason:"operator_controlled",
+      evidence_reference:"private-operator-wallet-inventory"
+    };
+    assert.throws(() => auditCrossJournals(m,{keyHex:KEY,exclusions:[
+      valid,{...valid,address:PAYER_A.toUpperCase().replace(/^0X/,"0x")}
+    ]}),/BUYER_REVIEW_EXCLUSION_DUPLICATE/);
+    assert.throws(() => auditCrossJournals(m,{keyHex:KEY,exclusions:[
+      {...valid,reason:"verified_external_buyer"}
+    ]}),/BUYER_REVIEW_EXCLUSION_RECORD_INVALID/);
+    assert.throws(() => auditCrossJournals(m,{keyHex:KEY,exclusions:[
+      {...valid,independently_verified_external_buyers:100}
+    ]}),/BUYER_REVIEW_EXCLUSION_RECORD_INVALID/);
+    assert.throws(() => auditCrossJournals(m,{keyHex:KEY,exclusions:null}),
+      /BUYER_REVIEW_EXCLUSIONS_INVALID/);
+  }));
+
+test("CLI reads strict private exclusions and never writes customer data", () =>
+  withPrivateDir(directory => {
+    const a=createJournal(directory,"a.jsonl",[makeRow(TX_A)]);
+    const b=createJournal(directory,"b.jsonl",[makeRow(TX_A)]);
+    const manifestPath=manifestFile(directory,manifest(a,b));
+    const exclusionPath=manifestFile(directory,{
+      schema_version:1,
+      excluded_wallets:[{
+        address:PAYER_A,reason:"test_or_synthetic",
+        evidence_reference:"private-test-wallet-inventory"
+      }]
+    },"exclusions.json");
+    const binary=path.join(__dirname,"cross-journal-audit.js");
+    const snapshots=[a,b].map(x=>fs.readFileSync(x.journal_path,"utf8"));
+    const cli=spawnSync(process.execPath,
+      [binary,manifestPath,exclusionPath],{
+        encoding:"utf8",env:{...process.env,X402_REVIEW_HMAC_KEY:KEY}
+      });
+    assert.equal(cli.status,0,cli.stderr);
+    const parsed=JSON.parse(cli.stdout);
+    assert.equal(parsed.global_wallet_review.operator_declared_non_external_wallets,1);
+    assert.equal(parsed.global_wallet_review.wallets_requiring_independent_review,0);
+    assert.equal(parsed.global_wallet_review.operator_declared_non_external_transaction_evidence,1);
+    assert.equal(parsed.eligible_external_revenue_atomic_usdc,"0");
+    for(const sensitive of [PAYER_A,TX_A,KEY,exclusionPath,"private-test-wallet-inventory"]) {
+      assert.equal(cli.stdout.includes(sensitive),false);
+    }
+    assert.deepEqual([a,b].map(x=>fs.readFileSync(x.journal_path,"utf8")),
+      snapshots);
+    fs.chmodSync(exclusionPath,0o644);
+    const invalid=spawnSync(process.execPath,[binary,manifestPath,exclusionPath],{
+      encoding:"utf8",env:{...process.env,X402_REVIEW_HMAC_KEY:KEY}
+    });
+    assert.equal(invalid.status,1);
+    assert.equal(invalid.stderr.includes(PAYER_A),false);
+    assert.equal(invalid.stderr.includes(exclusionPath),false);
+  }));
+
+test("global review with empty journals stays empty and never promotes evidence", () =>
+  withPrivateDir(directory => {
+    const a=createJournal(directory,"a.jsonl",[]);
+    const b=createJournal(directory,"b.jsonl",[]);
+    const result=auditCrossJournals(manifest(a,b),{keyHex:KEY});
+    assert.equal(result.global_wallet_review.unique_uncontested_payer_wallets_not_buyers,0);
+    assert.equal(result.global_wallet_review.wallets_requiring_independent_review,0);
+    assert.deepEqual(result.global_wallet_review.cases,[]);
+    assert.equal(result.global_wallet_review.eligible_external_revenue_atomic_usdc,"0");
+  }));
+
