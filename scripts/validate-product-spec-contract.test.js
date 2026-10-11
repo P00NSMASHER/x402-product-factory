@@ -82,3 +82,40 @@ test("undocumented inputs, repeated inputs and missing evidence fail closed",()=
     const specs=clone();change(specs);rejected(specs,match);
   }
 });
+
+
+test("commercial claims require external evidence rather than spec assertions",()=>{
+  const changes=[
+    [s=>{s[0].buyer.expected_purchase_frequency.status="measured";},/purchase frequency cannot claim verified demand/],
+    [s=>{s[0].buyer.expected_purchase_frequency.value=100;},/purchase frequency cannot claim verified demand/],
+    [s=>{s[0].economics.incremental_hosting_cost_usd="0.000000";},/hosting cost must remain unknown/],
+    [s=>{s[0].economics.paid_settlement_cost_usd="0.000000";},/post-allowance margin floor mismatch/],
+    [s=>{s[0].economics.configured_direct_source_fee_usd="0.000100";},/post-allowance margin floor mismatch/],
+    [s=>{s[0].economics.post_allowance_margin_floor_pct=70;},/post-allowance margin floor mismatch/],
+    [s=>{s[0].economics.meets_target_before_unknown_costs=true;},/margin-target claim inconsistent/],
+    [s=>{s[0].economics.paid_settlement_cost_usd="-1.000000";},/six-place USD/],
+    [s=>{s[0].economics.target_contribution_margin_pct=101;},/invalid margin target/]
+  ];
+  for(const [mutation,match] of changes){
+    const specs=clone();mutation(specs);rejected(specs,match);
+  }
+});
+
+test("typed generated API examples reject malformed values and broken one-of rules",()=>{
+  const changes=[
+    [s=>{s[0].api.example_query.company="a";},/example violates string input constraint/],
+    [s=>{delete s[0].api.example_query.company;},/required example input missing/],
+    [s=>{s[0].api.inputs[0].required="optional";},/invalid input required flag/],
+    [s=>{s[0].api.inputs[0].maxLength=1;},/inverted string bounds/],
+    [s=>{s[0].api.inputs[0].unexpected=true;},/unexpected input descriptor/],
+    [s=>{s[4].api.example_query.minAgeDays=0;},/example violates numeric input constraint/],
+    [s=>{s[4].api.inputs[1].default=3651;},/default violates numeric input constraint/],
+    [s=>{s[3].api.example_query.cik="123";},/exactly-one input example or rule invalid/],
+    [s=>{s[3].api.example_query.ticker=123;},/example violates string input constraint/],
+    [s=>{s[3].api.inputs[1].pattern="(";},/unsafe input pattern/],
+    [s=>{s[3].api.input_rule=null;},/exactly-one input example or rule invalid/]
+  ];
+  for(const [mutation,match] of changes){
+    const specs=clone();mutation(specs);rejected(specs,match);
+  }
+});

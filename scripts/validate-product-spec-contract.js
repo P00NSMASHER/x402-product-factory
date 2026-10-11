@@ -20,6 +20,121 @@ function unique(seen,value,label){
   seen.add(value);
 }
 
+
+function moneyMicros(value,label){
+  must(typeof value==="string"&&/^\d{1,12}\.\d{6}$/.test(value),
+    label+" must use nonnegative six-place USD");
+  const [whole,fraction]=value.split(".");
+  return BigInt(whole)*1000000n+BigInt(fraction);
+}
+
+// Source specifications are not evidence of measured buyer demand or paid hosting.
+function validateCommercialClaims(spec,number){
+  const frequency=spec.buyer?.expected_purchase_frequency;
+  must(frequency&&frequency.status==="unmeasured"&&frequency.value===null&&
+    frequency.unit===null&&typeof frequency.measurement_plan==="string"&&
+    frequency.measurement_plan.length>=10,
+    "purchase frequency cannot claim verified demand for "+number);
+  const econ=spec.economics;
+  must(econ.incremental_hosting_cost_usd===null,
+    "hosting cost must remain unknown without billing evidence for "+number);
+  const price=BigInt(econ.price_usdc.replace(".",""))*1000n;
+  const fee=moneyMicros(econ.paid_settlement_cost_usd,"settlement cost for "+number);
+  const source=moneyMicros(econ.configured_direct_source_fee_usd,"source fee for "+number);
+  const target=econ.target_contribution_margin_pct;
+  must(typeof target==="number"&&Number.isFinite(target)&&target>=0&&
+    target<=100&&Number.isInteger(target*1000),
+    "invalid margin target for "+number);
+  const expected=Number((price-fee-source)*1000n/price)/10;
+  must(typeof econ.post_allowance_margin_floor_pct==="number"&&
+    econ.post_allowance_margin_floor_pct===expected,
+    "post-allowance margin floor mismatch for "+number);
+  const meets=(price-fee-source)*100000n>=price*BigInt(target*1000);
+  must(econ.meets_target_before_unknown_costs===meets,
+    "margin-target claim inconsistent with costs for "+number);
+}
+
+function validateInputExamples(api,number){
+  const allowed=new Set([
+    "name","type","required","minLength","maxLength","pattern",
+    "minimum","maximum","default","comparison"
+  ]);
+  const grouped=[];
+  for(const input of api.inputs){
+    must(Object.keys(input).every(k=>allowed.has(k)),
+      "unexpected input descriptor for "+number);
+    const group=input.required==="exactly_one_of_ticker_or_cik";
+    must(typeof input.required==="boolean"||group,
+      "invalid input required flag for "+number);
+    if(group)grouped.push(input.name);
+    for(const key of ["minLength","maxLength"]){
+      if(Object.hasOwn(input,key)){
+        must(input.type==="string"&&Number.isSafeInteger(input[key])&&
+          input[key]>=0&&input[key]<=4096,
+          "invalid string bound for "+number);
+      }
+    }
+    if(input.minLength!==undefined&&input.maxLength!==undefined){
+      must(input.minLength<=input.maxLength,"inverted string bounds for "+number);
+    }
+    if(input.pattern!==undefined){
+      must(input.type==="string"&&typeof input.pattern==="string"&&
+        input.pattern.length>=3&&input.pattern.length<=160&&
+        input.pattern.startsWith("^")&&input.pattern.endsWith("$"),
+        "unsafe input pattern for "+number);
+      try{new RegExp(input.pattern);}catch{invalid("invalid input pattern for "+number);}
+    }
+    for(const key of ["minimum","maximum"]){
+      if(Object.hasOwn(input,key)){
+        must(["integer","number"].includes(input.type)&&
+          typeof input[key]==="number"&&Number.isFinite(input[key])&&
+          (input.type!=="integer"||Number.isSafeInteger(input[key])),
+          "invalid numeric bound for "+number);
+      }
+    }
+    if(input.minimum!==undefined&&input.maximum!==undefined){
+      must(input.minimum<=input.maximum,"inverted numeric bounds for "+number);
+    }
+    if(input.comparison!==undefined){
+      must(input.type==="string"&&input.comparison==="exact_case_normalized",
+        "unsupported comparison rule for "+number);
+    }
+    const checkValue=(value,kind)=>{
+      if(input.type==="string"){
+        must(typeof value==="string"&&
+          (input.minLength===undefined||value.length>=input.minLength)&&
+          (input.maxLength===undefined||value.length<=input.maxLength)&&
+          (input.pattern===undefined||new RegExp(input.pattern).test(value)),
+          kind+" violates string input constraint for "+number);
+      }else if(input.type==="integer"||input.type==="number"){
+        must(typeof value==="number"&&Number.isFinite(value)&&
+          (input.type!=="integer"||Number.isSafeInteger(value))&&
+          (input.minimum===undefined||value>=input.minimum)&&
+          (input.maximum===undefined||value<=input.maximum),
+          kind+" violates numeric input constraint for "+number);
+      }else if(input.type==="boolean"){
+        must(typeof value==="boolean",kind+" must be boolean for "+number);
+      }
+    };
+    if(Object.hasOwn(input,"default"))checkValue(input.default,"default");
+    if(Object.hasOwn(api.example_query,input.name)){
+      checkValue(api.example_query[input.name],"example");
+    }else if(input.required===true){
+      invalid("required example input missing for "+number+": "+input.name);
+    }
+  }
+  if(grouped.length){
+    must(grouped.sort().join(",")==="cik,ticker"&&
+      api.input_rule==="Provide exactly one of ticker or cik."&&
+      Number(Object.hasOwn(api.example_query,"ticker"))+
+      Number(Object.hasOwn(api.example_query,"cik"))===1,
+      "exactly-one input example or rule invalid for "+number);
+  }else{
+    must(api.input_rule===null||api.input_rule===undefined,
+      "unexpected input rule for "+number);
+  }
+}
+
 function validateSpecSet(specs,{filenames=null,productRegistry=registry}={}){
   must(Array.isArray(specs)&&specs.length>0,"at least one specification is required");
   if(filenames!==null)must(Array.isArray(filenames)&&filenames.length===specs.length,"filename count mismatch");
@@ -67,6 +182,7 @@ function validateSpecSet(specs,{filenames=null,productRegistry=registry}={}){
     must(econ.price_usdc===canonical.price_usdc,"registry price mismatch for "+number);
     must(launch.current_status===canonical.status,"registry status mismatch for "+number);
     must(launch.release_gate===canonical.release_gate,"registry release gate mismatch for "+number);
+    validateCommercialClaims(spec,number);
     must(spec.implementation.handler_template==="standard-x402-get-v1","unsupported handler for "+number);
     must(spec.implementation.service_module==="products/"+id+"/service.js","unsafe service path for "+number);
     must(spec.decision.implementation==="products/"+id+"/decision.js","unsafe decision path for "+number);
@@ -92,6 +208,7 @@ function validateSpecSet(specs,{filenames=null,productRegistry=registry}={}){
     for(const key of Object.keys(api.example_query)){
       must(inputNames.has(key),"undeclared example input "+key+" for "+number);
     }
+    validateInputExamples(api,number);
     must(Array.isArray(spec.sources)&&spec.sources.length>0,"missing source evidence for "+number);
     const sources=new Set();
     for(const source of spec.sources)unique(sources,source?.id,"source id for "+number);
