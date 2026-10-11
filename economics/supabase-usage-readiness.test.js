@@ -7,7 +7,7 @@ const path=require("node:path");
 const {spawnSync}=require("node:child_process");
 const {
   PREFIX,ROUTES,validateAggregates,classify,
-  analyzeUsage,readPrivateAggregates
+  analyzeUsage,readPrivateAggregates,modelConditionalHostingOverage
 }=require("./supabase-usage-readiness");
 
 function sample(){
@@ -183,3 +183,130 @@ test("CLI only reads private aggregate data and does not leak raw input",async()
     assert.match(invalid.stderr,/USAGE_ONE_PRIVATE_JSON_INPUT_REQUIRED/);
   });
 });
+test("observed request mix exposes missing hosting bills rather than invented per-sale charges",()=>{
+  const report=analyzeUsage(sample());
+  const readiness=report.hosting_cost_readiness;
+  assert.equal(readiness.report_type,
+    "observed_invocation_exposure_not_measured_hosting_cost");
+  assert.equal(readiness.scope,
+    "canonical_supabase_x402_data_tools_only_not_factory_products_003_to_024");
+  assert.equal(readiness.observed_non_options_invocations,13);
+  assert.equal(readiness.observed_402_challenges_still_consume_invocation_quota,true);
+  assert.equal(readiness.application_http_200_is_not_verified_sale,true);
+  assert.equal(readiness.organization_all_projects_billing_usage_verified,false);
+  assert.equal(readiness.organization_plan_quota_and_spend_cap_verified,false);
+  assert.equal(readiness.billing_cycle_invoice_and_package_charges_verified,false);
+  assert.equal(readiness.actual_function_billed_invocations,null);
+  assert.equal(readiness.actual_organization_overage_charge_usd,null);
+  assert.equal(readiness.actual_incremental_hosting_cost_per_paid_sale_usd,null);
+  assert.equal(readiness.actual_source_provider_cost_per_paid_sale_usd,null);
+  assert.equal(readiness.actual_retry_refund_maintenance_cost_per_sale_usd,null);
+  assert.equal(readiness.full_unit_economics_verified,false);
+  assert.equal(readiness.actual_profit_usd,null);
+  assert.equal(readiness.automatic_pricing_or_release_authorized,false);
+  assert.equal(readiness.missing_evidence.length,5);
+  assert.equal(report.provider_invocation_rules.over_quota_billing_packages_of_invocations,1000000);
+  assert.equal(report.provider_invocation_rules.partial_package_rounds_up_when_paid_overage_applies,true);
+  assert.equal(report.product_025_unlock_evidence,false);
+});
+
+test("404, discovery, and 402 count toward observed non-OPTIONS exposure without sales",()=>{
+  const input=sample();
+  const before=analyzeUsage(input);
+  assert.equal(before.totals.non_options_potentially_billable,13);
+  input.rows[0].status=404;
+  const after=analyzeUsage(input);
+  assert.equal(after.totals.paid_402_challenges,0);
+  assert.equal(after.totals.non_options_potentially_billable,13);
+  assert.equal(after.hosting_cost_readiness.observed_non_options_invocations,13);
+  assert.equal(after.confirmed_external_buyers,null);
+  assert.equal(after.confirmed_profit_usd,null);
+  assert.equal(after.hosting_cost_readiness.actual_profit_usd,null);
+});
+
+test("published organization package model is only hypothetical, not invoice evidence",()=>{
+  const report=modelConditionalHostingOverage({
+    organization_prior_non_options_invocations:500000,
+    added_non_options_invocations:13,
+    organization_included_quota_invocations:500000
+  });
+  assert.equal(report.report_type,
+    "hypothetical_organization_package_pricing_not_invoice");
+  assert.equal(report.published_package_invocations,1000000);
+  assert.equal(report.provider_package_price_usd,"2.00");
+  assert.equal(report.over_quota_packages_before,0);
+  assert.equal(report.over_quota_packages_after,1);
+  assert.equal(report.conditional_incremental_packages,1);
+  assert.equal(report.conditional_package_step_usd,"2.00");
+  assert.equal(report.actual_hosting_cost_usd,null);
+  assert.equal(report.actual_per_sale_hosting_cost_usd,null);
+  assert.equal(report.actual_organization_invoice_verified,false);
+  assert.equal(report.function_share_of_organization_bill_verified,false);
+  assert.equal(report.independent_external_sales_verified,false);
+  assert.equal(report.product_025_unlock_evidence,false);
+});
+
+test("package billing follows organization-wide whole-package ceilings at boundaries",()=>{
+  const scenarios=[
+    [0,13,500000,0,0,0,"0.00"],
+    [499999,1,500000,0,0,0,"0.00"],
+    [500000,1,500000,0,1,1,"2.00"],
+    [1499999,1,500000,1,1,0,"0.00"],
+    [1500000,1,500000,1,2,1,"2.00"],
+    [500000,1000001,500000,0,2,2,"4.00"],
+    [500000,0,500000,0,0,0,"0.00"]
+  ];
+  for(const [prior,added,quota,before,after,delta,price] of scenarios){
+    const report=modelConditionalHostingOverage({
+      organization_prior_non_options_invocations:prior,
+      added_non_options_invocations:added,
+      organization_included_quota_invocations:quota
+    });
+    assert.equal(report.over_quota_packages_before,before);
+    assert.equal(report.over_quota_packages_after,after);
+    assert.equal(report.conditional_incremental_packages,delta);
+    assert.equal(report.conditional_package_step_usd,price);
+    assert.equal(report.actual_hosting_cost_usd,null);
+  }
+});
+
+test("host cost scenario rejects missing, negative, fractional, coerced and unsafe counts",()=>{
+  const good={
+    organization_prior_non_options_invocations:1,
+    added_non_options_invocations:1,
+    organization_included_quota_invocations:500000
+  };
+  for(const [field,value] of [
+    ["organization_prior_non_options_invocations",-1],
+    ["organization_prior_non_options_invocations","500000"],
+    ["organization_prior_non_options_invocations",1.1],
+    ["organization_prior_non_options_invocations",NaN],
+    ["added_non_options_invocations",undefined],
+    ["added_non_options_invocations",Number.MAX_SAFE_INTEGER],
+    ["organization_included_quota_invocations",null],
+    ["organization_included_quota_invocations",-12]
+  ]){
+    assert.throws(()=>modelConditionalHostingOverage({...good,[field]:value}),
+      /USAGE_INVALID_ORGANIZATION_SCENARIO/);
+  }
+  assert.throws(()=>modelConditionalHostingOverage(),
+    /USAGE_INVALID_ORGANIZATION_SCENARIO/);
+});
+
+test("CLI private usage report never treats package model as verified invoice",async()=>{
+  await withPrivateFile(async({filename})=>{
+    const script=path.join(__dirname,"supabase-usage-readiness.js");
+    const run=spawnSync(process.execPath,[script,filename],{encoding:"utf8"});
+    assert.equal(run.status,0,run.stderr);
+    const report=JSON.parse(run.stdout);
+    assert.equal(report.hosting_cost_readiness.observed_non_options_invocations,13);
+    assert.equal(report.hosting_cost_readiness.actual_organization_overage_charge_usd,null);
+    assert.equal(report.hosting_cost_readiness.actual_incremental_hosting_cost_per_paid_sale_usd,null);
+    assert.equal(report.hosting_cost_readiness.full_unit_economics_verified,false);
+    assert.equal(report.hosting_cost_readiness.automatic_pricing_or_release_authorized,false);
+    assert.equal(report.confirmed_external_revenue_usd,null);
+    assert.equal(report.product_025_unlock_evidence,false);
+    assert.equal(run.stdout.includes(filename),false);
+  });
+});
+
