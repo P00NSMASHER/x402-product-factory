@@ -309,4 +309,29 @@ test("CLI private usage report never treats package model as verified invoice",a
     assert.equal(run.stdout.includes(filename),false);
   });
 });
+test("hypothetical package inputs refuse invoice assertions and unknown fields",()=>{
+  const caseData={
+    organization_prior_non_options_invocations:500000,
+    added_non_options_invocations:10,
+    organization_included_quota_invocations:500000
+  };
+  const disallowed=[
+    {actual_invoice_verified:true},
+    {verified_external_buyers:12},
+    {approved_revenue_usd:"50.00"},
+    {organization_overage_plan:"paid"}
+  ];
+  for(const fields of disallowed) {
+    assert.throws(()=>modelConditionalHostingOverage({...caseData,...fields}),
+      /USAGE_INVALID_ORGANIZATION_SCENARIO/);
+  }
+  assert.throws(()=>modelConditionalHostingOverage({
+    ...caseData,
+    added_non_options_invocations:Number.MAX_SAFE_INTEGER
+  }),/USAGE_INVALID_ORGANIZATION_SCENARIO/);
+  assert.equal(modelConditionalHostingOverage(caseData)
+    .actual_organization_invoice_verified,false);
+  assert.equal(modelConditionalHostingOverage(caseData)
+    .actual_hosting_cost_usd,null);
+});
 
