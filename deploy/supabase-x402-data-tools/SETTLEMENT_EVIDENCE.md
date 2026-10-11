@@ -1081,11 +1081,26 @@ independent_capture_provenance_verified = false,
 original_client_receipt_independently_verified = false, and
 current_chain_reverified = false.
 
-The bounded private-file checks mitigate accidental concurrent changes
-and path substitution, but do not defend against an administrator who can
-rewrite every private source, replace signed claims, or control the trusted
-signing keys. Cryptographic digest equality and independent source
-authenticity are different questions.
+**Multi-file snapshot consistency:** Each private response-body file is
+opened without following its final symlink, checked for single-hardlink and
+owner-only access, and hashed over original bytes. Its device/inode,
+file size, mode, hardlink count, and nanosecond modification/change times
+are recorded only in memory. After all captured bodies have been checked,
+the auditor opens and hashes **every capture a second time** and requires
+both the byte digest and the entire filesystem identity to match. A prior
+file modified while later captures are being checked, a same-length
+in-place mutation, or a replacement inode containing identical bytes
+causes a fail-closed error, never a successful report. The 2 MiB per-file
+and 8 MiB total input limits apply to both bounded read passes; no body
+contents or filesystem identities appear in the report.
+
+These checks establish a **point-in-time consistency audit**, not an
+atomic OS filesystem snapshot or ongoing monitoring. Modifications after
+the final check, privileged concurrent writers, filesystems with unusual
+metadata semantics, and an attacker capable of rewriting all source
+evidence remain outside this trust guarantee. Preserve protected source
+files independently; do not interpret cryptographic digest equality as
+evidence authenticity or a real outside customer sale.
 
 The CI fixtures use synthetic USDC ledger rows, ephemeral signing keys,
 and temporary private byte files. They perform no Base RPC calls, no
