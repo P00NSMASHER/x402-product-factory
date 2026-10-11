@@ -676,6 +676,155 @@ handles; it makes no real payments, deployments or production writes.
 node --test deploy/supabase-x402-data-tools/buyer-provenance-preflight.test.js
 ```
 
+## Offline signed service-response claim verification
+
+The optional signed-delivery-audit.js checks whether an Ed25519-signed
+**server response-stream completion claim** matches a transaction, payer,
+and canonical route in checkpoint-verified settlement journals. It verifies
+signatures under an explicitly pinned public key, rejects duplicate
+transaction claims and reused request IDs, and quarantines conflicts
+using the existing cross-journal evidence gate.
+
+**Current production limitation (October 10, 2026):** The known Supabase
+v6 handler calculates its result, settles payment, logs a
+facilitator-reported settlement event, and then constructs an HTTP 200
+response. It does **not** produce independently signed post-response
+completion attestations. Settlement logs alone cannot establish that the
+response stream completed, that the buyer received the data, or that
+a legitimate outside buyer exists. Do not fabricate signed claims from
+settlement logs or synthetic test fixtures.
+
+For meaningful real-world evidence, an independently controlled and vetted
+response-observability system must be implemented in a **separate reviewed
+change**, observe a server response stream actually finish, and securely
+sign that observation after linking it to the original transaction,
+payer, route, request identifier and response digest. No production
+logging or signing infrastructure is changed by this PR. Even a genuine
+server-side completion observation does not prove client receipt.
+
+### Input trust contract
+
+A private signer metadata file contains exactly schema_version (1),
+issuer_id and spki_der_base64, which is a canonical base64 encoding of the
+issuer's DER-encoded Ed25519 SubjectPublicKeyInfo public key. The verifier
+also requires the environment variable X402_DELIVERY_KEY_SHA256, containing
+the lowercase 64-hex SHA-256 fingerprint of the SPKI DER **verified out of
+band through an independently trusted channel**. Merely copying the
+fingerprint from the same submitted key file does not establish issuer
+trust. The tool checks cryptographic signatures, not actual operational
+independence of the signing key holder.
+
+A separate private JSON document contains schema_version (1), the exact
+checkpoint-derived journal_scope_id obtained from the provenance inventory,
+and an array of zero to 250 signed_claims entries. Each entry has exactly
+claim and signature_base64 fields; signature_base64 is canonical base64 of
+a 64-byte Ed25519 signature.
+
+The claim contains exactly the following fields in canonical signing order:
+
+| Field | Required content |
+| --- | --- |
+| schema_version | Integer 1 |
+| issuer_id | Exact approved signer ID |
+| network | eip155:8453 |
+| transaction | Lowercase 0x-prefixed 64-hex Base transaction hash |
+| payer | Lowercase 0x-prefixed 40-hex payer wallet address |
+| route | One of the canonical Supabase x402 route paths |
+| request_id | Lowercase 32-hex transport request ID |
+| response_status | 200 |
+| response_body_sha256 | Nonzero lowercase 64-hex response digest |
+| response_stream_completed_at | Canonical ISO 8601 UTC with milliseconds |
+| transport_observation | server_response_stream_completed |
+
+Ed25519 signs the exact UTF-8 bytes consisting of the domain tag and
+compact JSON of these canonical fields, using exactly one separating
+newline:
+
+```text
+x402-service-response-claim:v1
+<compact JSON of claim in canonical field order>
+```
+
+The domain tag is not a receipt or a claim that clients acknowledged a
+response. The verifier rebuilds the canonical byte representation regardless
+of input JSON key order; signing the outer JSON wrapper or payment
+authorization will not pass this contract. The response SHA-256 digest is
+covered by the signature, but the verifier does not independently compare
+it with original bytes actually observed by the client. Completion time
+is asserted by the signer, not independently authenticated.
+
+### Private operator procedure
+
+Keep the journal manifest, signed completion claims, public-key metadata and
+optional operator exclusions in an owner-only 0700 directory **outside the
+repository**, with regular owner-only 0600 files, each with one hardlink.
+Symlinks, oversized inputs, and public-readable inputs are rejected. Raw
+transaction hashes, payer addresses, source metadata and signatures belong
+only in the private files. No payment secrets or signer private keys should
+be stored in the verifier or source repository.
+
+With a genuine externally approved key fingerprint, run:
+
+```bash
+umask 077
+X402_REVIEW_HMAC_KEY="$YOUR_PRIVATE_64_HEX_HMAC_KEY" \
+X402_DELIVERY_KEY_SHA256="$YOUR_EXTERNALLY_APPROVED_SPKI_SHA256" \
+  node deploy/supabase-x402-data-tools/signed-delivery-audit.js \
+  "$HOME/.private-x402-settlements/cross-journal-manifest.json" \
+  "$HOME/.private-x402-settlements/signed-delivery-claims.json" \
+  "$HOME/.private-x402-settlements/trusted-signer.json" \
+  "$HOME/.private-x402-settlements/operator-wallet-exclusions.json" \
+  > "$HOME/.private-x402-settlements/signed-delivery-report.json"
+```
+
+The fourth positional file, operator-wallet exclusions, is optional but
+should be supplied whenever known operator/test/marketplace wallets exist.
+No live network requests or signing operations are performed.
+
+A stale checkpoint, changed scope, invalid issuer/key algorithm/fingerprint,
+invalid signature, malformed or not-fully-completed HTTP response claim,
+unknown or conflicting transaction, payer/route mismatch, duplicate
+transaction claim, reused request ID, or unsafe input file blocks the
+entire run. The CLI does not print private fields on failure.
+
+The privacy-preserving report contains only HMAC wallet/transaction IDs,
+canonical route names, and review status. It never prints raw wallets,
+transaction hashes, private request IDs, body digests, file paths, signer
+public keys or HMAC keys. Keep the report private nevertheless: stable
+HMAC identifiers and route metadata may be identifying.
+
+The status signed_server_delivery_claim_independent_review_required means
+only that a matching cryptographic signature and settlement evidence were
+found. Missing claims are explicitly identified; operator-excluded wallets
+remain operator_declared_non_external; overlapping journals count a
+transaction once; any conflicting transaction is quarantined from
+successful matching.
+
+**Critical trust boundary:** The verifier does not itself prove that the
+signer was operationally independent, that the source actually completed
+a response, that a client acknowledged or received it, that body bytes
+were independently compared to the signed digest, that an external
+customer exists, or that refunds/reversals were ruled out. Even a fully
+signed set of records is not verified commercial sales.
+
+All reports explicitly retain:
+
+- signer_control_independently_authenticated: false
+- actual_response_body_independently_compared: false
+- actual_client_receipt_independently_confirmed: false
+- current_chain_reverified: false
+- independently_verified_external_buyers: 0
+- eligible_external_revenue_atomic_usdc: "0"
+- product_025_unlock_evidence: false
+
+All automated tests generate temporary **synthetic** Ed25519 key pairs,
+fake wallets and journal rows. Passing tests are not proof that any live
+independent signing service has been deployed or that any real sales exist.
+
+```bash
+node --test deploy/supabase-x402-data-tools/signed-delivery-audit.test.js
+```
+
 ## Production v6 source parity and release-preflight gate
 
 **Observed on October 10, 2026 (read-only):** Supabase project
