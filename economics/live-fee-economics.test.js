@@ -247,3 +247,148 @@ test("CLI historical check is reproducible, labels limits and requires explicit 
   assert.equal(invalid.stdout,"");
   assert.ok(invalid.stderr.includes("ECONOMICS_USAGE"));
 });
+test("economic launch gate classifies all 24 existing products without release authority",()=>{
+  const r=report();
+  const categories=r.launch_readiness.classifications;
+  assert.deepEqual(categories,{
+    paid_facilitator_fee_exceeds_list_price:7,
+    fee_only_margin_below_target:15,
+    fee_only_target_possible_but_total_costs_and_demand_unverified:2
+  });
+  assert.equal(r.launch_readiness.report_type,
+    "blocked_prelaunch_economic_screen_not_commercial_approval");
+  assert.equal(r.launch_readiness.all_registered_products_screened,24);
+  assert.equal(r.launch_readiness.unattended_release_eligible_products,0);
+  assert.equal(r.launch_readiness.all_product_releases_blocked_pending_cost_demand_and_review,true);
+  assert.equal(r.launch_readiness.product_025_unlocked,false);
+  assert.equal(r.launch_readiness.margin_target_is_fee_only_not_verified_profit,true);
+  assert.equal(r.launch_readiness.historical_rate_not_sufficient_for_live_launch,true);
+  assert.deepEqual(r.entries.filter(x=>
+    x.economic_launch_screen.category==="paid_facilitator_fee_exceeds_list_price"
+  ).map(x=>x.number),["001","007","010","011","012","021","022"]);
+  assert.deepEqual(r.entries.filter(x=>
+    x.economic_launch_screen.category===
+      "fee_only_target_possible_but_total_costs_and_demand_unverified"
+  ).map(x=>x.number),["002","018"]);
+  assert.ok(r.entries.every(x=>
+    x.economic_launch_screen.status==="blocked" &&
+    x.economic_launch_screen.unattended_launch_authorized===false &&
+    x.economic_launch_screen.automatic_price_change_applied===false &&
+    x.economic_launch_screen.total_unit_economics_verified===false &&
+    x.economic_launch_screen.external_demand_independently_verified===false &&
+    x.economic_launch_screen.provider_source_identity_independently_authenticated===false
+  ));
+});
+
+test("fee-positive candidate status cannot be mistaken for proven profit or live approval",()=>{
+  const r=report();
+  const p2=r.entries.find(p=>p.number==="002").economic_launch_screen;
+  const p18=r.entries.find(p=>p.number==="018").economic_launch_screen;
+  for(const item of [p2,p18]){
+    assert.equal(item.fee_only_margin_target_possible,true);
+    assert.equal(item.status,"blocked");
+    assert.ok(item.blockers.includes(
+      "complete_hosting_source_retry_refund_and_support_costs_unverified"));
+    assert.ok(item.blockers.includes("genuine_external_buyer_demand_unverified"));
+    assert.ok(item.blockers.includes(
+      "independent_commercial_review_and_release_authorization_required"));
+    assert.ok(item.blockers.includes("fresh_provider_rate_not_checked_in_this_run"));
+  }
+  const low=r.entries.find(p=>p.number==="007").economic_launch_screen;
+  assert.ok(low.blockers.includes("listed_price_below_paid_facilitator_fee"));
+  assert.equal(low.status,"blocked");
+  const middling=r.entries.find(p=>p.number==="003").economic_launch_screen;
+  assert.equal(middling.category,"fee_only_margin_below_target");
+  assert.ok(middling.blockers.includes(
+    "fee_only_margin_target_mathematically_unreachable"));
+  assert.equal(middling.fee_only_margin_target_possible,false);
+});
+
+test("launch classification uses exact micro-unit arithmetic at fee and margin boundaries",()=>{
+  const classify=economics.classifyLaunchRisk;
+  assert.equal(classify(2179n,2180n).category,
+    "paid_facilitator_fee_exceeds_list_price");
+  assert.equal(classify(2180n,2180n).category,
+    "fee_only_margin_below_target"); // equality is zero contribution, not below fee
+  assert.equal(classify(10000n,3000n).category,
+    "fee_only_target_possible_but_total_costs_and_demand_unverified");
+  assert.equal(classify(10000n,3001n).category,
+    "fee_only_margin_below_target");
+  assert.equal(classify(9999n,3000n).category,
+    "fee_only_margin_below_target");
+  const exact=classify(10000n,3000n);
+  assert.equal(exact.fee_only_margin_target_possible,true);
+  assert.equal(exact.unattended_launch_authorized,false);
+  assert.equal(exact.status,"blocked");
+});
+
+test("simulated fee increase automatically recalculates risk without mutating registry",()=>{
+  const data=clone(BASE);
+  data.rates[0].usd="0.003500";
+  data.rates[0].credits="3.50";
+  const before=JSON.stringify(registry);
+  const r=report(data);
+  assert.equal(r.paid_facilitator_fee_usd,"0.003500");
+  const by=Object.fromEntries(r.entries.map(p=>[p.number,p]));
+  assert.equal(by["018"].economic_launch_screen.category,
+    "fee_only_margin_below_target");
+  assert.equal(by["002"].economic_launch_screen.category,
+    "fee_only_target_possible_but_total_costs_and_demand_unverified");
+  assert.equal(by["004"].economic_launch_screen.category,
+    "paid_facilitator_fee_exceeds_list_price");
+  assert.equal(r.launch_readiness.unattended_release_eligible_products,0);
+  assert.equal(r.launch_readiness.all_registered_products_screened,24);
+  assert.equal(Object.values(r.launch_readiness.classifications).reduce(
+    (total,count)=>total+count,0),24);
+  assert.equal(JSON.stringify(registry),before);
+  assert.equal(r.price_changes_applied,false);
+});
+
+test("fresh as-of rate checking removes only age blocker, never the release blockers",()=>{
+  const fresh=report(BASE,{requireFresh:true,rateObservation:"fresh_public_read_only_get"});
+  const historical=report(BASE);
+  assert.equal(fresh.launch_readiness.historical_rate_not_sufficient_for_live_launch,false);
+  assert.equal(historical.launch_readiness.historical_rate_not_sufficient_for_live_launch,true);
+  assert.ok(fresh.entries.every(p=>
+    p.economic_launch_screen.provider_rate_age_checked_for_this_run===true &&
+    p.economic_launch_screen.status==="blocked" &&
+    !p.economic_launch_screen.blockers.includes("fresh_provider_rate_not_checked_in_this_run") &&
+    p.economic_launch_screen.blockers.includes("genuine_external_buyer_demand_unverified")
+  ));
+  assert.equal(fresh.launch_readiness.unattended_release_eligible_products,0);
+  assert.equal(fresh.summary.actual_profitable_products_verified,0);
+});
+
+test("caller-controlled observations and invalid inputs cannot manufacture launch approval",()=>{
+  const classify=economics.classifyLaunchRisk;
+  for(const bad of [null,undefined,2000,0n,-1n,"0.02"]){
+    assert.throws(()=>classify(bad,2180n),/ECONOMICS_LAUNCH_SCREEN_INVALID_INPUT/);
+  }
+  for(const bad of [null,undefined,0n,-1n,"0.00218",2180]){
+    assert.throws(()=>classify(10000n,bad),/ECONOMICS_LAUNCH_SCREEN_INVALID_INPUT/);
+  }
+  assert.throws(()=>classify(10000n,2180n,{providerRateAgeValidated:"yes"}),
+    /ECONOMICS_LAUNCH_SCREEN_INVALID_INPUT/);
+  const forgedLabel=report(BASE,{rateObservation:"verified_sales_and_profit"});
+  assert.equal(forgedLabel.launch_readiness.unattended_release_eligible_products,0);
+  assert.ok(forgedLabel.entries.every(item=>
+    item.economic_launch_screen.status==="blocked" &&
+    item.economic_launch_screen.total_unit_economics_verified===false));
+});
+
+test("saved snapshot CLI exports explicit fail-closed economic gates and no purchases",()=>{
+  const script=path.join(__dirname,"live-fee-economics.js");
+  const r=spawnSync(process.execPath,[script,"--snapshot"],{encoding:"utf8"});
+  assert.equal(r.status,0,r.stderr);
+  const doc=JSON.parse(r.stdout);
+  assert.equal(doc.entries.length,24);
+  assert.equal(doc.launch_readiness.classifications.paid_facilitator_fee_exceeds_list_price,7);
+  assert.equal(doc.launch_readiness.classifications.fee_only_margin_below_target,15);
+  assert.equal(doc.launch_readiness.classifications.fee_only_target_possible_but_total_costs_and_demand_unverified,2);
+  assert.equal(doc.launch_readiness.unattended_release_eligible_products,0);
+  assert.equal(doc.price_changes_applied,false);
+  assert.equal(doc.product_025_unlocked,false);
+  assert.equal(doc.rate_observation,"historical_pinned_snapshot");
+  assert.equal(r.stderr,"");
+});
+
