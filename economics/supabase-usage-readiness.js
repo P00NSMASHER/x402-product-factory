@@ -75,11 +75,21 @@ function classify(pathname,method,status){
 // grain. No Edge Function log can supply prior organization-wide billed usage,
 // contractual quota, spend-cap status, invoice, or cost attribution. The
 // inputs are hypothetical assumptions, never proof of actual charges.
-function modelConditionalHostingOverage({
-  organization_prior_non_options_invocations,
-  added_non_options_invocations,
-  organization_included_quota_invocations
-}={}) {
+function modelConditionalHostingOverage(input={}) {
+  const expected=[
+    "organization_prior_non_options_invocations",
+    "added_non_options_invocations",
+    "organization_included_quota_invocations"
+  ].sort().join(",");
+  if(!input || typeof input!=="object" || Array.isArray(input) ||
+     Object.keys(input).sort().join(",")!==expected) {
+    fail("USAGE_INVALID_ORGANIZATION_SCENARIO");
+  }
+  const {
+    organization_prior_non_options_invocations,
+    added_non_options_invocations,
+    organization_included_quota_invocations
+  }=input;
   const vals=[
     organization_prior_non_options_invocations,
     added_non_options_invocations,
