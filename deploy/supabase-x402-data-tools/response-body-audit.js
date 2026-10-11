@@ -69,7 +69,21 @@ function loadPrivateCaptureManifest(filename) {
     privateJson(filename, MAX_MANIFEST_BYTES, "RESPONSE_BODY_CAPTURE_MANIFEST")
   );
 }
-function readPrivateBodyDigest(filename) {
+// Capture exact filesystem identity and nanosecond file timestamps, not just
+// the response hash. A new inode containing identical bytes is *still* a
+// replacement and must invalidate an earlier review snapshot.
+function captureStatIdentity(stat) {
+  return [
+    stat.dev, stat.ino, stat.size, stat.nlink, stat.mode,
+    stat.mtimeNs, stat.ctimeNs
+  ].map(String).join(":");
+}
+function validCaptureStat(stat) {
+  return stat.isFile() && stat.nlink === 1n &&
+    (stat.mode & 0o077n) === 0n &&
+    stat.size <= BigInt(MAX_CAPTURE_FILE_BYTES);
+}
+function readPrivateCaptureSnapshot(filename) {
   // The common privatePath contract requires an absolute location outside
   // checkout with a real owner-only parent and no symlinked path segments.
   const location = privatePath(filename);
@@ -77,49 +91,73 @@ function readPrivateBodyDigest(filename) {
   const fd = fs.openSync(location, fs.constants.O_RDONLY | NOFOLLOW);
   let result, initial;
   try {
-    initial = fs.fstatSync(fd);
-    if (!initial.isFile() || initial.nlink !== 1 ||
-        (initial.mode & 0o077) !== 0 ||
-        initial.size > MAX_CAPTURE_FILE_BYTES) {
+    initial = fs.fstatSync(fd, {bigint: true});
+    if (!validCaptureStat(initial)) {
       invalid("RESPONSE_BODY_FILE_NOT_PRIVATE_OR_TOO_LARGE");
     }
     // SHA-256 over original bytes, not decoded/re-serialized JSON text.
+    // The size is safe to convert because the 2 MiB bound was checked above.
+    const size = Number(initial.size);
     const hasher = crypto.createHash("sha256");
     const buffer = Buffer.allocUnsafe(65536);
     let offset = 0;
-    while (offset < initial.size) {
+    while (offset < size) {
       const count = fs.readSync(fd, buffer, 0,
-        Math.min(buffer.length, initial.size - offset), offset);
+        Math.min(buffer.length, size - offset), offset);
       if (count < 1) invalid("RESPONSE_BODY_TRUNCATED_DURING_READ");
       hasher.update(buffer.subarray(0, count));
       offset += count;
     }
-    const after = fs.fstatSync(fd);
-    if (after.dev !== initial.dev || after.ino !== initial.ino ||
-        after.size !== initial.size ||
-        after.mtimeMs !== initial.mtimeMs ||
-        after.ctimeMs !== initial.ctimeMs) {
+    const after = fs.fstatSync(fd, {bigint: true});
+    if (!validCaptureStat(after) ||
+        captureStatIdentity(after) !== captureStatIdentity(initial)) {
       invalid("RESPONSE_BODY_CHANGED_DURING_READ");
     }
     result = {
       digest: hasher.digest("hex"),
       bytes: offset,
-      dev: initial.dev,
-      ino: initial.ino
+      identity: captureStatIdentity(initial)
     };
   } finally {
     fs.closeSync(fd);
   }
-  // Detect ordinary path substitution between opening and completing audit.
-  const current = fs.lstatSync(location);
-  if (!current.isFile() || current.isSymbolicLink() ||
-      current.nlink !== 1 || (current.mode & 0o077) !== 0 ||
-      current.dev !== result.dev || current.ino !== result.ino ||
-      current.size !== result.bytes) {
+  // Reject path swaps, mode changes, and same-size writes made after the
+  // descriptor was checked, but before the initial snapshot is accepted.
+  const current = fs.lstatSync(location, {bigint: true});
+  if (!validCaptureStat(current) || current.isSymbolicLink() ||
+      captureStatIdentity(current) !== result.identity) {
     invalid("RESPONSE_BODY_FILE_REPLACED");
   }
-  return {digest: result.digest, bytes: result.bytes};
+  return result;
 }
+function readPrivateBodyDigest(filename) {
+  const {digest, bytes} = readPrivateCaptureSnapshot(filename);
+  return {digest, bytes};
+}
+// Used at the end of the whole batch. A previous capture can change while
+// later files are being checked; re-reading each file catches ordinary
+// modifications and path replacements before a final report is returned.
+// This is a point-in-time check, not an immutable filesystem snapshot.
+function verifyCaptureSnapshots(records) {
+  if (!Array.isArray(records) || records.length > MAX_CAPTURE_RECORDS) {
+    invalid("RESPONSE_BODY_SNAPSHOT_BATCH_INVALID");
+  }
+  for (const item of records) {
+    if (!item || typeof item.filename !== "string" ||
+        !item.snapshot || typeof item.snapshot.digest !== "string" ||
+        typeof item.snapshot.identity !== "string" ||
+        !Number.isSafeInteger(item.snapshot.bytes)) {
+      invalid("RESPONSE_BODY_SNAPSHOT_INVALID");
+    }
+    const latest = readPrivateCaptureSnapshot(item.filename);
+    if (latest.digest !== item.snapshot.digest ||
+        latest.bytes !== item.snapshot.bytes ||
+        latest.identity !== item.snapshot.identity) {
+      invalid("RESPONSE_BODY_CHANGED_AFTER_INITIAL_CAPTURE");
+    }
+  }
+}
+
 function auditResponseBodies(manifest, {
   keyHex, serverClaims, serverSigner, serverFingerprint,
   clientReceipts, clientSigner, clientFingerprint,
@@ -150,6 +188,7 @@ function auditResponseBodies(manifest, {
   );
   let inspectedBytes = 0;
   const digestOutcomes = new Map();
+  const verifiedSnapshots = [];
   for (const row of captures.captures) {
     const signedCase = casesById.get(row.transaction_case_id);
     if (!signedCase || signedCase.client_signature_matched !== true ||
@@ -158,7 +197,7 @@ function auditResponseBodies(manifest, {
     }
     const expected = expectedByCase.get(row.transaction_case_id);
     if (!expected) invalid("RESPONSE_BODY_MISSING_AUTHENTICATED_HASH");
-    const evidence = readPrivateBodyDigest(row.body_file);
+    const evidence = readPrivateCaptureSnapshot(row.body_file);
     inspectedBytes += evidence.bytes;
     if (inspectedBytes > MAX_TOTAL_CAPTURE_BYTES) {
       invalid("RESPONSE_BODY_TOTAL_SIZE_LIMIT");
@@ -168,7 +207,11 @@ function auditResponseBodies(manifest, {
         Buffer.from(evidence.digest, "hex"),
         Buffer.from(expected, "hex")
       ));
+    verifiedSnapshots.push({filename: row.body_file, snapshot: evidence});
   }
+  // Ensure *all* previously hashed captures still refer to the identical
+  // private file bytes and inode at the end of the multi-file operation.
+  verifyCaptureSnapshots(verifiedSnapshots);
   let matched = 0, mismatched = 0, missing = 0, excludedMatches = 0;
   const cases = clientReport.cases.map(row => {
     const hasCapture = digestOutcomes.has(row.transaction_case_id);
@@ -268,5 +311,6 @@ if (require.main === module) {
 module.exports = {
   MAX_CAPTURE_RECORDS, MAX_CAPTURE_FILE_BYTES, MAX_TOTAL_CAPTURE_BYTES,
   CAPTURE_KIND, validateCaptureManifest, loadPrivateCaptureManifest,
-  readPrivateBodyDigest, auditResponseBodies
+  readPrivateBodyDigest, readPrivateCaptureSnapshot, verifyCaptureSnapshots,
+  auditResponseBodies
 };
