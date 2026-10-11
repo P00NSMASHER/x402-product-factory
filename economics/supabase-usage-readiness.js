@@ -6,6 +6,9 @@ const fs=require("node:fs");
 const path=require("node:path");
 const ROOT=path.resolve(__dirname,"..");
 const PREFIX="/functions/v1/x402-data-tools";
+const BILLING_PACKAGE_INVOCATIONS=1000000n;
+const BILLING_PACKAGE_PRICE_MICROUSD=2000000n; // $2 / 1 million, package billed
+const MAX_ORG_INVOCATIONS=Number.MAX_SAFE_INTEGER;
 const ROUTES=Object.freeze({
   "/api/sec-filings":"sec-filings",
   "/api/ofac-sdn-screen":"ofac-sdn-screen",
@@ -68,6 +71,57 @@ function classify(pathname,method,status){
   if(DISCOVERY.has(route)&&method==="GET"&&status===200)return "discovery_200";
   return "other";
 }
+// Conditional Supabase invoice-package sensitivity at the *organization*
+// grain. No Edge Function log can supply prior organization-wide billed usage,
+// contractual quota, spend-cap status, invoice, or cost attribution. The
+// inputs are hypothetical assumptions, never proof of actual charges.
+function modelConditionalHostingOverage({
+  organization_prior_non_options_invocations,
+  added_non_options_invocations,
+  organization_included_quota_invocations
+}={}) {
+  const vals=[
+    organization_prior_non_options_invocations,
+    added_non_options_invocations,
+    organization_included_quota_invocations
+  ];
+  if(vals.some(x=>!Number.isSafeInteger(x)||x<0||x>MAX_ORG_INVOCATIONS) ||
+     organization_prior_non_options_invocations+added_non_options_invocations>
+       Number.MAX_SAFE_INTEGER) {
+    fail("USAGE_INVALID_ORGANIZATION_SCENARIO");
+  }
+  const prior=BigInt(organization_prior_non_options_invocations);
+  const after=prior+BigInt(added_non_options_invocations);
+  const quota=BigInt(organization_included_quota_invocations);
+  function packages(total) {
+    const over=total>quota?total-quota:0n;
+    return (over+BILLING_PACKAGE_INVOCATIONS-1n)/BILLING_PACKAGE_INVOCATIONS;
+  }
+  const beforePackages=packages(prior);
+  const afterPackages=packages(after);
+  const addedPackages=afterPackages-beforePackages;
+  return {
+    report_type:"hypothetical_organization_package_pricing_not_invoice",
+    provider_package_price_usd:"2.00",
+    published_package_invocations:Number(BILLING_PACKAGE_INVOCATIONS),
+    organization_prior_invocations_assumed:organization_prior_non_options_invocations,
+    additional_invocations_assumed:added_non_options_invocations,
+    organization_quota_invocations_assumed:organization_included_quota_invocations,
+    over_quota_packages_before:Number(beforePackages),
+    over_quota_packages_after:Number(afterPackages),
+    conditional_incremental_packages:Number(addedPackages),
+    conditional_package_step_usd:(addedPackages*BILLING_PACKAGE_PRICE_MICROUSD/
+      1000000n).toString()+".00",
+    only_valid_for_hypothetical_paid_overage_enabled_plan:true,
+    actual_organization_invoice_verified:false,
+    function_share_of_organization_bill_verified:false,
+    actual_hosting_cost_usd:null,
+    actual_per_sale_hosting_cost_usd:null,
+    independent_external_sales_verified:false,
+    product_025_unlock_evidence:false
+  };
+}
+
 function analyzeUsage(input){
   const snapshot=validateAggregates(input);
   const stats={
@@ -111,7 +165,37 @@ function analyzeUsage(input){
       status_codes_402_also_count_as_invocations:true,
       options_excluded_from_published_billing:true,
       published_over_quota_usd_per_million:"2.00",
+      over_quota_billing_packages_of_invocations:1000000,
+      partial_package_rounds_up_when_paid_overage_applies:true,
       actual_organization_quota_consumption_verified:false
+    },
+    hosting_cost_readiness:{
+      report_type:"observed_invocation_exposure_not_measured_hosting_cost",
+      scope:"canonical_supabase_x402_data_tools_only_not_factory_products_003_to_024",
+      observed_non_options_invocations:stats.non_options_potentially_billable,
+      observed_402_challenges_still_consume_invocation_quota:true,
+      application_http_200_is_not_verified_sale:true,
+      organization_all_projects_billing_usage_verified:false,
+      billing_cycle_invoice_and_package_charges_verified:false,
+      organization_plan_quota_and_spend_cap_verified:false,
+      function_cost_allocation_policy_verified:false,
+      confirmed_external_paid_sale_denominator_verified:false,
+      actual_function_billed_invocations:null,
+      actual_organization_overage_charge_usd:null,
+      actual_incremental_hosting_cost_per_paid_sale_usd:null,
+      actual_source_provider_cost_per_paid_sale_usd:null,
+      actual_retry_refund_maintenance_cost_per_sale_usd:null,
+      full_unit_economics_verified:false,
+      actual_profit_usd:null,
+      model_available:"modelConditionalHostingOverage",
+      missing_evidence:[
+        "organization_wide_all_projects_usage_for_complete_billing_cycle",
+        "actual_plan_quota_spend_cap_and_invocation_invoice",
+        "documented_function_cost_allocation_and_billing_attribution",
+        "source_provider_invoices_and_retry_refund_operating_costs",
+        "independently_corroborated_paid_sales_and_external_buyer_provenance"
+      ],
+      automatic_pricing_or_release_authorized:false
     },
     totals:stats,canonical_paid_routes:canonical,
     paid_routes_total_invocations:canonical.reduce((sum,r)=>sum+r.invocations,0),
@@ -163,5 +247,8 @@ if(require.main===module){
     process.stderr.write(code+"\n");process.exitCode=1;
   }
 }
-module.exports={PREFIX,ROUTES,DISCOVERY,validateAggregates,
-  classify,analyzeUsage,readPrivateAggregates,main};
+module.exports={
+  PREFIX,ROUTES,DISCOVERY,BILLING_PACKAGE_INVOCATIONS,
+  modelConditionalHostingOverage,validateAggregates,
+  classify,analyzeUsage,readPrivateAggregates,main
+};
