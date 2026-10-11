@@ -4,11 +4,21 @@ on:
   pull_request:
     paths:
       - 'deploy/supabase-x402-data-tools/**'
+      - 'packages/x402/**'
+      - 'packages/sources/**'
+      - 'production-topology.json'
+      - 'scripts/run-all-tests.js'
+      - 'scripts/run-settlement-contract-tests.js'
       - '.github/workflows/supabase-x402-settlement-contract.yml'
   push:
     branches: [main]
     paths:
       - 'deploy/supabase-x402-data-tools/**'
+      - 'packages/x402/**'
+      - 'packages/sources/**'
+      - 'production-topology.json'
+      - 'scripts/run-all-tests.js'
+      - 'scripts/run-settlement-contract-tests.js'
       - '.github/workflows/supabase-x402-settlement-contract.yml'
   workflow_dispatch:
 
@@ -27,16 +37,5 @@ jobs:
       - name: Verify pinned production v6 source parity (offline only)
         run: node deploy/supabase-x402-data-tools/verify-production-baseline.js --check
 
-      - name: Verify Supabase settlement observability and failure semantics
-        run: |
-          node --test \
-            deploy/supabase-x402-data-tools/settlement-telemetry.test.js \
-            deploy/supabase-x402-data-tools/reconcile-settlements.test.js \
-            deploy/supabase-x402-data-tools/settlement-ledger.test.js \
-            deploy/supabase-x402-data-tools/buyer-review-queue.test.js \
-            deploy/supabase-x402-data-tools/cross-journal-audit.test.js \
-            deploy/supabase-x402-data-tools/buyer-provenance-preflight.test.js \
-            deploy/supabase-x402-data-tools/signed-delivery-audit.test.js \
-            deploy/supabase-x402-data-tools/client-receipt-audit.test.js \
-            deploy/supabase-x402-data-tools/response-body-audit.test.js \
-            deploy/supabase-x402-data-tools/verify-production-baseline.test.js
+      - name: Discover and run every settlement test (fail closed)
+        run: node scripts/run-settlement-contract-tests.js
