@@ -964,6 +964,137 @@ operator authorization, and privacy controls before deployment.
 node --test deploy/supabase-x402-data-tools/client-receipt-audit.test.js
 ```
 
+## Offline captured response-byte integrity (not buyer-delivery proof)
+
+The optional **response-body-audit.js** verifies the SHA-256 digest of
+**original private response bytes** against the digest in an authenticated
+server delivery claim and a separately authenticated client acknowledgment.
+It reuses the existing checkpoint-verified journal, HMAC transaction IDs,
+separately pinned Ed25519 signing keys, and strict client/server matching.
+The new module does **not** retrieve production responses, communicate with
+wallets, sign anything, or alter the live Supabase handler.
+
+**Why this exists:** Matching signed response hashes do not establish that
+the actual bytes supplied for review match those hashes. This offline module
+detects missing captures and byte-for-byte mismatches, including different
+JSON whitespace, field ordering, or encoding. It hashes raw bytes
+streamingly; it does not parse, modify, normalize, or log the body.
+
+**Critical evidence limit:** The operator supplies the private capture files
+and the labels describing their supposed source. The verifier cannot prove
+they originated from a genuine independent client's device or that either
+signing service was controlled by an outside customer. An operator could
+construct matching payloads and signatures using operator-controlled keys.
+Even a byte-for-byte digest match therefore remains **local consistency
+evidence, not independent confirmation of delivery, customer identity,
+payment-to-service completion, external sales, or genuine demand**.
+No actual independent client capture service has been deployed as part
+of this PR. Never populate captures using made-up production observations.
+
+### Step 1. Prepare private capture evidence
+
+Use a real 0700 directory outside the checkout. Raw response bodies may
+contain sensitive query results; restrict every file to a real, regular,
+single-hardlink 0600 file. Symlinks, public-readable files, oversized
+files and filenames inside the repository fail closed. No source-response
+body bytes, user identifiers, keys, or real wallet records belong in GitHub.
+
+Generate an owner-only (0600) JSON manifest containing exactly the three
+fields shown below. Its journal_scope_id MUST match the exact private
+inventory scope from the existing provenance preflight. Its
+transaction_case_id is the HMAC transaction ID from that inventory,
+not the raw chain transaction hash. Each capture references a distinct
+private body file:
+
+```json
+{
+  "schema_version": 1,
+  "journal_scope_id": "REPLACE_WITH_PRIVATE_64_HEX_JOURNAL_SCOPE",
+  "captures": [
+    {
+      "transaction_case_id": "REPLACE_WITH_PRIVATE_HMAC_TRANSACTION_CASE_ID",
+      "capture_kind": "operator_supplied_client_response_bytes",
+      "body_file": "/ABSOLUTE/PRIVATE/path/to/client-response.bin"
+    }
+  ]
+}
+```
+
+The illustrated identifiers are placeholders and cannot pass validation
+until replaced with genuine inventory values. Each capture must have exactly
+transaction_case_id, capture_kind and body_file. Do not append "approved",
+"external_buyer_verified", "amount", "received_from_customer" or any
+other subjective result fields.
+
+Resource limits are **32 unique captures per run**, **2 MiB per body file**,
+**8 MiB total captured bytes**, and **32 KiB for the JSON manifest**.
+Missing body files, duplicate transaction IDs, reuse of the same body path,
+relative/noncanonical paths, unsafe file permissions, oversized input, stale
+journal scope, or capture targeting a transaction without *both* matching
+signed server and client claims cause the entire run to fail closed.
+
+A valid filename is not itself proof of independently captured bytes;
+the capture_kind is deliberately named operator_supplied_client_response_bytes.
+
+### Step 2. Run the offline digest comparison
+
+Use the same separately pinned public-key fingerprints and private evidence
+used by the existing client-receipt audit. The first five positional files
+are its regular journal, server, and client inputs. The sixth positional
+file is the capture manifest; the seventh optional file contains the usual
+operator/test/marketplace wallet exclusions. Set a restrictive umask.
+
+```bash
+umask 077
+X402_REVIEW_HMAC_KEY="$PRIVATE_64_HEX_HMAC_KEY" \
+X402_DELIVERY_KEY_SHA256="$OUT_OF_BAND_PINNED_SERVER_SPKI_SHA256" \
+X402_CLIENT_KEY_SHA256="$OUT_OF_BAND_PINNED_CLIENT_SPKI_SHA256" \
+  node deploy/supabase-x402-data-tools/response-body-audit.js \
+  "$HOME/.private-x402-settlements/cross-journal-manifest.json" \
+  "$HOME/.private-x402-settlements/server-signed-claims.json" \
+  "$HOME/.private-x402-settlements/server-signer.json" \
+  "$HOME/.private-x402-settlements/client-signed-receipts.json" \
+  "$HOME/.private-x402-settlements/client-signer.json" \
+  "$HOME/.private-x402-settlements/captured-bodies.json" \
+  "$HOME/.private-x402-settlements/operator-wallet-exclusions.json" \
+  > "$HOME/.private-x402-settlements/body-integrity-report.json"
+```
+
+The output distinguishes:
+- signed client acknowledgments without captured response bytes;
+- locally matching raw-body digests, still pending independent review;
+- local body-digest mismatches, quarantined rather than counted;
+- missing or unmatched signed client/server claims;
+- signed cases for operator-declared non-external wallets, which remain excluded
+  even when their body bytes match.
+
+The report uses only pseudonymous HMAC transaction/wallet IDs, canonical route
+names, coarse counts and statuses. It does NOT print raw body contents,
+wallet addresses, raw transaction hashes, response digests, request IDs,
+signing keys, file paths or document references. Stable pseudonyms and
+response sizes may still be private; store reports securely.
+
+All reports preserve independently_verified_external_buyers = 0,
+eligible_external_revenue_atomic_usdc = "0",
+product_025_unlock_evidence = false,
+independent_capture_provenance_verified = false,
+original_client_receipt_independently_verified = false, and
+current_chain_reverified = false.
+
+The bounded private-file checks mitigate accidental concurrent changes
+and path substitution, but do not defend against an administrator who can
+rewrite every private source, replace signed claims, or control the trusted
+signing keys. Cryptographic digest equality and independent source
+authenticity are different questions.
+
+The CI fixtures use synthetic USDC ledger rows, ephemeral signing keys,
+and temporary private byte files. They perform no Base RPC calls, no
+customer purchases, and no production API deployments.
+
+```bash
+node --test deploy/supabase-x402-data-tools/response-body-audit.test.js
+```
+
 ## Production v6 source parity and release-preflight gate
 
 **Observed on October 10, 2026 (read-only):** Supabase project
