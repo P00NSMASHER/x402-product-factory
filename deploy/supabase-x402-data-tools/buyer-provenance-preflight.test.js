@@ -13,7 +13,7 @@ const {auditCrossJournals} = require("./cross-journal-audit");
 const {
   WALLET_EVIDENCE, TRANSACTION_EVIDENCE,
   validateDossiers, loadPrivateDossiers, scopeIdentifier,
-  buildProvenancePreflight
+  buildProvenanceInventory, buildProvenancePreflight
 } = require("./buyer-provenance-preflight");
 
 const KEY = "19".repeat(32);
@@ -439,3 +439,65 @@ test("case and transaction IDs never become independently certified by attestati
     assert.ok(all.cases.every(item=>item.independent_buyer_verified===false));
     assert.ok(all.cases.every(item=>item.eligible_revenue_atomic_usdc==="0"));
   }));
+test("provenance intake inventory yields scoped wallet and transaction references", () =>
+  inPrivateDir(dir => {
+    const f=makeFixture(dir);
+    const inventory=buildProvenanceInventory(f.manifest,{keyHex:KEY});
+    assert.equal(inventory.report_type,
+      "buyer_provenance_intake_inventory_not_independent_proof");
+    assert.equal(inventory.journal_scope_id,f.scope);
+    assert.equal(inventory.source_journal_count,2);
+    assert.equal(inventory.cases.length,2);
+    const a=inventory.cases.find(x=>x.case_id===f.caseA.case_id);
+    assert.deepEqual(a.transaction_case_ids,f.caseA.transaction_case_ids);
+    assert.deepEqual(a.required_wallet_evidence_types,Object.keys(WALLET_EVIDENCE));
+    assert.deepEqual(a.required_per_transaction_evidence_types,
+      Object.keys(TRANSACTION_EVIDENCE));
+    assert.equal(a.eligible_revenue_atomic_usdc,"0");
+    assert.equal(inventory.independently_verified_external_buyers,0);
+    assert.equal(inventory.eligible_external_revenue_atomic_usdc,"0");
+    assert.equal(inventory.product_025_unlock_evidence,false);
+    const printed=JSON.stringify(inventory);
+    for(const secret of [A,B,C,PAYER_A,PAYER_B,KEY,dir]){
+      assert.equal(printed.includes(secret),false);
+    }
+  }));
+
+test("inventory excludes declared operator-wallet transaction identifiers", () =>
+  inPrivateDir(dir => {
+    const f=makeFixture(dir);
+    const exclusions=[{
+      address:PAYER_A,reason:"operator_controlled",
+      evidence_reference:"operator_inventory_record_001"
+    }];
+    const inventory=buildProvenanceInventory(f.manifest,{
+      keyHex:KEY,exclusions
+    });
+    const excluded=inventory.cases.find(x=>x.case_id===f.caseA.case_id);
+    assert.equal(excluded.status,"operator_declared_non_external");
+    assert.deepEqual(excluded.transaction_case_ids,[]);
+    assert.deepEqual(excluded.required_wallet_evidence_types,[]);
+    assert.deepEqual(excluded.required_per_transaction_evidence_types,[]);
+    assert.equal(inventory.eligible_external_revenue_atomic_usdc,"0");
+  }));
+
+test("CLI inventory produces checkpoint scope and pseudonymous dossier targets only", () =>
+  inPrivateDir(dir => {
+    const f=makeFixture(dir);
+    const manifestPath=privateJson(dir,"manifest.json",f.manifest);
+    const binary=path.join(__dirname,"buyer-provenance-preflight.js");
+    const run=spawnSync(process.execPath,[binary,"--inventory",manifestPath],{
+      encoding:"utf8",env:{...process.env,X402_REVIEW_HMAC_KEY:KEY}
+    });
+    assert.equal(run.status,0,run.stderr);
+    const inventory=JSON.parse(run.stdout);
+    assert.equal(inventory.journal_scope_id,f.scope);
+    assert.equal(inventory.cases.length,2);
+    assert.equal(inventory.cases.reduce(
+      (n,item)=>n+item.transaction_case_ids.length,0),3);
+    assert.equal(run.stdout.includes(PAYER_A),false);
+    assert.equal(run.stdout.includes(A),false);
+    assert.equal(run.stdout.includes(KEY),false);
+    assert.equal(run.stdout.includes(dir),false);
+  }));
+
