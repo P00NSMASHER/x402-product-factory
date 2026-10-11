@@ -34,4 +34,5 @@ jobs:
             deploy/supabase-x402-data-tools/reconcile-settlements.test.js \
             deploy/supabase-x402-data-tools/settlement-ledger.test.js \
             deploy/supabase-x402-data-tools/buyer-review-queue.test.js \
+            deploy/supabase-x402-data-tools/cross-journal-audit.test.js \
             deploy/supabase-x402-data-tools/verify-production-baseline.test.js
