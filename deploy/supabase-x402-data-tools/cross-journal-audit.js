@@ -8,7 +8,9 @@ const {
   readLedger, privatePath, verifyExternalCheckpoint
 } = require("./settlement-ledger");
 const {CHAIN, ROUTE_IDS} = require("./reconcile-settlements");
-const {hmacKey, pseudonym} = require("./buyer-review-queue");
+const {
+  hmacKey, pseudonym, validateExclusions, readPrivateExclusions
+} = require("./buyer-review-queue");
 
 const MAX_JOURNALS = 12;
 const MAX_MANIFEST_BYTES = 65536;
@@ -86,8 +88,14 @@ function sameSnapshot(a, b) {
   return !!sameIdentity && a.bytesHash === b.bytesHash &&
     a.head === b.head && a.records.length === b.records.length;
 }
-function auditCrossJournals(manifest, {keyHex} = {}) {
+function auditCrossJournals(manifest, {keyHex, exclusions = []} = {}) {
   const key = hmacKey(keyHex);
+  // Exclusions can only suppress review candidates, never declare external buyers.
+  // Reuse the existing strict, negative-only operator exclusion contract.
+  const normalizedExclusions = validateExclusions(exclusions);
+  const exclusionsByWallet = new Map(
+    normalizedExclusions.map(item => [item.address, item.reason])
+  );
   const journalEntries = validateManifest(manifest);
   const snapshots = [];
   const seenTx = new Map();
@@ -119,7 +127,7 @@ function auditCrossJournals(manifest, {keyHex} = {}) {
       const prior = seenTx.get(txKey);
       if (!prior) {
         seenTx.set(txKey, {
-          transaction: txKey, route: row.route, fingerprint,
+          transaction: txKey, route: row.route, payer: row.payer, fingerprint,
           journalIndices: [index + 1], conflict: false
         });
       } else {
@@ -140,11 +148,38 @@ function auditCrossJournals(manifest, {keyHex} = {}) {
 
   let conflicts = 0, duplicates = 0, uncontested = 0;
   const overlapCases = [];
+  const walletGroups = new Map();
+  const routeWallets = new Map([...ROUTE_IDS.keys()].map(route => [
+    route, {wallets: new Set(), excludedTransfers: 0, pendingWallets: new Set()}
+  ]));
   for (const item of seenTx.values()) {
     if (item.conflict) conflicts++;
     else {
+      // Group *unique, uncontested* transactions, never duplicated journals.
+      // Conflicted transactions cannot contribute a buyer-review signal.
       uncontested++;
       routeCounts.set(item.route, routeCounts.get(item.route) + 1);
+      let group = walletGroups.get(item.payer);
+      if (!group) {
+        group = {
+          wallet: item.payer, uniqueTransactions: 0,
+          routes: new Set(), journalIndices: new Set()
+        };
+        walletGroups.set(item.payer, group);
+      }
+      group.uniqueTransactions++;
+      group.routes.add(item.route);
+      for (const journalIndex of item.journalIndices) {
+        group.journalIndices.add(journalIndex);
+      }
+      const routeGroup = routeWallets.get(item.route);
+      if (!routeGroup) invalid("CROSS_JOURNAL_UNKNOWN_ROUTE");
+      routeGroup.wallets.add(item.payer);
+      if (exclusionsByWallet.has(item.payer)) {
+        routeGroup.excludedTransfers++;
+      } else {
+        routeGroup.pendingWallets.add(item.payer);
+      }
     }
     if (item.journalIndices.length > 1) {
       duplicates += item.journalIndices.length - 1;
@@ -159,6 +194,38 @@ function auditCrossJournals(manifest, {keyHex} = {}) {
     }
   }
   overlapCases.sort((a, b) => a.case_id.localeCompare(b.case_id));
+  const walletCases = [];
+  let excludedWallets = 0, excludedTransfers = 0, repeatedWalletSignals = 0;
+  for (const group of walletGroups.values()) {
+    const reason = exclusionsByWallet.get(group.wallet) || null;
+    if (reason) {
+      excludedWallets++;
+      excludedTransfers += group.uniqueTransactions;
+    }
+    if (group.uniqueTransactions > 1) repeatedWalletSignals++;
+    walletCases.push({
+      case_id: pseudonym(key, "wallet", group.wallet),
+      status: reason
+        ? "operator_declared_non_external"
+        : "requires_independent_buyer_review",
+      exclusion_reason: reason,
+      unique_transaction_evidence_not_sales: group.uniqueTransactions,
+      repeat_wallet_signal_not_repeat_customer: group.uniqueTransactions > 1,
+      routes: [...group.routes].sort(),
+      journal_indices: [...group.journalIndices].sort((a, b) => a - b),
+      outside_buyer_proven: false,
+      eligible_revenue_atomic_usdc: "0"
+    });
+  }
+  walletCases.sort((a, b) => a.case_id.localeCompare(b.case_id));
+  if (walletCases.reduce((sum, item) =>
+        sum + item.unique_transaction_evidence_not_sales, 0) !== uncontested ||
+      excludedTransfers > uncontested ||
+      walletCases.length !== excludedWallets +
+        walletCases.filter(item =>
+          item.status === "requires_independent_buyer_review").length) {
+    invalid("CROSS_JOURNAL_WALLET_TOTALS_MISMATCH");
+  }
   if (uncontested + conflicts !== seenTx.size ||
       duplicates !== totalRows - seenTx.size ||
       [...routeCounts.values()].reduce((sum, n) => sum + n, 0) !== uncontested) {
@@ -181,20 +248,42 @@ function auditCrossJournals(manifest, {keyHex} = {}) {
     independently_verified_external_buyers: 0,
     eligible_external_revenue_atomic_usdc: "0",
     product_025_unlock_evidence: false,
+    global_wallet_review: {
+      report_type: "deduplicated_wallet_review_not_customer_count",
+      unique_uncontested_payer_wallets_not_buyers: walletCases.length,
+      repeated_wallet_signals_not_repeat_customers: repeatedWalletSignals,
+      operator_declared_exclusion_records_supplied: normalizedExclusions.length,
+      operator_declared_non_external_wallets: excludedWallets,
+      operator_declared_non_external_transaction_evidence: excludedTransfers,
+      wallets_requiring_independent_review: walletCases.length - excludedWallets,
+      conflicting_transactions_quarantined: conflicts,
+      independently_verified_external_buyers: 0,
+      eligible_external_revenue_atomic_usdc: "0",
+      product_025_unlock_evidence: false,
+      cases: walletCases
+    },
     per_route_uncontested_evidence_not_sales: [...routeCounts]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([route, count]) => ({
         route, product_id: ROUTE_IDS.get(route), transfer_evidence: count,
+        distinct_wallets_not_distinct_buyers: routeWallets.get(route).wallets.size,
+        operator_declared_excluded_transfer_evidence: routeWallets.get(route).excludedTransfers,
+        wallets_requiring_independent_review: routeWallets.get(route).pendingWallets.size,
         eligible_external_revenue_atomic_usdc: "0"
       })),
     overlap_cases: overlapCases
   };
 }
 function main() {
-  if (process.argv.length !== 3) invalid("CROSS_JOURNAL_USAGE");
+  if (process.argv.length !== 3 && process.argv.length !== 4) {
+    invalid("CROSS_JOURNAL_USAGE");
+  }
   const manifest = loadPrivateManifest(process.argv[2]);
+  const exclusions = process.argv.length === 4
+    ? readPrivateExclusions(process.argv[3]) : [];
   const report = auditCrossJournals(manifest, {
-    keyHex: process.env.X402_REVIEW_HMAC_KEY
+    keyHex: process.env.X402_REVIEW_HMAC_KEY,
+    exclusions
   });
   process.stdout.write(JSON.stringify(report, null, 2) + "\n");
 }
