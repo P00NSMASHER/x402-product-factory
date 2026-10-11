@@ -119,6 +119,115 @@ private environment before constructing the strict JSON above. Do **not**
 remove the function-ID restriction or query unrelated tenants and functions.
 Use the supported Supabase log tool's explicit ISO time-window arguments.
 
+## October 11 conditional hosting cost model (not actual cost)
+
+A new, entirely read-only economics extension now keeps three **separate**
+facts apart:
+
+1. **Observed workload** — function-scoped Edge logs (status/method/path
+   aggregates and execution-time observations) from a bounded window, not an
+   invoice or complete billing month.
+2. **Conditional overage exposure** — exact, whole-package calculation under
+   an explicitly *hypothetical* organization-wide starting count, quota and
+   number of added non-OPTIONS invocations.
+3. **Verified actual cost** — **unavailable** without organization-level
+   billed usage, invoiced line items, actual plan/quota/spend-cap status, a
+   defensible function-allocation policy, and independently confirmed
+   transactions and source-provider expenses.
+
+A read-only connected Supabase query on 2026-10-11 examined a bounded
+24-hour log window for the canonical x402 function only; logs from the
+project's other Edge Functions were explicitly excluded. This supplies
+**observed log records**, not necessarily every function invocation and not
+the complete organizational bill. Do not commit the private observation
+rows, request paths/headers, IPs, or other customer metadata to GitHub.
+A public example count in this document is **synthetic**.
+
+The published pricing reference currently says:
+
+- Non-OPTIONS Edge Function invocations count toward billing even when the
+  response status is 402 or 404. OPTIONS preflight is excluded.
+- The published over-quota rate is **$2 per 1 million invocations**.
+- On eligible paid plans with overage enabled, partial overage packages round
+  up to the next whole 1-million package.
+- Quotas are organization-wide and span projects, not separately available
+  to a specific function.
+
+Sources (provider guidance, not an account invoice):
+https://supabase.com/docs/guides/platform/manage-your-usage/edge-function-invocations
+and https://supabase.com/docs/guides/platform/billing-on-supabase.
+
+The canonical usage report now includes a
+`hosting_cost_readiness` section. It identifies the observed
+non-OPTIONS workload and explicitly returns **null** for actual function
+billed usage, actual organization overage charge, source-provider fees,
+incremental hosting per verified sale, retry/refund/maintenance costs and
+profit. A paid API HTTP 200 cannot fill any of these fields. Product 025+
+and automatic price/deployment decisions remain blocked.
+
+### Reproducible conditional package calculation
+
+The existing module exports `modelConditionalHostingOverage` as
+a strict, deterministic mathematical helper using integer arithmetic;
+it does not contact Supabase, read an account, or spend anything.
+
+The following numbers are wholly **hypothetical** (not the actual
+organization's quota or billed usage):
+
+```javascript
+const {modelConditionalHostingOverage} =
+  require("./economics/supabase-usage-readiness");
+
+const scenario = modelConditionalHostingOverage({
+  organization_prior_non_options_invocations: 500000,
+  added_non_options_invocations: 10,
+  organization_included_quota_invocations: 500000
+});
+// conditional_incremental_packages: 1
+// conditional_package_step_usd: "2.00"
+// actual_hosting_cost_usd: null
+// actual_per_sale_hosting_cost_usd: null
+
+```
+
+The model permits only the three numeric assumptions above and rejects
+additional fields claiming verified invoices, buyers, profits or approval.
+Its result is always labeled hypothetical, even when conditional package
+cost equals "$0.00". A reported zero *hypothetical* increment is **not**
+evidence that this function incurred zero real hosting cost.
+
+**Important billing discontinuity:** At a hypothetical organization count
+exactly on a quota/package boundary, just one additional qualifying request
+can add an entire $2 package. Within an already-paid package, another
+request may add $0 in *package-step* fees. Neither is the causal/allocated
+marginal cost of a paid API response. Avoid multiplying a route's requests
+by $0.000002 and labeling that as its actual bill.
+
+The supplied usage logs concern the live **five Supabase data-tools routes**
+only. They are **not cost measurements for factory Products 003–024**,
+which have different routes and staging/production status. Public PA,
+SEC, Treasury and RDAP adapters may have configured direct cash fees of
+zero, but upstream rate limits, hosting, retries and other expenses remain
+unmeasured until independently sourced billing evidence is available.
+
+### Cost evidence required before real unit economics
+
+- Same-period organization-wide Supabase billing statement, plan, quota,
+  spend-cap/overage eligibility, complete project usage and true charged
+  "Function Invocations" line items (not only logs).
+- A documented allocation method for this function and unrelated functions
+  in the same Supabase project; do not treat all organization charges as
+  belonging to x402.
+- Separately dated source-provider invoices, request/bandwidth usage and
+  contractual fees for each actual paid product.
+- Verified actual settlement receipts and genuine external buyer-service
+  attribution, plus refunds, failures, support and maintenance expenses,
+  to establish the cost **per confirmed sale** rather than per log record.
+
+Until then, **actual profit and per-sale costs remain unknown, not zero**.
+No new rate or financial snapshot is treated as a seller-wallet invoice.
+There are no payment, wallet, pricing, deployment or registry changes.
+
 ## Required guardrails and next evidence
 
 The analyzer **cannot** establish actual Supabase invoice charges, quota
