@@ -88,8 +88,13 @@ function sameSnapshot(a, b) {
   return !!sameIdentity && a.bytesHash === b.bytesHash &&
     a.head === b.head && a.records.length === b.records.length;
 }
-function auditCrossJournals(manifest, {keyHex, exclusions = []} = {}) {
+function auditCrossJournals(manifest, {
+  keyHex, exclusions = [], includeTransactionCaseIds = false
+} = {}) {
   const key = hmacKey(keyHex);
+  if (typeof includeTransactionCaseIds !== "boolean") {
+    invalid("CROSS_JOURNAL_TRANSACTION_IDS_OPTION_INVALID");
+  }
   // Exclusions can only suppress review candidates, never declare external buyers.
   // Reuse the existing strict, negative-only operator exclusion contract.
   const normalizedExclusions = validateExclusions(exclusions);
@@ -163,11 +168,17 @@ function auditCrossJournals(manifest, {keyHex, exclusions = []} = {}) {
       if (!group) {
         group = {
           wallet: item.payer, uniqueTransactions: 0,
-          routes: new Set(), journalIndices: new Set()
+          routes: new Set(), journalIndices: new Set(),
+          transactionCaseIds: new Set()
         };
         walletGroups.set(item.payer, group);
       }
       group.uniqueTransactions++;
+      if (includeTransactionCaseIds) {
+        group.transactionCaseIds.add(
+          pseudonym(key, "cross-journal-transaction", item.transaction)
+        );
+      }
       group.routes.add(item.route);
       for (const journalIndex of item.journalIndices) {
         group.journalIndices.add(journalIndex);
@@ -213,6 +224,9 @@ function auditCrossJournals(manifest, {keyHex, exclusions = []} = {}) {
       repeat_wallet_signal_not_repeat_customer: group.uniqueTransactions > 1,
       routes: [...group.routes].sort(),
       journal_indices: [...group.journalIndices].sort((a, b) => a - b),
+      ...(includeTransactionCaseIds ? {
+        transaction_case_ids: [...group.transactionCaseIds].sort()
+      } : {}),
       outside_buyer_proven: false,
       eligible_revenue_atomic_usdc: "0"
     });
