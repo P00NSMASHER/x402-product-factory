@@ -36,4 +36,5 @@ jobs:
             deploy/supabase-x402-data-tools/buyer-review-queue.test.js \
             deploy/supabase-x402-data-tools/cross-journal-audit.test.js \
             deploy/supabase-x402-data-tools/buyer-provenance-preflight.test.js \
+            deploy/supabase-x402-data-tools/signed-delivery-audit.test.js \
             deploy/supabase-x402-data-tools/verify-production-baseline.test.js
