@@ -143,6 +143,13 @@ the complete organizational bill. Do not commit the private observation
 rows, request paths/headers, IPs, or other customer metadata to GitHub.
 A public example count in this document is **synthetic**.
 
+The organization itself was checked **read-only again on
+2026-10-11** and reported the **Free** plan. That does not establish the
+complete billing-cycle usage or an invoice charge, and it certainly does
+not establish the incremental cash cost for Products 003–024. The $2
+whole-package scenarios below are deliberately **hypothetical paid-plan
+overage cases**, not charges the current Free-plan organization incurred.
+
 The published pricing reference currently says:
 
 - Non-OPTIONS Edge Function invocations count toward billing even when the
