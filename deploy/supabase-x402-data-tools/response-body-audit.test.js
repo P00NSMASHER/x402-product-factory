@@ -15,7 +15,8 @@ const {messageForClientClaim} = require("./client-receipt-audit");
 const {
   MAX_CAPTURE_RECORDS, MAX_CAPTURE_FILE_BYTES,
   CAPTURE_KIND, validateCaptureManifest, loadPrivateCaptureManifest,
-  readPrivateBodyDigest, auditResponseBodies
+  readPrivateBodyDigest, readPrivateCaptureSnapshot, verifyCaptureSnapshots,
+  auditResponseBodies
 } = require("./response-body-audit");
 
 const KEY = "8a".repeat(32);
@@ -468,5 +469,124 @@ test("aggregate 8 MiB cap blocks otherwise valid separately signed captures",()=
     assert.throws(()=>auditResponseBodies(manifest,sources),
       /RESPONSE_BODY_TOTAL_SIZE_LIMIT/);
     assert.ok(large.length<MAX_CAPTURE_FILE_BYTES);
+  }));
+test("unchanged private capture snapshots survive end-of-batch revalidation", () =>
+  inPrivateDir(dir => {
+    const file=putFile(dir,"unchanged.bin",RESPONSE_BYTES);
+    const original=readPrivateCaptureSnapshot(file);
+    assert.equal(original.bytes,RESPONSE_BYTES.length);
+    assert.match(original.digest,/^[0-9a-f]{64}$/);
+    assert.equal(typeof original.identity,"string");
+    assert.doesNotThrow(()=>verifyCaptureSnapshots([
+      {filename:file,snapshot:original}
+    ]));
+    assert.deepEqual(readPrivateBodyDigest(file),{
+      digest:original.digest,bytes:original.bytes
+    });
+    assert.throws(()=>verifyCaptureSnapshots(Array(33).fill({
+      filename:file,snapshot:original
+    })),/RESPONSE_BODY_SNAPSHOT_BATCH_INVALID/);
+  }));
+
+test("same-length in-place mutations invalidate the stored capture snapshot", () =>
+  inPrivateDir(dir => {
+    const file=putFile(dir,"in-place.bin",Buffer.from("first-capture"));
+    const initial=readPrivateCaptureSnapshot(file);
+    fs.writeFileSync(file,Buffer.from("other-capture"));
+    assert.equal(fs.statSync(file).size,initial.bytes);
+    assert.throws(()=>verifyCaptureSnapshots([
+      {filename:file,snapshot:initial}
+    ]),/RESPONSE_BODY_CHANGED_AFTER_INITIAL_CAPTURE/);
+  }));
+
+test("identical bytes in a replacement inode invalidate the capture snapshot", () =>
+  inPrivateDir(dir => {
+    const file=putFile(dir,"original.bin",RESPONSE_BYTES);
+    const initial=readPrivateCaptureSnapshot(file);
+    const replacement=putFile(dir,"replacement.bin",RESPONSE_BYTES);
+    assert.equal(readPrivateBodyDigest(replacement).digest,initial.digest);
+    fs.renameSync(replacement,file);
+    assert.throws(()=>verifyCaptureSnapshots([
+      {filename:file,snapshot:initial}
+    ]),/RESPONSE_BODY_CHANGED_AFTER_INITIAL_CAPTURE/);
+  }));
+
+test("truncated capture cannot silently pass snapshot revalidation", () =>
+  inPrivateDir(dir => {
+    const file=putFile(dir,"truncated.bin",RESPONSE_BYTES);
+    const initial=readPrivateCaptureSnapshot(file);
+    fs.truncateSync(file,0);
+    assert.throws(()=>verifyCaptureSnapshots([
+      {filename:file,snapshot:initial}
+    ]),/RESPONSE_BODY_CHANGED_AFTER_INITIAL_CAPTURE/);
+  }));
+
+test("multi-file audit catches earlier byte mutation while later capture is read", () =>
+  inPrivateDir(dir => {
+    const f=makeFixture(dir);
+    const first=putFile(dir,"first-body.bin",RESPONSE_BYTES);
+    const second=putFile(dir,"second-body.bin",RESPONSE_BYTES);
+    const firstIdentity=fs.statSync(first,{bigint:true});
+    const secondIdentity=fs.statSync(second,{bigint:true});
+    assert.notEqual(firstIdentity.ino,secondIdentity.ino);
+    const pairs=[
+      makePair(f,TX_A,WALLET_A,ROUTE_A,"a".repeat(32)),
+      makePair(f,TX_B,WALLET_A,ROUTE_B,"b".repeat(32))
+    ];
+    const originalRead=fs.readSync;
+    let changed=false;
+    fs.readSync=function(fd,...rest) {
+      const bytes=originalRead.call(fs,fd,...rest);
+      const stat=fs.fstatSync(fd,{bigint:true});
+      if(!changed && bytes>0 && stat.dev===secondIdentity.dev &&
+          stat.ino===secondIdentity.ino) {
+        changed=true;
+        // Keep the same length and inode while changing content.
+        fs.writeFileSync(first,Buffer.from("X".repeat(RESPONSE_BYTES.length)));
+      }
+      return bytes;
+    };
+    try {
+      assert.throws(()=>audit(f,pairs,[
+        record(TX_A,first),record(TX_B,second)
+      ]),/RESPONSE_BODY_CHANGED_AFTER_INITIAL_CAPTURE/);
+      assert.equal(changed,true);
+    } finally {
+      fs.readSync=originalRead;
+    }
+  }));
+
+test("multi-file audit catches identical-byte path replacement while checking later file", () =>
+  inPrivateDir(dir => {
+    const f=makeFixture(dir);
+    const first=putFile(dir,"first-body.bin",RESPONSE_BYTES);
+    const second=putFile(dir,"second-body.bin",RESPONSE_BYTES);
+    const replacement=putFile(dir,"replacement.bin",RESPONSE_BYTES);
+    const secondIdentity=fs.statSync(second,{bigint:true});
+    const pairs=[
+      makePair(f,TX_A,WALLET_A,ROUTE_A,"a".repeat(32)),
+      makePair(f,TX_B,WALLET_A,ROUTE_B,"b".repeat(32))
+    ];
+    const originalRead=fs.readSync;
+    let replaced=false;
+    fs.readSync=function(fd,...rest) {
+      const bytes=originalRead.call(fs,fd,...rest);
+      const stat=fs.fstatSync(fd,{bigint:true});
+      if(!replaced && bytes>0 && stat.dev===secondIdentity.dev &&
+          stat.ino===secondIdentity.ino) {
+        replaced=true;
+        // Same bytes and digest, but a different inode.
+        fs.renameSync(replacement,first);
+      }
+      return bytes;
+    };
+    try {
+      assert.throws(()=>audit(f,pairs,[
+        record(TX_A,first),record(TX_B,second)
+      ]),/RESPONSE_BODY_CHANGED_AFTER_INITIAL_CAPTURE/);
+      assert.equal(replaced,true);
+    } finally {
+      fs.readSync=originalRead;
+    }
   }));
 
