@@ -427,3 +427,46 @@ test("CLI reads original private bytes, emits no customer data and preserves inp
     assert.ok(!invalid.stderr.includes(dir));
     assert.ok(!invalid.stderr.includes(WALLET_A));
   }));
+test("binary response bytes are hashed without UTF-8 decoding or JSON normalization",()=>
+  inPrivateDir(dir=>{
+    const f=makeFixture(dir);
+    const binary=Buffer.from([0,255,128,13,10,0,1,2,254,123,125]);
+    const file=putFile(dir,"binary.bin",binary);
+    const pair=makePair(f,TX_A,WALLET_A,ROUTE_A,"a".repeat(32),binary);
+    const result=audit(f,[pair],[record(TX_A,file)]);
+    assert.equal(result.capture_digest_matches,1);
+    assert.equal(result.capture_digest_mismatches_quarantined,0);
+    assert.equal(result.private_capture_bytes_read,binary.length);
+    assert.equal(result.eligible_external_revenue_atomic_usdc,"0");
+  }));
+
+test("aggregate 8 MiB cap blocks otherwise valid separately signed captures",()=>
+  inPrivateDir(dir=>{
+    const f=makeFixture(dir);
+    const transactions=["4","5","6","7","8"].map(hex=>"0x"+hex.repeat(64));
+    const first=writeJournal(dir,"large-one.jsonl",
+      transactions.map(tx=>row(tx)));
+    const second=writeJournal(dir,"large-two.jsonl",[]);
+    const manifest={schema_version:1,journals:[first,second]};
+    const scope=scopeIdentifier(manifest,KEY);
+    const large=Buffer.alloc(1_800_000,0x5a);
+    const pairs=transactions.map((tx,index)=>makePair(f,tx,WALLET_A,ROUTE_A,
+      String(index).repeat(32),large));
+    const sources={
+      keyHex:KEY,serverSigner:f.server.signer,
+      serverFingerprint:f.server.fingerprint,
+      clientSigner:f.client.signer,
+      clientFingerprint:f.client.fingerprint,
+      serverClaims:{schema_version:1,journal_scope_id:scope,
+        signed_claims:pairs.map(p=>p.server)},
+      clientReceipts:{schema_version:1,journal_scope_id:scope,
+        signed_receipts:pairs.map(p=>p.client)},
+      captureManifest:{schema_version:1,journal_scope_id:scope,
+        captures:transactions.map((tx,index)=>record(tx,
+          putFile(dir,"capture-"+index+".bin",large)))}
+    };
+    assert.throws(()=>auditResponseBodies(manifest,sources),
+      /RESPONSE_BODY_TOTAL_SIZE_LIMIT/);
+    assert.ok(large.length<MAX_CAPTURE_FILE_BYTES);
+  }));
+
