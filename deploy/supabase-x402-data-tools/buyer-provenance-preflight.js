@@ -238,14 +238,53 @@ function buildProvenancePreflight(manifest, {
     cases
   };
 }
+function buildProvenanceInventory(manifest, {keyHex, exclusions = []} = {}) {
+  const audit = auditCrossJournals(manifest, {
+    keyHex, exclusions, includeTransactionCaseIds: true
+  });
+  return {
+    schema_version: 1,
+    report_type: "buyer_provenance_intake_inventory_not_independent_proof",
+    journal_scope_id: scopeIdentifier(manifest, keyHex),
+    source_journal_count: audit.journal_count,
+    conflicting_transactions_quarantined: audit.conflicting_transaction_cases,
+    current_chain_reverified: false,
+    independently_verified_external_buyers: 0,
+    eligible_external_revenue_atomic_usdc: "0",
+    product_025_unlock_evidence: false,
+    cases: audit.global_wallet_review.cases.map(item => ({
+      case_id: item.case_id,
+      status: item.status,
+      transaction_case_ids: item.status === "operator_declared_non_external"
+        ? [] : item.transaction_case_ids,
+      required_wallet_evidence_types: item.status === "operator_declared_non_external"
+        ? [] : WALLET_TYPES,
+      required_per_transaction_evidence_types:
+        item.status === "operator_declared_non_external" ? [] : TRANSACTION_TYPES,
+      eligible_revenue_atomic_usdc: "0"
+    }))
+  };
+}
 function main() {
-  if (process.argv.length !== 4 && process.argv.length !== 5) {
+  const args = process.argv.slice(2);
+  if (args[0] === "--inventory") {
+    if (args.length < 2 || args.length > 3) invalid("PROVENANCE_USAGE");
+    const manifest = loadPrivateManifest(args[1]);
+    const exclusions = args.length === 3
+      ? readPrivateExclusions(args[2]) : [];
+    const inventory = buildProvenanceInventory(manifest, {
+      keyHex: process.env.X402_REVIEW_HMAC_KEY, exclusions
+    });
+    process.stdout.write(JSON.stringify(inventory, null, 2) + "\n");
+    return;
+  }
+  if (args.length !== 2 && args.length !== 3) {
     invalid("PROVENANCE_USAGE");
   }
-  const manifest = loadPrivateManifest(process.argv[2]);
-  const dossier = loadPrivateDossiers(process.argv[3]);
-  const exclusions = process.argv.length === 5
-    ? readPrivateExclusions(process.argv[4]) : [];
+  const manifest = loadPrivateManifest(args[0]);
+  const dossier = loadPrivateDossiers(args[1]);
+  const exclusions = args.length === 3
+    ? readPrivateExclusions(args[2]) : [];
   process.stdout.write(JSON.stringify(buildProvenancePreflight(manifest, {
     keyHex: process.env.X402_REVIEW_HMAC_KEY, dossier, exclusions
   }), null, 2) + "\n");
@@ -264,5 +303,5 @@ module.exports = {
   MAX_DOSSIER_BYTES, MAX_CASES, MAX_EVIDENCE_PER_CASE,
   WALLET_EVIDENCE, TRANSACTION_EVIDENCE, WALLET_TYPES, TRANSACTION_TYPES,
   validateDossiers, loadPrivateDossiers, scopeIdentifier,
-  buildProvenancePreflight
+  buildProvenanceInventory, buildProvenancePreflight
 };
