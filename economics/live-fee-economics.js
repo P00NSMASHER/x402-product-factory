@@ -337,10 +337,10 @@ async function main(args=process.argv.slice(2)) {
     rateObservation:live ? "fresh_public_read_only_get" : "historical_pinned_snapshot"
   });
   if (mode === "--check") {
-    const {summary,provider_as_of,selected_rate_id,paid_facilitator_fee_usd} = report;
+    const {summary,launch_readiness,provider_as_of,selected_rate_id,paid_facilitator_fee_usd} = report;
     process.stdout.write(JSON.stringify({
       ok:true,snapshot_historical:true,provider_as_of,selected_rate_id,
-      paid_facilitator_fee_usd,summary,automatic_price_changes:false
+      paid_facilitator_fee_usd,summary,launch_readiness,automatic_price_changes:false
     },null,2)+"\n");
   } else {
     process.stdout.write(JSON.stringify(report,null,2)+"\n");
