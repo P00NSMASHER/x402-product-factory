@@ -107,6 +107,55 @@ suitable for deterministic CI but **not sufficient for live pricing decisions**.
 A future real-world pricing decision must use a current live-rate check plus
 measured hosting, source, retry/refund, distribution and demand evidence.
 
+## Machine-readable, fail-closed launch-readiness screen
+
+The **same** canonical read-only calculator now includes
+`entries[].economic_launch_screen` and a portfolio-wide
+`launch_readiness` section. No new pricing engine, deployment
+service, or parallel product registry is created. These classifications are
+calculated directly from the current 24 registered prices and the *selected*
+paid facilitator fee using exact integer USDC micro-units:
+
+| Classification | Count at the archived October 10 rate | Meaning |
+| --- | ---: | --- |
+| `paid_facilitator_fee_exceeds_list_price` | **7** | Listed price is below the fee charged for a successful paid-tier settlement |
+| `fee_only_margin_below_target` | **15** | Price covers the fee but cannot reach the 70% fee-only target |
+| `fee_only_target_possible_but_total_costs_and_demand_unverified` | **2** | Product 002 and 018 pass only the mathematical *fee-only* target; no complete operating-cost or genuine outside-demand proof |
+
+Every classification is **blocked**, including 002 and 018. Fee-only
+headroom is not profitability; zero recorded configured cash source fees
+do not establish unlimited free upstream capacity. A status of
+`blocked` cannot automatically be upgraded by changing
+the caller's observation label or by selecting the live pricing option.
+
+Every product records named blockers for missing verified hosting, source,
+retry/refund and support costs; genuine external buyer demand; and
+independent commercial release review. The archived mode also states that
+a fresh provider rate has not been checked in the current run. The live
+option checks the provider's supplied `asOf` age and
+price consistency, but does not independently authenticate the
+provider or infer the seller's wallet-specific free-credit balance.
+
+The report deliberately asserts all of the following:
+
+- **Unattended releases authorized:** 0 of 24
+- **Verified total per-sale unit economics:** none
+- **Independently verified external buyer demand:** none
+- **Automatic price changes:** none
+- **Product 025+ unlock:** false
+
+`node economics/live-fee-economics.js --check` includes the
+compact portfolio gate and classifications, while `--snapshot` and
+`--live` include exact per-product categories and blockers.
+The latter is a read-only current-rate probe, not permission to launch.
+These values are **recomputed** as the fee changes rather than hard-coded
+into the source, and they reconcile to the existing 24-product summary.
+
+This is a *risk-screening and release-review requirement*, not an
+automatic kill switch on existing reference-production sellers. No live
+route, paid handler, customer API response, registered product price,
+receiving wallet, or deployment was modified.
+
 ## Commercial decision gates
 
 1. Treat fee-only margin screens as a prioritization and risk input, never
