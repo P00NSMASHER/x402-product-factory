@@ -456,15 +456,53 @@ X402_REVIEW_HMAC_KEY="$YOUR_PRIVATE_64_HEX_KEY" \
   > "$HOME/.private-x402-settlements/cross-journal-report.json"
 ```
 
+**Optional negative-only wallet exclusions:** Supply the *same private 0600*
+exclusion JSON format described under "Offline buyer-review queue" as a second
+argument (after the manifest). This applies operator-controlled, test/synthetic,
+or marketplace-probe exclusions consistently across all supplied journals:
+
+```bash
+umask 077
+X402_REVIEW_HMAC_KEY="$YOUR_PRIVATE_64_HEX_KEY" \
+  node deploy/supabase-x402-data-tools/cross-journal-audit.js \
+  "$HOME/.private-x402-settlements/cross-journal-manifest.json" \
+  "$HOME/.private-x402-settlements/operator-wallet-exclusions.json" \
+  > "$HOME/.private-x402-settlements/cross-journal-report.json"
+```
+
+The tool reuses the existing strict exclusion validation, including required
+private evidence references, but those references remain operator assertions;
+they are not proof of independent wallet ownership. Exclusions can only mark
+evidence non-external and decrease review candidates. Unknown exclusion wallets
+are permitted but do not create buyer activity. An invalid or unsafe exclusion
+file fails closed without emitting wallet identities.
+
 
 **Output contract:** The report includes total journal evidence rows, unique
 transaction references, cross-journal duplicate references, overlapping
 pseudonymous case IDs, conflicting cases, and non-conflicting per-route
-**transfer-evidence** counts. Transaction case IDs use domain-separated
-HMAC-SHA256: they do not disclose raw transaction hashes or payer addresses.
-Journal indices refer only to the input manifest order; no source file paths
-or HMAC keys appear in output. Protect the output anyway because stable
-pseudonyms and activity metadata remain potentially sensitive.
+**transfer-evidence** counts. The new `global_wallet_review` section groups
+only **unique, uncontested transaction evidence** by payer wallet across all
+supplied journals. Multiple journals containing one transaction count once,
+not as repeated buyer activity. Conflicted transactions are quarantined from
+*all* wallet and route review totals, irrespective of which payer was recorded.
+A separate `conflicting_transactions_quarantined` total keeps them visible.
+
+The wallet cases contain stable, keyed HMAC IDs compatible with the existing
+single-journal buyer queue, distinct-wallet counts (not customer counts),
+cross-route and cross-journal signals, repeat-wallet signals based on different
+unique transactions, and operator-declared exclusions. Per-route review counts
+also include excluded evidence and wallets still awaiting independent review.
+Transaction case IDs use a separate HMAC namespace. Neither case IDs disclose
+raw transaction hashes or payer addresses when the private HMAC key remains
+secret. Journal indices refer only to manifest ordering; no raw addresses,
+transaction hashes, exclusion evidence references, source file paths or HMAC
+keys appear in output. Protect the output anyway because stable pseudonyms,
+routes, dates and activity metadata remain potentially sensitive.
+
+All cross-journal uniqueness and wallet-review findings are **limited to the
+complete set of journals actually supplied**. Missing or unenumerated journals
+cannot be checked by this tool; this is not an automatic global buyer registry.
 
 **Revenue remains locked at zero.** All reports set
 independently_verified_external_buyers to 0,
