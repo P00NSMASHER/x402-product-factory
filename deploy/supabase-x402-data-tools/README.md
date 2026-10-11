@@ -116,23 +116,23 @@ the draft settlement upgrade.
 ## Settlement CI suite discovery
 
 The settlement workflow now delegates test-file enumeration to the factory's
-existing recursive \`scripts/run-all-tests.js\` discovery implementation
-through \`scripts/run-settlement-contract-tests.js\`. It automatically
-includes newly added \`*.test.js\` files under this deployment directory,
+existing recursive `scripts/run-all-tests.js` discovery implementation
+through `scripts/run-settlement-contract-tests.js`. It automatically
+includes newly added `*.test.js` files under this deployment directory,
 including nested subdirectories. No manual GitHub Actions file list needs
 updating when adding tests.
 
 Read-only inspection of the exact test paths:
 
-\`\`\`bash
+```bash
 node scripts/run-settlement-contract-tests.js --list
-\`\`\`
+```
 
 Run all settlement tests locally:
 
-\`\`\`bash
+```bash
 node scripts/run-settlement-contract-tests.js
-\`\`\`
+```
 
 Discovery fails closed if any essential suite is missing, if a test is empty,
 unreadable, oversized or nonregular, or if an unsafe filename, link or
