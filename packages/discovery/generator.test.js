@@ -36,7 +36,9 @@ test("staging products must have a metadata module",()=>{
 
 test("specified staging products publish from generated spec metadata",()=>{
   const specified=expectedManaged().filter(product=>SPEC_METADATA.PRODUCTS[product.id]);
-  assert.deepEqual(specified.map(product=>product.number),["003","004","005","006","007"]);
+  const specIndex=require("../../generated/product-spec-index.json");
+  assert.deepEqual(specified.map(product=>product.number),specIndex.products.map(product=>product.number));
+  assert.deepEqual(specified.map(product=>product.id),specIndex.products.map(product=>product.id));
   for(const product of specified){
     assert.equal(MODULES[product.id].source,"spec-generated",product.id+" must publish from generated spec metadata");
   }
