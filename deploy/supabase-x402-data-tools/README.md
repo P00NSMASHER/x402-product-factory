@@ -112,3 +112,38 @@ rather than overwriting a newer live deployment. A green offline test
 is **not** proof that production remains v6 or that PR #4 has deployed.
 No automatic deployment, wallet access, or payment was performed by
 the draft settlement upgrade.
+
+## Settlement CI suite discovery
+
+The settlement workflow now delegates test-file enumeration to the factory's
+existing recursive \`scripts/run-all-tests.js\` discovery implementation
+through \`scripts/run-settlement-contract-tests.js\`. It automatically
+includes newly added \`*.test.js\` files under this deployment directory,
+including nested subdirectories. No manual GitHub Actions file list needs
+updating when adding tests.
+
+Read-only inspection of the exact test paths:
+
+\`\`\`bash
+node scripts/run-settlement-contract-tests.js --list
+\`\`\`
+
+Run all settlement tests locally:
+
+\`\`\`bash
+node scripts/run-settlement-contract-tests.js
+\`\`\`
+
+Discovery fails closed if any essential suite is missing, if a test is empty,
+unreadable, oversized or nonregular, or if an unsafe filename, link or
+directory enters the test scope. Tests execute under the existing Node.js
+test runner with no shell interpolation and a deterministic, sorted file list.
+
+The existing CI continues to verify byte-pinned historical Supabase v6
+source parity **before** the settlement suite. It also triggers on changes
+to the deployment tree, shared x402 payment/source packages, canonical
+production-topology mapping, or the test-discovery implementation.
+This test suite is offline, uses synthetic evidence, and grants only
+read-only GitHub contents permission. A green CI result is **not** proof
+of today's live Supabase deployment, independent buyers or authorized
+production release.
