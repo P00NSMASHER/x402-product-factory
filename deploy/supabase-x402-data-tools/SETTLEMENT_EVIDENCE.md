@@ -522,6 +522,160 @@ no external RPC call, payment, deployment, wallet change or revenue write.
 node --test deploy/supabase-x402-data-tools/cross-journal-audit.test.js
 ```
 
+## Private buyer-provenance evidence reference preflight
+
+The optional **buyer-provenance-preflight.js** implements read-only, offline
+evidence-reference intake for manual buyer provenance review. It DOES NOT open
+the referenced evidence, authenticate an independent reviewer, resolve wallet
+owners, check refunds, recheck Base, or declare actual external buyers or sales.
+All supplied reference metadata is an *operator assertion*, not independent
+proof. The tool sends no network requests and never modifies the seller.
+
+It uses the existing checkpoint-verified cross-journal audit, deduplicates
+transactions across the supplied private V2 ledgers, respects negative-only
+wallet exclusions, and quarantines conflicts before producing review cases.
+Its scope is limited to the journals actually supplied. A missing journal
+cannot be accounted for by this audit.
+
+### Step 1 — Generate the private review inventory
+
+Store the journal manifest, optional exclusion file and results outside the
+repository inside an owner-only (0700) directory. Source files must be regular,
+non-symlinked, single-hardlink, owner-only 0600 files. Use the SAME stable,
+secret 32-byte HMAC key used for the existing buyer-review tools.
+
+```bash
+umask 077
+X402_REVIEW_HMAC_KEY="$YOUR_PRIVATE_64_HEX_KEY" \
+  node deploy/supabase-x402-data-tools/buyer-provenance-preflight.js \
+  --inventory \
+  "$HOME/.private-x402-settlements/cross-journal-manifest.json" \
+  "$HOME/.private-x402-settlements/operator-wallet-exclusions.json" \
+  > "$HOME/.private-x402-settlements/provenance-inventory.json"
+```
+
+
+Omit the optional exclusion file if none exists. The inventory provides a
+checkpoint-bound journal_scope_id, stable HMAC wallet case IDs, HMAC transaction
+case IDs for unique uncontested transactions, and required evidence categories.
+Excluded wallets are NOT given transaction case IDs. Keep this inventory
+private: stable pseudonyms and activity metadata may still be identifying.
+
+### Step 2 — Create a private JSON dossier (not a verification result)
+
+Create a separate private 0600 JSON file with exactly:
+- schema_version: 1
+- journal_scope_id: the 64-character value from the inventory
+- cases: an array of up to 500 case packets
+
+Each case packet must contain exactly case_id, operator_reference,
+reviewer_reference, and evidence. Use the wallet case_id from the inventory,
+a distinct opaque operator reference, and a distinct opaque reviewer reference.
+The tool checks different reference values but cannot verify actual human
+independence. The evidence array may have up to 2,000 items per case, subject
+to a 512-KiB total JSON size limit.
+
+Each evidence entry has exactly type, subject_case_id, source_kind, and
+private_reference. Each reference must be an opaque 8–128-character token
+using letters, digits, periods, underscores and hyphens only. Store the actual
+files securely elsewhere; never include names, contact details, private keys,
+wallet credentials, full file paths, signed payment payloads or raw evidence
+in this metadata file.
+
+**Wallet-level categories** use the wallet's HMAC case ID as subject_case_id.
+
+| type | required source_kind |
+| --- | --- |
+| buyer_independence | independent_third_party |
+| wallet_control | independent_third_party |
+| operator_inventory_screen | internal_control |
+| independent_human_review | reviewer_attestation |
+
+**Transaction-level categories** use the individual HMAC transaction case ID
+as subject_case_id, repeated for each unique uncontested transaction.
+
+| type | required source_kind |
+| --- | --- |
+| service_delivery | internal_service_log |
+| chain_recheck | independent_chain_provider |
+| refund_reversal_check | financial_reconciliation |
+
+An illustrative, deliberately incomplete example follows. Replace every
+placeholder with actual HMAC IDs from the private inventory.
+
+```json
+{
+  "schema_version": 1,
+  "journal_scope_id": "REPLACE_WITH_PRIVATE_INVENTORY_SCOPE_ID",
+  "cases": [
+    {
+      "case_id": "REPLACE_WITH_PRIVATE_WALLET_CASE_ID",
+      "operator_reference": "operator_record_0001",
+      "reviewer_reference": "separate_reviewer_0001",
+      "evidence": [
+        {
+          "type": "buyer_independence",
+          "subject_case_id": "REPLACE_WITH_PRIVATE_WALLET_CASE_ID",
+          "source_kind": "independent_third_party",
+          "private_reference": "private_buyer_record_0001"
+        },
+        {
+          "type": "service_delivery",
+          "subject_case_id": "REPLACE_WITH_PRIVATE_TRANSACTION_CASE_ID",
+          "source_kind": "internal_service_log",
+          "private_reference": "private_service_log_0001"
+        }
+      ]
+    }
+  ]
+}
+```
+
+
+A complete *reference catalog* needs every wallet-level category and all
+three transaction categories for every unique uncontested transaction.
+Missing references are listed as blockers. Unknown wallet case IDs, evidence
+linked to another wallet's transaction, duplicate type/subject references,
+unknown fields (including approval or revenue fields), stale checkpoint scopes
+and dossiers for operator-excluded wallets all fail closed.
+
+### Step 3 — Run the private preflight
+
+```bash
+umask 077
+X402_REVIEW_HMAC_KEY="$YOUR_PRIVATE_64_HEX_KEY" \
+  node deploy/supabase-x402-data-tools/buyer-provenance-preflight.js \
+  "$HOME/.private-x402-settlements/cross-journal-manifest.json" \
+  "$HOME/.private-x402-settlements/provenance-dossiers.json" \
+  "$HOME/.private-x402-settlements/operator-wallet-exclusions.json" \
+  > "$HOME/.private-x402-settlements/provenance-preflight-result.json"
+```
+
+
+Omit the optional exclusion-file argument if there are no exclusions.
+Statuses are no_private_dossier_supplied, evidence_references_incomplete,
+reference_catalog_complete_independent_validation_required, and
+operator_declared_non_external. Missing evidence types are shown for each
+pseudonymous wallet and transaction, with no private source references or
+wallet addresses, raw transaction hashes, HMAC keys, names or paths.
+
+**Critical trust boundary:** Even if every required category is present,
+the tool has NOT independently checked whether any underlying evidence is
+genuine, current, attributable, conflict-free or from an independent buyer.
+Its output always sets independently_verified_external_buyers to 0,
+eligible_external_revenue_atomic_usdc to "0", current_chain_reverified to
+false, and product_025_unlock_evidence to false. Independently establish
+wallet ownership, independence from the operator, payment-to-API-delivery
+linkage, refund/reversal status, and current chain state in a separately
+reviewed process before implementing any future commercial revenue gate.
+
+CI uses only synthetic local journals, wallet pseudonyms and private reference
+handles; it makes no real payments, deployments or production writes.
+
+```bash
+node --test deploy/supabase-x402-data-tools/buyer-provenance-preflight.test.js
+```
+
 ## Production v6 source parity and release-preflight gate
 
 **Observed on October 10, 2026 (read-only):** Supabase project
