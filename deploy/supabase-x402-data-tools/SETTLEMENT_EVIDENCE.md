@@ -402,6 +402,88 @@ retention policy. No actual customer observations are shipped with the
 repository or used in CI.
 
 
+## Offline multi-journal reconciliation (not a sales ledger)
+
+**Why:** The append-only ledger already detects duplicate transactions across
+batches on the *same* device. It does not know whether another operator has
+recorded the same transaction in a separate journal. The optional
+**cross-journal-audit.js** compares **2–12 private V2 journals** offline and
+detects repeated transaction references across those journals. It flags
+conflicting payer, route, receipt-log or canonical block evidence for manual
+review rather than silently choosing an attribution.
+
+Each source journal must first pass its existing strict hash-chain validation
+and match **both** the externally preserved head hash and exact record count.
+Legacy V1 records, a stale checkpoint, extra or missing manifest fields,
+duplicated file paths, unsafe permissions and malformed journals fail closed.
+Journals are read again after the comparison to catch changes during the
+multi-file scan. This is a point-in-time read; it is not a global shared
+database, live RPC recheck, concurrency lock across machines, or guarantee
+against malicious filesystem administrators.
+
+Prepare an operator-only (0700) directory **outside this checkout**, with
+actual journals and a 0600 manifest file. Do **not** store this manifest or
+real customer evidence in GitHub:
+
+```json
+{
+  "schema_version": 1,
+  "journals": [
+    {
+      "journal_path": "/ABSOLUTE/PRIVATE/operator-one.jsonl",
+      "expected_head": "REPLACE_WITH_PREVIOUSLY_PRESERVED_64_LOWERCASE_HEX_HEAD",
+      "expected_records": 12
+    },
+    {
+      "journal_path": "/ABSOLUTE/PRIVATE/operator-two.jsonl",
+      "expected_head": "REPLACE_WITH_PREVIOUSLY_PRESERVED_64_LOWERCASE_HEX_HEAD",
+      "expected_records": 8
+    }
+  ]
+}
+```
+
+
+Replace all placeholders and counts with genuine trusted checkpoint evidence.
+Use a single stable, private 32-byte HMAC key in a secret manager (the same
+X402_REVIEW_HMAC_KEY used by the buyer-review queue is supported):
+
+```bash
+umask 077
+X402_REVIEW_HMAC_KEY="$YOUR_PRIVATE_64_HEX_KEY" \
+  node deploy/supabase-x402-data-tools/cross-journal-audit.js \
+  "$HOME/.private-x402-settlements/cross-journal-manifest.json" \
+  > "$HOME/.private-x402-settlements/cross-journal-report.json"
+```
+
+
+**Output contract:** The report includes total journal evidence rows, unique
+transaction references, cross-journal duplicate references, overlapping
+pseudonymous case IDs, conflicting cases, and non-conflicting per-route
+**transfer-evidence** counts. Transaction case IDs use domain-separated
+HMAC-SHA256: they do not disclose raw transaction hashes or payer addresses.
+Journal indices refer only to the input manifest order; no source file paths
+or HMAC keys appear in output. Protect the output anyway because stable
+pseudonyms and activity metadata remain potentially sensitive.
+
+**Revenue remains locked at zero.** All reports set
+independently_verified_external_buyers to 0,
+eligible_external_revenue_atomic_usdc to "0",
+current_chain_reverified to false, and
+product_025_unlock_evidence to false. A duplicate-free set of past RPC
+receipts does **not** prove independent buyers, actual paid API usage,
+unrefunded sales, customer identity, or current canonical-chain status.
+Run the separate --audit-chain and human provenance review before any
+commercial interpretation. If a journal was omitted, no cross-journal
+uniqueness is claimed for that missing scope.
+
+CI uses synthetic local journals and deterministic fixtures only; it makes
+no external RPC call, payment, deployment, wallet change or revenue write.
+
+```bash
+node --test deploy/supabase-x402-data-tools/cross-journal-audit.test.js
+```
+
 ## Production v6 source parity and release-preflight gate
 
 **Observed on October 10, 2026 (read-only):** Supabase project
