@@ -130,7 +130,9 @@ function validateSigner(doc, expectedFingerprint) {
       expectedFingerprint === "0".repeat(64)) {
     invalid("DELIVERY_SIGNER_NOT_PINNED");
   }
-  const der = canonicalBase64(doc.spki_der_base64, 256);
+  // Admit bounded DER for explicit algorithm rejection (RSA-2048 SPKI is
+  // ~294 bytes); only canonical Ed25519 keys are ultimately accepted.
+  const der = canonicalBase64(doc.spki_der_base64, 512);
   const fingerprint = crypto.createHash("sha256").update(der).digest("hex");
   if (fingerprint !== expectedFingerprint) {
     invalid("DELIVERY_SIGNER_FINGERPRINT_MISMATCH");
