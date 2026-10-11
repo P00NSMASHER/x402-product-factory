@@ -89,11 +89,15 @@ function sameSnapshot(a, b) {
     a.head === b.head && a.records.length === b.records.length;
 }
 function auditCrossJournals(manifest, {
-  keyHex, exclusions = [], includeTransactionCaseIds = false
+  keyHex, exclusions = [], includeTransactionCaseIds = false,
+  includeTransactionBindings = false
 } = {}) {
   const key = hmacKey(keyHex);
   if (typeof includeTransactionCaseIds !== "boolean") {
     invalid("CROSS_JOURNAL_TRANSACTION_IDS_OPTION_INVALID");
+  }
+  if (typeof includeTransactionBindings !== "boolean") {
+    invalid("CROSS_JOURNAL_BINDINGS_OPTION_INVALID");
   }
   // Exclusions can only suppress review candidates, never declare external buyers.
   // Reuse the existing strict, negative-only operator exclusion contract.
@@ -154,6 +158,9 @@ function auditCrossJournals(manifest, {
   let conflicts = 0, duplicates = 0, uncontested = 0;
   const overlapCases = [];
   const walletGroups = new Map();
+  // Opt-in HMAC-only transaction-to-route lookup. Never return wallet or
+  // transaction addresses in this structure, even for trusted local callers.
+  const transactionBindings = [];
   const routeWallets = new Map([...ROUTE_IDS.keys()].map(route => [
     route, {wallets: new Set(), excludedTransfers: 0, pendingWallets: new Set()}
   ]));
@@ -174,6 +181,14 @@ function auditCrossJournals(manifest, {
         walletGroups.set(item.payer, group);
       }
       group.uniqueTransactions++;
+      if (includeTransactionBindings) {
+        transactionBindings.push({
+          transaction_case_id: pseudonym(key, "cross-journal-transaction",
+            item.transaction),
+          wallet_case_id: pseudonym(key, "wallet", item.payer),
+          route: item.route
+        });
+      }
       if (includeTransactionCaseIds) {
         group.transactionCaseIds.add(
           pseudonym(key, "cross-journal-transaction", item.transaction)
@@ -274,7 +289,11 @@ function auditCrossJournals(manifest, {
       independently_verified_external_buyers: 0,
       eligible_external_revenue_atomic_usdc: "0",
       product_025_unlock_evidence: false,
-      cases: walletCases
+      cases: walletCases,
+      ...(includeTransactionBindings ? {
+        transaction_bindings: transactionBindings.sort((a, b) =>
+          a.transaction_case_id.localeCompare(b.transaction_case_id))
+      } : {})
     },
     per_route_uncontested_evidence_not_sales: [...routeCounts]
       .sort(([a], [b]) => a.localeCompare(b))
