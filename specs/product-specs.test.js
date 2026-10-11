@@ -23,7 +23,12 @@ const SPEC_FILES=[
   "004-pa-business-address-match.json",
   "005-pa-business-domain-match.json",
   "006-sec-filing-freshness.json",
-  "007-domain-registration-age.json"
+  "007-domain-registration-age.json",
+  "008-treasury-average-rate-threshold.json",
+  "009-ofac-name-review-gate.json",
+  "010-pa-business-formation-age.json",
+  "011-domain-expiration-horizon.json",
+  "012-domain-last-changed-recency.json"
 ];
 
 function toMicros(value){
@@ -44,15 +49,15 @@ function loadSpecs(){
   return SPEC_FILES.map(file=>JSON.parse(fs.readFileSync(path.join(__dirname,file),"utf8")));
 }
 
-test("product specs 003-007 are registry-bound and structurally complete",()=>{
+test("product specs 003-012 are registry-bound and structurally complete",()=>{
   const specs=loadSpecs();
-  assert.equal(specs.length,5);
-  assert.deepEqual(specs.map(spec=>spec.number),["003","004","005","006","007"]);
+  assert.equal(specs.length,10);
+  assert.deepEqual(specs.map(spec=>spec.number),["003","004","005","006","007","008","009","010","011","012"]);
 
   for(const spec of specs){
     assert.equal(spec.schema_version,1);
     assert.match(spec.discovery.operation_id,/^[A-Za-z][A-Za-z0-9]+$/);
-    assert.ok(spec.discovery.service_name.length>=3&&spec.discovery.service_name.length<=32);
+    assert.ok(spec.discovery.service_name.length>=3&&spec.discovery.service_name.length<=64);
     assert.ok(spec.discovery.summary.length>=10);
     assert.ok(spec.discovery.description.length>=30);
     assert.ok(spec.discovery.resource_description.length>=30);
@@ -129,7 +134,7 @@ test("commercially important edge conditions remain explicit",()=>{
 test("generated product spec index is current",()=>{
   const index=buildIndex();
   assert.equal(index.schema_version,1);
-  assert.deepEqual(index.products.map(product=>product.number),["003","004","005","006","007"]);
+  assert.deepEqual(index.products.map(product=>product.number),["003","004","005","006","007","008","009","010","011","012"]);
   assert.doesNotThrow(()=>checkGeneratedIndex());
 });
 
@@ -137,8 +142,8 @@ test("generated product spec index is current",()=>{
 test("spec compiler generates discovery docs and standard contract cases without drift",()=>{
   const discovery=buildDiscovery();
   assert.equal(discovery.schema_version,1);
-  assert.equal(discovery.products.length,5);
-  assert.deepEqual(discovery.products.map(product=>product.number),["003","004","005","006","007"]);
+  assert.equal(discovery.products.length,10);
+  assert.deepEqual(discovery.products.map(product=>product.number),["003","004","005","006","007","008","009","010","011","012"]);
 
   for(const product of discovery.products){
     assert.equal(product.payment.x402_version,2);
@@ -153,8 +158,8 @@ test("spec compiler generates discovery docs and standard contract cases without
   }
 
   const contracts=buildContractCases();
-  assert.equal(contracts.cases.length,45);
-  for(const number of ["003","004","005","006","007"]){
+  assert.equal(contracts.cases.length,90);
+  for(const number of ["003","004","005","006","007","008","009","010","011","012"]){
     const spec=loadSpecs().find(item=>item.number===number);
     const cases=contracts.cases.filter(item=>item.path===spec.api.path);
     assert.equal(cases.length,9);
@@ -179,6 +184,7 @@ test("spec compiler generates discovery docs and standard contract cases without
   const docs=renderDocs();
   assert.match(docs,/003 pa-vendor-identity-match/);
   assert.match(docs,/007 domain-registration-age/);
+  assert.match(docs,/012 domain-last-changed-recency/);
   assert.match(docs,/Purchase frequency: \*\*unmeasured\*\*/);
   assert.doesNotThrow(()=>checkGeneratedSpecArtifacts());
 });
@@ -280,5 +286,19 @@ test("generated spec paid handlers bind declared validators and product constant
     const factories=Object.entries(generated)
       .filter(([name,value])=>typeof value==="function"&&/^createPaid.*Handler$/.test(name));
     assert.equal(factories.length,1,spec.id+" generated handler factory count");
+  }
+});
+
+
+test("008-012 generated OpenAPI and Bazaar examples preserve authoritative hand-written contracts",()=>{
+  for(const spec of loadSpecs().filter(x=>Number(x.number)>=8)){
+    const old=METADATA_MODULES[spec.id];
+    const oldResource=old.catalogResource("https://candidate.example");
+    const newResource=GENERATED_SPEC_METADATA.catalogResource(spec.id,"https://candidate.example");
+    assert.equal(newResource.description,oldResource.description);
+    assert.deepEqual(newResource.extensions.bazaar.info,oldResource.extensions.bazaar.info);
+    assert.equal(newResource.tags.length,Math.min(5,oldResource.tags.length));
+    assert.deepEqual(GENERATED_SPEC_METADATA.openApiPath(spec.id).get.parameters,
+      old.openApiPath().get.parameters,"OpenAPI parameters: "+spec.id);
   }
 });

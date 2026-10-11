@@ -54,11 +54,11 @@ function standardPaymentDocument({product,publicApiBase}){
     inputExample:{
       type:"http",
       method:product.method,
-      queryParams:product.example_query
+      queryParams:product.payment_example_query||product.example_query
     },
     outputExample:{
       type:"json",
-      example:{decision:product.decisions[0],paid:true}
+      example:product.payment_example_output||{decision:product.decisions[0],paid:true}
     }
   });
 }

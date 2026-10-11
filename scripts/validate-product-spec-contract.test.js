@@ -15,8 +15,8 @@ const rejected=(specs,match,options={filenames})=>{
   );
 };
 
-test("canonical 003-007 specification set passes before generation",()=>{
-  assert.strictEqual(validateSpecSet(clone(),{filenames}).length,5);
+test("canonical 003-012 specification set passes before generation",()=>{
+  assert.strictEqual(validateSpecSet(clone(),{filenames}).length,10);
 });
 
 test("filename and product identity drift fail closed",()=>{
@@ -117,5 +117,20 @@ test("typed generated API examples reject malformed values and broken one-of rul
   ];
   for(const [mutation,match] of changes){
     const specs=clone();mutation(specs);rejected(specs,match);
+  }
+});
+
+
+test("new enum and payment example corruption fails before generation",()=>{
+  const mutations=[
+    [s=>{s[5].api.inputs[2].enum=["gte","gte"];},/invalid enum/],
+    [s=>{s[5].api.inputs[2].default="gt";},/default violates enum/],
+    [s=>{s[5].api.payment_example_query.thresholdPercent="9";},/payment example differs/],
+    [s=>{s[8].api.payment_example_query.extra="abc";},/undeclared payment example input/],
+    [s=>{s[9].api.payment_example_output.paid=false;},/invalid payment output example/],
+    [s=>{s[6].api.payment_example_output.decision="cleared";},/invalid payment output example/]
+  ];
+  for(const [mutate,pattern] of mutations){
+    const s=clone();mutate(s);rejected(s,pattern);
   }
 });

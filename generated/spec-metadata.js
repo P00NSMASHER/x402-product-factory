@@ -285,6 +285,315 @@ const PRODUCTS=Object.freeze({
       "unregistered",
       "human_review"
     ]
+  },
+  "treasury-average-rate-threshold": {
+    "id": "treasury-average-rate-threshold",
+    "operation_id": "checkTreasuryAverageRateThreshold",
+    "service_name": "Treasury Average Rate Threshold Check",
+    "summary": "Compare a Treasury average rate with a threshold",
+    "description": "Select exactly one latest monthly Treasury average-interest-rate category from the official Fiscal Data dataset and compare its weighted-average rate on outstanding debt with a caller threshold. Returns threshold_met, threshold_not_met, or human_review for missing/ambiguous data. These are monthly averages on outstanding debt, not live market yields or rates for a specific new issuance.",
+    "resource_description": "Compare the latest official monthly weighted-average interest rate for one U.S. Treasury security category to a caller threshold. Returns threshold_met, threshold_not_met, or human_review. This is not a live market yield, forecast, or investment recommendation.",
+    "search_tags": [
+      "treasury",
+      "interest-rates",
+      "threshold",
+      "macro",
+      "government-data"
+    ],
+    "openapi_tags": [
+      "Treasury",
+      "Interest Rates",
+      "Threshold",
+      "Macro"
+    ],
+    "method": "GET",
+    "path": "/api/treasury-average-rate-threshold",
+    "price_usdc": "0.003",
+    "amount_atomic_usdc": "3000",
+    "inputs": [
+      {
+        "name": "security",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 100,
+        "required": true
+      },
+      {
+        "name": "thresholdPercent",
+        "type": "number",
+        "minimum": 0,
+        "maximum": 100,
+        "required": true
+      },
+      {
+        "name": "operator",
+        "type": "string",
+        "enum": [
+          "gte",
+          "lte"
+        ],
+        "default": "gte",
+        "required": false
+      }
+    ],
+    "input_rule": null,
+    "example_query": {
+      "security": "Total Marketable",
+      "thresholdPercent": 4
+    },
+    "payment_example_query": {
+      "security": "Total Marketable",
+      "thresholdPercent": "4",
+      "operator": "gte"
+    },
+    "decisions": [
+      "threshold_met",
+      "threshold_not_met",
+      "human_review"
+    ]
+  },
+  "ofac-name-review-gate": {
+    "id": "ofac-name-review-gate",
+    "operation_id": "reviewOfacSdnName",
+    "service_name": "OFAC Name Review Gate",
+    "summary": "Run an OFAC SDN name-review screen",
+    "description": "Screen a person or organization name against current U.S. Treasury OFAC SDN primary names and aliases using deterministic similarity scoring. Returns candidate_found, no_candidate, or human_review. A candidate is a review signal, not a legal sanctions determination. no_candidate is not sanctions clearance, and the endpoint does not perform OFAC 50 Percent Rule ownership analysis.",
+    "resource_description": "Run deterministic first-pass name and alias screening against the current U.S. Treasury OFAC SDN list. Returns candidate_found, no_candidate, or human_review. Results are review signals only: a candidate is not a legal sanctions determination, no_candidate is not sanctions clearance, and OFAC 50 Percent Rule ownership analysis is not included.",
+    "search_tags": [
+      "OFAC",
+      "SDN",
+      "sanctions-screening",
+      "name-review",
+      "human-review"
+    ],
+    "openapi_tags": [
+      "OFAC",
+      "SDN",
+      "Name Screening",
+      "Human Review"
+    ],
+    "method": "GET",
+    "path": "/api/ofac-name-review-gate",
+    "price_usdc": "0.003",
+    "amount_atomic_usdc": "3000",
+    "inputs": [
+      {
+        "name": "name",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 160,
+        "required": true
+      },
+      {
+        "name": "minScore",
+        "type": "integer",
+        "minimum": 70,
+        "maximum": 100,
+        "default": 90,
+        "required": false
+      }
+    ],
+    "input_rule": null,
+    "example_query": {
+      "name": "Example LLC",
+      "minScore": 90
+    },
+    "payment_example_output": {
+      "decision": "no_candidate",
+      "candidateCount": 0,
+      "paid": true
+    },
+    "decisions": [
+      "candidate_found",
+      "no_candidate",
+      "human_review"
+    ]
+  },
+  "pa-business-formation-age": {
+    "id": "pa-business-formation-age",
+    "operation_id": "checkPennsylvaniaBusinessFormationAge",
+    "service_name": "PA Business Formation Age",
+    "summary": "Check Pennsylvania business formation age",
+    "description": "Resolve a Pennsylvania business name to one strong registry entity and compare its Department of State creation date with a caller-selected minimum age. Returns established_entity, recent_entity, company_not_found, or human_review. Formation age alone does not establish current good standing, ownership, authority, legitimacy, fraud risk, sanctions status, creditworthiness, or legal compliance.",
+    "resource_description": "Determine whether a uniquely resolved Pennsylvania business entity is at least a caller-selected age using Pennsylvania Department of State creation-date evidence. Returns established_entity, recent_entity, company_not_found, or human_review. Formation age is an identity/history signal, not proof of current good standing, ownership, authority, legitimacy, fraud risk, sanctions status, creditworthiness, or legal compliance.",
+    "search_tags": [
+      "pennsylvania-business-registry",
+      "business-age",
+      "formation-date",
+      "vendor-history",
+      "human-review"
+    ],
+    "openapi_tags": [
+      "Pennsylvania Business Registry",
+      "Formation Date",
+      "Business Age",
+      "Vendor History"
+    ],
+    "method": "GET",
+    "path": "/api/pa-business-formation-age",
+    "price_usdc": "0.002",
+    "amount_atomic_usdc": "2000",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "name": "minAgeDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 36500,
+        "default": 365,
+        "required": false
+      }
+    ],
+    "input_rule": null,
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "minAgeDays": 365
+    },
+    "payment_example_query": {
+      "company": "OpenAI OpCo",
+      "minAgeDays": "365"
+    },
+    "payment_example_output": {
+      "decision": "established_entity",
+      "minAgeDays": 365,
+      "paid": true
+    },
+    "decisions": [
+      "established_entity",
+      "recent_entity",
+      "company_not_found",
+      "human_review"
+    ]
+  },
+  "domain-expiration-horizon": {
+    "id": "domain-expiration-horizon",
+    "operation_id": "checkDomainExpirationHorizon",
+    "service_name": "Domain Expiration Horizon",
+    "summary": "Check whether a domain expires within a future horizon",
+    "description": "Resolve a domain via IANA RDAP bootstrap and its authoritative registry, then compare the published expiration date with a caller-selected future horizon. Returns expiring_soon, not_expiring_soon, unregistered, or human_review. Registry grace/renewal policies vary; this is a registration timing signal and not proof of ownership, control, legitimacy, security, fraud risk, or business identity.",
+    "resource_description": "Determine whether an authoritative RDAP domain expiration date falls within a caller-selected future horizon. Returns expiring_soon, not_expiring_soon, unregistered, or human_review. This is a registration timing signal only and does not prove ownership, control, legitimacy, security, fraud risk, or business identity.",
+    "search_tags": [
+      "domain",
+      "rdap",
+      "expiration",
+      "renewal",
+      "monitoring"
+    ],
+    "openapi_tags": [
+      "Domain",
+      "RDAP",
+      "Expiration",
+      "Monitoring"
+    ],
+    "method": "GET",
+    "path": "/api/domain-expiration-horizon",
+    "price_usdc": "0.002",
+    "amount_atomic_usdc": "2000",
+    "inputs": [
+      {
+        "name": "domain",
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253,
+        "required": true
+      },
+      {
+        "name": "horizonDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 60,
+        "required": false
+      }
+    ],
+    "input_rule": null,
+    "example_query": {
+      "domain": "openai.com",
+      "horizonDays": 60
+    },
+    "payment_example_query": {
+      "domain": "openai.com",
+      "horizonDays": "60"
+    },
+    "payment_example_output": {
+      "decision": "not_expiring_soon",
+      "horizonDays": 60,
+      "paid": true
+    },
+    "decisions": [
+      "expiring_soon",
+      "not_expiring_soon",
+      "unregistered",
+      "human_review"
+    ]
+  },
+  "domain-last-changed-recency": {
+    "id": "domain-last-changed-recency",
+    "operation_id": "checkDomainLastChangedRecency",
+    "service_name": "Domain Last-Changed Recency",
+    "summary": "Check how recently authoritative RDAP says a domain record changed",
+    "description": "Resolve a domain through IANA RDAP bootstrap and its authoritative registry, then compare the published last-changed event with a caller-selected recent window. Returns recently_changed, stable_since_window, unregistered, or human_review. A recent RDAP metadata change is not by itself evidence of compromise, fraud, ownership change, malicious activity, or business risk.",
+    "resource_description": "Determine whether authoritative RDAP says a domain registration record changed within a caller-selected recent window. Returns recently_changed, stable_since_window, unregistered, or human_review. A recent RDAP metadata change is not by itself evidence of compromise, fraud, ownership change, malicious activity, or business risk.",
+    "search_tags": [
+      "domain",
+      "rdap",
+      "last-changed",
+      "recency",
+      "monitoring"
+    ],
+    "openapi_tags": [
+      "Domain",
+      "RDAP",
+      "Recency",
+      "Monitoring"
+    ],
+    "method": "GET",
+    "path": "/api/domain-last-changed-recency",
+    "price_usdc": "0.002",
+    "amount_atomic_usdc": "2000",
+    "inputs": [
+      {
+        "name": "domain",
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253,
+        "required": true
+      },
+      {
+        "name": "maxAgeDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 90,
+        "required": false
+      }
+    ],
+    "input_rule": null,
+    "example_query": {
+      "domain": "openai.com",
+      "maxAgeDays": 90
+    },
+    "payment_example_query": {
+      "domain": "openai.com",
+      "maxAgeDays": "90"
+    },
+    "payment_example_output": {
+      "decision": "stable_since_window",
+      "maxAgeDays": 90,
+      "paid": true
+    },
+    "decisions": [
+      "recently_changed",
+      "stable_since_window",
+      "unregistered",
+      "human_review"
+    ]
   }
 });
 
@@ -318,13 +627,13 @@ function catalogResource(id,base){
     price:"$"+item.price_usdc,
     tags:item.search_tags,
     accepts:[paymentRequirements(item)],
-    extensions:{bazaar:{info:{input:{type:"http",method:item.method,queryParams:item.example_query},output:{type:"json",example:{decision:item.decisions[0],paid:true}}}}}
+    extensions:{bazaar:{info:{input:{type:"http",method:item.method,queryParams:item.payment_example_query||item.example_query},output:{type:"json",example:item.payment_example_output||{decision:item.decisions[0],paid:true}}}}}
   };
 }
 
 function openApiParameter(input,exampleQuery){
   const schema={type:input.type};
-  for(const key of ["minLength","maxLength","pattern","minimum","maximum","default"]){
+  for(const key of ["minLength","maxLength","pattern","minimum","maximum","default","enum"]){
     if(input[key]!==undefined)schema[key]=input[key];
   }
   const parameter={name:input.name,in:"query",required:input.required===true,schema};

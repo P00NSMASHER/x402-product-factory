@@ -63,6 +63,8 @@ function discoveryProduct(spec){
     },
     inputs:spec.api.inputs,
     example_query:spec.api.example_query,
+    ...(spec.api.payment_example_query?{payment_example_query:spec.api.payment_example_query}:{}),
+    ...(spec.api.payment_example_output?{payment_example_output:spec.api.payment_example_output}:{}),
     outputs:spec.api.outputs,
     sources:spec.sources.map(source=>({
       id:source.id,
@@ -194,6 +196,8 @@ function renderMetadataModule(specs=loadSpecs()){
       inputs:spec.api.inputs,
       input_rule:spec.api.input_rule??null,
       example_query:spec.api.example_query,
+      ...(spec.api.payment_example_query?{payment_example_query:spec.api.payment_example_query}:{}),
+      ...(spec.api.payment_example_output?{payment_example_output:spec.api.payment_example_output}:{}),
       decisions:spec.api.outputs.decisions
     }
   ]));
@@ -236,13 +240,13 @@ function renderMetadataModule(specs=loadSpecs()){
     '    price:"$"+item.price_usdc,',
     '    tags:item.search_tags,',
     '    accepts:[paymentRequirements(item)],',
-    '    extensions:{bazaar:{info:{input:{type:"http",method:item.method,queryParams:item.example_query},output:{type:"json",example:{decision:item.decisions[0],paid:true}}}}}',
+    '    extensions:{bazaar:{info:{input:{type:"http",method:item.method,queryParams:item.payment_example_query||item.example_query},output:{type:"json",example:item.payment_example_output||{decision:item.decisions[0],paid:true}}}}}',
     '  };',
     '}',
     '',
     'function openApiParameter(input,exampleQuery){',
     '  const schema={type:input.type};',
-    '  for(const key of ["minLength","maxLength","pattern","minimum","maximum","default"]){',
+    '  for(const key of ["minLength","maxLength","pattern","minimum","maximum","default","enum"]){',
     '    if(input[key]!==undefined)schema[key]=input[key];',
     '  }',
     '  const parameter={name:input.name,in:"query",required:input.required===true,schema};',

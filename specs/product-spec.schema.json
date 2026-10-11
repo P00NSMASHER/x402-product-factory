@@ -138,6 +138,12 @@
             "string",
             "null"
           ]
+        },
+        "payment_example_query": {
+          "type": "object"
+        },
+        "payment_example_output": {
+          "type": "object"
         }
       }
     },
@@ -317,7 +323,7 @@
         "service_name": {
           "type": "string",
           "minLength": 3,
-          "maxLength": 32
+          "maxLength": 64
         },
         "summary": {
           "type": "string",

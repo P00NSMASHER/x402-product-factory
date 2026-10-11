@@ -203,3 +203,201 @@ Determine whether an authoritative RDAP domain registration date is at least a c
 - Shared non-credit-gated hosting is available and measured.
 - Post-allowance unit economics are settlement-negative at the current price; commercial promotion remains blocked until economics are repaired or an explicit exception is approved.
 
+## 008 treasury-average-rate-threshold
+
+Compare the latest official monthly weighted-average interest rate for one Treasury security category to a caller threshold.
+
+- Endpoint: `GET /api/treasury-average-rate-threshold`
+- Price: **$0.003000 USDC**
+- Decisions: `threshold_met`, `threshold_not_met`, `human_review`
+- Sources: U.S. Treasury Fiscal Data monthly Average Interest Rates on U.S. Treasury Securities
+- Purchase frequency: **unmeasured**
+- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **23.0%**
+
+### Inputs
+
+- `security` (string; required, minLength=2, maxLength=100)
+- `thresholdPercent` (number; required, min=0, max=100)
+- `operator` (string; optional, default=gte)
+
+### Decision rules
+
+- Require one unambiguous latest Treasury security category record with its published weighted-average rate.
+- Compare ratePercent to thresholdPercent with operator gte/lte; it is not a live market yield.
+- the source is the monthly weighted average interest rate on outstanding Treasury securities
+- the result is not a live Treasury market yield
+- the result is not a forecast or investment recommendation
+- the result does not represent the rate on a specific new Treasury issuance
+
+### Failure behavior
+
+- Invalid input: HTTP 400; payment is not settled.
+- Required source failure: HTTP 502 with chargeable=false; payment is not settled.
+- Payment unresolved: HTTP 503; retry the same payment authorization.
+- Automatic reject: **false**
+
+### Launch gate
+
+- Status: `live-source-verified-staging`
+- Release gate: `scripts/validate-product-008.js`
+- Pass existing exact-revision release gate and authoritative source smokes.
+- Measure non-credit-gated production hosting, failures, refunds and source costs.
+- Block commercial release until real margin and external demand are independently evidenced.
+
+## 009 ofac-name-review-gate
+
+Perform deterministic first-pass name/alias screening against the current OFAC SDN list and return whether one or more review candidates meet a caller-selected similarity threshold.
+
+- Endpoint: `GET /api/ofac-name-review-gate`
+- Price: **$0.003000 USDC**
+- Decisions: `candidate_found`, `no_candidate`, `human_review`
+- Sources: U.S. Treasury OFAC SDN names and aliases
+- Purchase frequency: **unmeasured**
+- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **23.0%**
+
+### Inputs
+
+- `name` (string; required, minLength=2, maxLength=160)
+- `minScore` (integer; optional, default=90, min=70, max=100)
+
+### Decision rules
+
+- Compare names and aliases through current SDN similarity screening at minScore.
+- Report candidates for human review; no_candidate is not legal sanctions clearance.
+- candidate_found is a review signal, not a legal sanctions determination
+- no_candidate is not sanctions clearance
+- the product does not perform OFAC 50 Percent Rule ownership analysis
+- identity resolution requires human review of identifiers and context
+
+### Failure behavior
+
+- Invalid input: HTTP 400; payment is not settled.
+- Required source failure: HTTP 502 with chargeable=false; payment is not settled.
+- Payment unresolved: HTTP 503; retry the same payment authorization.
+- Automatic reject: **false**
+
+### Launch gate
+
+- Status: `live-source-verified-staging`
+- Release gate: `scripts/validate-product-009.js`
+- Pass existing exact-revision release gate and authoritative source smokes.
+- Measure non-credit-gated production hosting, failures, refunds and source costs.
+- Block commercial release until real margin and external demand are independently evidenced.
+
+## 010 pa-business-formation-age
+
+Determine whether a uniquely resolved Pennsylvania business entity is at least a caller-selected age using Pennsylvania Department of State creation-date evidence.
+
+- Endpoint: `GET /api/pa-business-formation-age`
+- Price: **$0.002000 USDC**
+- Decisions: `established_entity`, `recent_entity`, `company_not_found`, `human_review`
+- Sources: Pennsylvania Department of State via data.pa.gov
+- Purchase frequency: **unmeasured**
+- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **-15.5%**
+
+### Inputs
+
+- `company` (string; required, minLength=2, maxLength=120)
+- `minAgeDays` (integer; optional, default=365, min=1, max=36500)
+
+### Decision rules
+
+- Require strong, unique Pennsylvania business registry identity.
+- Compare confirmed creation date against minAgeDays using UTC dates; missing or ambiguous evidence triggers review.
+- formation age is an identity/history signal only
+- it does not prove current good standing, ownership, authority, legitimacy, fraud risk, sanctions status, creditworthiness, or legal compliance
+- creation date is taken from Pennsylvania public registry data and may be unavailable for some records
+
+### Failure behavior
+
+- Invalid input: HTTP 400; payment is not settled.
+- Required source failure: HTTP 502 with chargeable=false; payment is not settled.
+- Payment unresolved: HTTP 503; retry the same payment authorization.
+- Automatic reject: **false**
+
+### Launch gate
+
+- Status: `live-source-verified-staging`
+- Release gate: `scripts/validate-product-010.js`
+- Pass existing exact-revision release gate and authoritative source smokes.
+- Measure non-credit-gated production hosting, failures, refunds and source costs.
+- Block commercial release until real margin and external demand are independently evidenced.
+
+## 011 domain-expiration-horizon
+
+Determine whether an authoritative RDAP registration expiration date falls within a caller-selected future horizon.
+
+- Endpoint: `GET /api/domain-expiration-horizon`
+- Price: **$0.002000 USDC**
+- Decisions: `expiring_soon`, `not_expiring_soon`, `unregistered`, `human_review`
+- Sources: IANA DNS bootstrap and authoritative registry RDAP
+- Purchase frequency: **unmeasured**
+- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **-15.5%**
+
+### Inputs
+
+- `domain` (string; required, minLength=3, maxLength=253)
+- `horizonDays` (integer; optional, default=60, min=1, max=3650)
+
+### Decision rules
+
+- Require authoritative RDAP expiration event when registered.
+- Compare expiration to today plus horizonDays; unknown registration or missing date requires review.
+- expiration horizon is a domain-registration timing signal only
+- registry renewal/grace/redemption policies vary and can change actual lifecycle outcomes
+- it does not prove domain ownership, control, legitimacy, security, fraud risk, or business identity
+
+### Failure behavior
+
+- Invalid input: HTTP 400; payment is not settled.
+- Required source failure: HTTP 502 with chargeable=false; payment is not settled.
+- Payment unresolved: HTTP 503; retry the same payment authorization.
+- Automatic reject: **false**
+
+### Launch gate
+
+- Status: `live-source-verified-staging`
+- Release gate: `scripts/validate-product-011.js`
+- Pass existing exact-revision release gate and authoritative source smokes.
+- Measure non-credit-gated production hosting, failures, refunds and source costs.
+- Block commercial release until real margin and external demand are independently evidenced.
+
+## 012 domain-last-changed-recency
+
+Determine whether an authoritative RDAP last-changed event falls within a caller-selected recent window.
+
+- Endpoint: `GET /api/domain-last-changed-recency`
+- Price: **$0.002000 USDC**
+- Decisions: `recently_changed`, `stable_since_window`, `unregistered`, `human_review`
+- Sources: IANA DNS bootstrap and authoritative registry RDAP
+- Purchase frequency: **unmeasured**
+- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **-15.5%**
+
+### Inputs
+
+- `domain` (string; required, minLength=3, maxLength=253)
+- `maxAgeDays` (integer; optional, default=90, min=1, max=3650)
+
+### Decision rules
+
+- Require authoritative RDAP lastChanged event when registered.
+- Compare lastChanged to today minus maxAgeDays using UTC dates; missing evidence requires review.
+- recently_changed is a domain-registration metadata signal only
+- a recent change does not by itself establish compromise, fraud, ownership change, malicious activity, or business risk
+- registry event semantics and update behavior vary by TLD
+
+### Failure behavior
+
+- Invalid input: HTTP 400; payment is not settled.
+- Required source failure: HTTP 502 with chargeable=false; payment is not settled.
+- Payment unresolved: HTTP 503; retry the same payment authorization.
+- Automatic reject: **false**
+
+### Launch gate
+
+- Status: `live-source-verified-staging`
+- Release gate: `scripts/validate-product-012.js`
+- Pass existing exact-revision release gate and authoritative source smokes.
+- Measure non-credit-gated production hosting, failures, refunds and source costs.
+- Block commercial release until real margin and external demand are independently evidenced.
+

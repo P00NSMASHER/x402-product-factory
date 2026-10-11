@@ -57,7 +57,7 @@ function validateCommercialClaims(spec,number){
 function validateInputExamples(api,number){
   const allowed=new Set([
     "name","type","required","minLength","maxLength","pattern",
-    "minimum","maximum","default","comparison"
+    "minimum","maximum","default","comparison","enum"
   ]);
   const grouped=[];
   for(const input of api.inputs){
@@ -95,6 +95,12 @@ function validateInputExamples(api,number){
     if(input.minimum!==undefined&&input.maximum!==undefined){
       must(input.minimum<=input.maximum,"inverted numeric bounds for "+number);
     }
+    if(input.enum!==undefined){
+      must(input.type==="string"&&Array.isArray(input.enum)&&input.enum.length>=1&&
+        input.enum.length<=20&&input.enum.every(v=>typeof v==="string"&&v.length>=1&&v.length<=128)&&
+        new Set(input.enum).size===input.enum.length,
+        "invalid enum for "+number);
+    }
     if(input.comparison!==undefined){
       must(input.type==="string"&&input.comparison==="exact_case_normalized",
         "unsupported comparison rule for "+number);
@@ -115,6 +121,9 @@ function validateInputExamples(api,number){
       }else if(input.type==="boolean"){
         must(typeof value==="boolean",kind+" must be boolean for "+number);
       }
+      if(input.enum!==undefined){
+        must(input.enum.includes(value),kind+" violates enum for "+number);
+      }
     };
     if(Object.hasOwn(input,"default"))checkValue(input.default,"default");
     if(Object.hasOwn(api.example_query,input.name)){
@@ -122,6 +131,55 @@ function validateInputExamples(api,number){
     }else if(input.required===true){
       invalid("required example input missing for "+number+": "+input.name);
     }
+  }
+  if(api.payment_example_query!==undefined){
+    const payment=api.payment_example_query;
+    must(payment&&typeof payment==="object"&&!Array.isArray(payment),
+      "invalid payment example query for "+number);
+    const byName=new Map(api.inputs.map(input=>[input.name,input]));
+    for(const [name,value] of Object.entries(payment)){
+      const input=byName.get(name);
+      must(input,"undeclared payment example input for "+number);
+      must(["string","number","boolean"].includes(typeof value),
+        "invalid payment example value for "+number);
+      if(Object.hasOwn(api.example_query,name)){
+        must(String(api.example_query[name])===String(value),
+          "payment example differs from API example for "+number);
+      }
+      let typed=value;
+      if(input.type==="number"||input.type==="integer"){
+        must(typeof value==="number"||
+          (typeof value==="string"&&/^\d+(?:\.\d+)?$/.test(value)),
+          "invalid payment numeric example for "+number);
+        typed=Number(value);
+        must(Number.isFinite(typed)&&
+          (input.type!=="integer"||Number.isSafeInteger(typed))&&
+          (input.minimum===undefined||typed>=input.minimum)&&
+          (input.maximum===undefined||typed<=input.maximum),
+          "payment example violates numeric input bounds for "+number);
+      }else if(input.type==="string"){
+        must(typeof typed==="string"&&
+          (input.minLength===undefined||typed.length>=input.minLength)&&
+          (input.maxLength===undefined||typed.length<=input.maxLength)&&
+          (input.pattern===undefined||new RegExp(input.pattern).test(typed))&&
+          (input.enum===undefined||input.enum.includes(typed)),
+          "payment example violates string input constraints for "+number);
+      }else{
+        must(typeof typed==="boolean","payment example must be boolean for "+number);
+      }
+    }
+    for(const name of Object.keys(api.example_query)){
+      must(Object.hasOwn(payment,name),"payment example missing API example for "+number);
+    }
+  }
+  if(api.payment_example_output!==undefined){
+    const output=api.payment_example_output;
+    must(output&&typeof output==="object"&&!Array.isArray(output)&&
+      output.paid===true&&api.outputs.decisions.includes(output.decision)&&
+      Object.keys(output).every(k=>api.outputs.fields.includes(k))&&
+      Object.values(output).every(v=>["string","boolean","number"].includes(typeof v)&&
+        (typeof v!=="number"||Number.isFinite(v))),
+      "invalid payment output example for "+number);
   }
   if(grouped.length){
     must(grouped.sort().join(",")==="cik,ticker"&&

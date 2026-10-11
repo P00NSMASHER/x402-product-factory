@@ -9,7 +9,12 @@ const SERVICE_MODULES=Object.freeze({
   "pa-business-address-match":require("../products/pa-business-address-match/service"),
   "pa-business-domain-match":require("../products/pa-business-domain-match/service"),
   "sec-filing-freshness":require("../products/sec-filing-freshness/service"),
-  "domain-registration-age":require("../products/domain-registration-age/service")
+  "domain-registration-age":require("../products/domain-registration-age/service"),
+  "treasury-average-rate-threshold":require("../products/treasury-average-rate-threshold/service"),
+  "ofac-name-review-gate":require("../products/ofac-name-review-gate/service"),
+  "pa-business-formation-age":require("../products/pa-business-formation-age/service"),
+  "domain-expiration-horizon":require("../products/domain-expiration-horizon/service"),
+  "domain-last-changed-recency":require("../products/domain-last-changed-recency/service")
 });
 
 const VALIDATORS=Object.freeze({
@@ -17,7 +22,12 @@ const VALIDATORS=Object.freeze({
   "pa-business-address-match":SERVICE_MODULES["pa-business-address-match"]["validateBusinessAddressInput"],
   "pa-business-domain-match":SERVICE_MODULES["pa-business-domain-match"]["validateBusinessDomainInput"],
   "sec-filing-freshness":SERVICE_MODULES["sec-filing-freshness"]["validateFilingFreshnessInput"],
-  "domain-registration-age":SERVICE_MODULES["domain-registration-age"]["validateDomainAgeInput"]
+  "domain-registration-age":SERVICE_MODULES["domain-registration-age"]["validateDomainAgeInput"],
+  "treasury-average-rate-threshold":SERVICE_MODULES["treasury-average-rate-threshold"]["validateTreasuryThresholdInput"],
+  "ofac-name-review-gate":SERVICE_MODULES["ofac-name-review-gate"]["validateOfacInput"],
+  "pa-business-formation-age":SERVICE_MODULES["pa-business-formation-age"]["validateFormationAgeInput"],
+  "domain-expiration-horizon":SERVICE_MODULES["domain-expiration-horizon"]["validateExpirationInput"],
+  "domain-last-changed-recency":SERVICE_MODULES["domain-last-changed-recency"]["validateRecencyInput"]
 });
 
 function moduleFor(productId){
@@ -43,7 +53,12 @@ const PAID_HANDLER_MODULES=Object.freeze({
   "pa-business-address-match":moduleFor("pa-business-address-match"),
   "pa-business-domain-match":moduleFor("pa-business-domain-match"),
   "sec-filing-freshness":moduleFor("sec-filing-freshness"),
-  "domain-registration-age":moduleFor("domain-registration-age")
+  "domain-registration-age":moduleFor("domain-registration-age"),
+  "treasury-average-rate-threshold":moduleFor("treasury-average-rate-threshold"),
+  "ofac-name-review-gate":moduleFor("ofac-name-review-gate"),
+  "pa-business-formation-age":moduleFor("pa-business-formation-age"),
+  "domain-expiration-horizon":moduleFor("domain-expiration-horizon"),
+  "domain-last-changed-recency":moduleFor("domain-last-changed-recency")
 });
 
 module.exports={SERVICE_MODULES,VALIDATORS,moduleFor,PAID_HANDLER_MODULES};
