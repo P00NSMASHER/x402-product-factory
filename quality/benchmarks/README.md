@@ -86,6 +86,14 @@ The generated report and the benchmark suite are gated in CI. The existing produ
 
 Run `node quality/benchmarks/018-runtime-canary.js --check` for a machine-readable **observed synthetic** readiness report. This is a deterministic CI test of the assembled *draft runtime*, not an independent live source probe, real payment, actual facilitator receipt or release approval. All real-money/user-evidence gates remain HOLD.
 
+### Product 018 read-only live-provider compatibility check
+
+The [public source contract probe](018_LIVE_SOURCE_READINESS.md) uses the exact Pennsylvania business-registry, OFAC SDN and IANA/Verisign RDAP **adapters** from the repository. Its query is pinned to one previously public Pennsylvania company test identity and IANA's reserved `example.com` domain. It cannot be directed to private buyer names, vendor data, payment URLs or arbitrary hosts, and blocks POST, credentials and all redirects except the exact-file signed public OFAC GovCloud publication redirect with a strict host/path/TTL policy.
+
+A separate [GitHub Actions source smoke](../../.github/workflows/factory-018-live-source-smoke.yml) runs a **real, non-payment, read-only** compatibility check when these probe files change in a PR. The probe prints only status, timestamps, fixed public host labels and request counts. Any unavailable/mismatching official source produces a **HOLD** status rather than silently implying launch readiness. Provider-reported Last-Modified (when available) is just metadata, not cryptographic freshness proof.
+
+Run `node --test quality/benchmarks/018-live-source-probe.test.js` for deterministic injected-source regression checks. Use `node quality/benchmarks/018-live-source-probe.js --probe-live` only in an authorized network environment; this command performs bounded **public GETs only**, never any payment or external buyer operation. A passing source smoke still leaves real payment reconciliation, customer demand and current costs unverified.
+
 ### Test and release barriers
 
 The unchanged Factory product CI continues to run every existing staging release gate and all discovered tests, plus deterministic `--check` gates for these artifacts. Tests include tampered artifacts, unauthorized Product 025+ assertions, partial/private evidence input, inconsistent price arithmetic, duplicate trial entries, and fake approvals.

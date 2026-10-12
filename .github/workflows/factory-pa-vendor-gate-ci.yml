@@ -83,6 +83,9 @@ jobs:
       - name: Product 018 end-to-end mocked release acceptance
         run: node quality/benchmarks/018-runtime-canary.js --check
 
+      - name: Assert Product 018 public source read-only policy (in-memory only)
+        run: node --test quality/benchmarks/018-live-source-probe.test.js
+
       - name: Run every staging product release gate
         run: node scripts/run-release-gates.js
 
