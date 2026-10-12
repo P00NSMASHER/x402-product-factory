@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "repository": "P00NSMASHER/x402-product-factory",
+  "default_branch": "main",
+  "evaluation_scope": "UPSTREAM_DRAFT_PR_STACK_ONLY",
+  "invariant": "NO_AUTOMATED_MERGE_DEPLOY_OR_COMMERCIAL_RELEASE",
+  "chain": [
+    {
+      "number": 2,
+      "head_ref": "factory/product-specs-v1-20261002",
+      "base_ref": "main",
+      "pinned_head_sha": "ba5c289563ee3ef45f1ea3087b32c931e3020b98",
+      "required_workflows": [
+        "Factory product CI"
+      ]
+    },
+    {
+      "number": 5,
+      "head_ref": "factory/quality-lab-v1-20261011",
+      "base_ref": "factory/product-specs-v1-20261002",
+      "pinned_head_sha": "2ce50c4cbe4af6093a5a6262dee9fd31933026d3",
+      "required_workflows": [
+        "Factory product CI"
+      ]
+    },
+    {
+      "number": 6,
+      "head_ref": "factory/benchmark-and-cost-frontier-v1-20261011",
+      "base_ref": "factory/quality-lab-v1-20261011",
+      "pinned_head_sha": "86a41591264f400e196a119fbfd8906b1e36e4d3",
+      "required_workflows": [
+        "Factory product CI"
+      ]
+    },
+    {
+      "number": 7,
+      "head_ref": "factory/decision-quality-oracle-v1-20261012",
+      "base_ref": "factory/benchmark-and-cost-frontier-v1-20261011",
+      "pinned_head_sha": "3358d559ea7bab5263038e4c77810acdd8767a56",
+      "required_workflows": [
+        "Factory product CI"
+      ]
+    },
+    {
+      "number": 8,
+      "head_ref": "factory/018-evidence-contract-audit-v2-20261012",
+      "base_ref": "factory/decision-quality-oracle-v1-20261012",
+      "pinned_head_sha": "7853bb1b4d179ad85cf0bced95f43b0b0b0b92d3",
+      "required_workflows": [
+        "Factory product CI"
+      ]
+    },
+    {
+      "number": 9,
+      "head_ref": "factory/018-settlement-safe-evidence-gate-20261012",
+      "base_ref": "factory/018-evidence-contract-audit-v2-20261012",
+      "pinned_head_sha": "01e441603fa7a128b0de79b55216f7c9f33573a2",
+      "required_workflows": [
+        "Factory product CI"
+      ]
+    },
+    {
+      "number": 11,
+      "head_ref": "factory/018-predeploy-e2e-gate-20261012",
+      "base_ref": "factory/018-settlement-safe-evidence-gate-20261012",
+      "pinned_head_sha": "909df1a7e681ae32e56b90569f2b69aa288db2db",
+      "required_workflows": [
+        "Factory product CI"
+      ]
+    },
+    {
+      "number": 13,
+      "head_ref": "factory/018-readonly-live-source-readiness-20261012",
+      "base_ref": "factory/018-predeploy-e2e-gate-20261012",
+      "pinned_head_sha": "c398d6f93c09eaf446b24af9991bbe3f164f86e7",
+      "required_workflows": [
+        "Factory product CI",
+        "Factory 018 public source compatibility"
+      ]
+    },
+    {
+      "number": 14,
+      "head_ref": "factory/018-public-source-drift-watch-20261012",
+      "base_ref": "factory/018-readonly-live-source-readiness-20261012",
+      "pinned_head_sha": "fc7079ac215d699479162e868550f172798ecd24",
+      "required_workflows": [
+        "Factory product CI",
+        "Factory 018 public source compatibility"
+      ]
+    }
+  ],
+  "external_release_evidence": {
+    "independent_external_buyer_validation": null,
+    "independently_heldout_product_018_decision_accuracy": null,
+    "actual_reconciled_facilitator_settlement": null,
+    "actual_upstream_hosting_refund_unit_economics": null,
+    "independent_security_privacy_review": null,
+    "human_production_release_approval": null,
+    "product_025_unlock": false
+  }
+}

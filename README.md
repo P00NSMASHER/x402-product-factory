@@ -12,6 +12,10 @@ The draft [Quality Lab](quality/README.md) adds **all-22-product scorecards**, f
 
 The lab is an **offline precommercial review layer**, not a new pricing, billing, auto-launch, or Product 025+ creation system. Improvements to products 007, 018 and 024 are hypotheses awaiting real buyer/ground-truth comparison, not modifications of live product decision logic.
 
+## Release-chain integrity — draft stack governance
+
+The [release-chain gate](quality/governance/README.md) audits the **nine dependent draft PRs** underpinning Product Factory Quality Lab and Product 018 source monitoring. It pins exact reviewed commit SHAs, checks GitHub PR head/base refs and actual commit ancestry, requires passing **exact-head** factory CI (plus live-source compatibility on PRs #13–14), and flags merge conflicts or unexpected branch changes. It cannot auto-merge, deploy, submit payments, authorize Product 025+, or convert synthetic quality results into independent buyer/finance/legal approval.
+
 ## Current portfolio
 
 | # | Product | Status | Route | Price |
