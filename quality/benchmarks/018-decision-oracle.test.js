@@ -5,9 +5,9 @@ const oracle=require("./018-decision-oracle");
 const {assessCounterpartyReview}=require("../../products/pa-vendor-counterparty-review/decision");
 const {assessHardenedCounterparty}=require("./018-hardened-decision");
 
-test("30 declared oracle cases exercise Product 018 evidence-quality invariants",()=>{
+test("source-audited oracle cases exercise Product 018 evidence-quality invariants",()=>{
   const r=oracle.buildReport();
-  assert.equal(r.scenario_count,30);
+  assert.ok(r.scenario_count>=35);
   assert.equal(r.candidate_synthetic_label_matches,r.scenario_count);
   assert.equal(r.candidate_false_proceed_synthetic_cases,0);
   assert.ok(r.raw_baseline_false_proceed_synthetic_cases>=3);
@@ -21,10 +21,19 @@ test("real baseline is evaluated directly and never upgraded silently",()=>{
   assert.equal(assessCounterpartyReview(clean,{now:oracle.NOW}).decision,"proceed");
   const ambiguous=structuredClone(clean);
   ambiguous.registry.candidateCount=2;
+  ambiguous.registry.strongCandidateCount=2;
   assert.equal(assessCounterpartyReview(ambiguous,{now:oracle.NOW}).decision,"proceed");
   const candidate=assessHardenedCounterparty(ambiguous,{now:oracle.NOW});
   assert.equal(candidate.decision,"human_review");
-  assert.ok(candidate.reasonCodes.includes("PA_REGISTRY_CARDINALITY_INCONSISTENT"));
+  assert.ok(candidate.reasonCodes.includes("PA_REGISTRY_STRONG_MATCH_INCONSISTENT"));
+});
+test("multiple ranked PA search results with exactly one strong match remain eligible",()=>{
+  for(const count of [2,3]){
+    const valid=structuredClone(oracle.BASE);
+    valid.registry.candidateCount=count;
+    valid.registry.strongCandidateCount=1;
+    assert.equal(assessHardenedCounterparty(valid,{now:oracle.NOW}).decision,"proceed");
+  }
 });
 test("label and timestamp manipulation cannot fake passing benchmark",()=>{
   const original=oracle.CASES[0].expected_decision;
