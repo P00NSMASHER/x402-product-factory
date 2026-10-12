@@ -2,10 +2,10 @@
   "schema_version": 1,
   "report_type": "SYNTHETIC_DECISION_ORACLE_NOT_INDEPENDENT_REAL_WORLD_GROUND_TRUTH",
   "product_number": "018",
-  "scenario_count": 30,
-  "baseline_synthetic_label_matches": 19,
-  "candidate_synthetic_label_matches": 30,
-  "raw_baseline_false_proceed_synthetic_cases": 11,
+  "scenario_count": 40,
+  "baseline_synthetic_label_matches": 22,
+  "candidate_synthetic_label_matches": 40,
+  "raw_baseline_false_proceed_synthetic_cases": 18,
   "candidate_false_proceed_synthetic_cases": 0,
   "current_live_product_modified": false,
   "legal_compliance_or_sanctions_clearance_established": false,
@@ -65,7 +65,9 @@
       "candidate_reason_satisfies_oracle": true,
       "baseline_false_proceed_on_synthetic_gold": false,
       "candidate_false_proceed_on_synthetic_gold": false,
-      "candidate_contract_issue_codes": []
+      "candidate_contract_issue_codes": [
+        "OFAC_SCREEN_CONTEXT_INCONSISTENT"
+      ]
     },
     {
       "id": "registry_ambiguous",
@@ -104,10 +106,53 @@
       "candidate_reason_satisfies_oracle": true,
       "baseline_false_proceed_on_synthetic_gold": false,
       "candidate_false_proceed_on_synthetic_gold": false,
-      "candidate_contract_issue_codes": []
+      "candidate_contract_issue_codes": [
+        "OFAC_SCREEN_CONTEXT_INCONSISTENT"
+      ]
     },
     {
       "id": "registry_two_strong_candidates",
+      "predeclared_synthetic_expected_decision": "human_review",
+      "expected_reason_code": "PA_REGISTRY_STRONG_MATCH_INCONSISTENT",
+      "baseline_decision": "proceed",
+      "candidate_decision": "human_review",
+      "baseline_matches_synthetic_gold": false,
+      "candidate_matches_synthetic_gold": true,
+      "candidate_reason_satisfies_oracle": true,
+      "baseline_false_proceed_on_synthetic_gold": true,
+      "candidate_false_proceed_on_synthetic_gold": false,
+      "candidate_contract_issue_codes": [
+        "PA_REGISTRY_STRONG_MATCH_INCONSISTENT"
+      ]
+    },
+    {
+      "id": "registry_two_ranked_one_strong_valid",
+      "predeclared_synthetic_expected_decision": "proceed",
+      "expected_reason_code": null,
+      "baseline_decision": "proceed",
+      "candidate_decision": "proceed",
+      "baseline_matches_synthetic_gold": true,
+      "candidate_matches_synthetic_gold": true,
+      "candidate_reason_satisfies_oracle": true,
+      "baseline_false_proceed_on_synthetic_gold": false,
+      "candidate_false_proceed_on_synthetic_gold": false,
+      "candidate_contract_issue_codes": []
+    },
+    {
+      "id": "registry_three_ranked_one_strong_valid",
+      "predeclared_synthetic_expected_decision": "proceed",
+      "expected_reason_code": null,
+      "baseline_decision": "proceed",
+      "candidate_decision": "proceed",
+      "baseline_matches_synthetic_gold": true,
+      "candidate_matches_synthetic_gold": true,
+      "candidate_reason_satisfies_oracle": true,
+      "baseline_false_proceed_on_synthetic_gold": false,
+      "candidate_false_proceed_on_synthetic_gold": false,
+      "candidate_contract_issue_codes": []
+    },
+    {
+      "id": "registry_ranked_overflow",
       "predeclared_synthetic_expected_decision": "human_review",
       "expected_reason_code": "PA_REGISTRY_CARDINALITY_INCONSISTENT",
       "baseline_decision": "proceed",
@@ -119,6 +164,36 @@
       "candidate_false_proceed_on_synthetic_gold": false,
       "candidate_contract_issue_codes": [
         "PA_REGISTRY_CARDINALITY_INCONSISTENT"
+      ]
+    },
+    {
+      "id": "registry_strong_count_missing",
+      "predeclared_synthetic_expected_decision": "human_review",
+      "expected_reason_code": "PA_REGISTRY_STRONG_MATCH_INCONSISTENT",
+      "baseline_decision": "proceed",
+      "candidate_decision": "human_review",
+      "baseline_matches_synthetic_gold": false,
+      "candidate_matches_synthetic_gold": true,
+      "candidate_reason_satisfies_oracle": true,
+      "baseline_false_proceed_on_synthetic_gold": true,
+      "candidate_false_proceed_on_synthetic_gold": false,
+      "candidate_contract_issue_codes": [
+        "PA_REGISTRY_STRONG_MATCH_INCONSISTENT"
+      ]
+    },
+    {
+      "id": "registry_unverified_identity_complete",
+      "predeclared_synthetic_expected_decision": "human_review",
+      "expected_reason_code": "PA_REGISTRY_STRONG_MATCH_INCONSISTENT",
+      "baseline_decision": "proceed",
+      "candidate_decision": "human_review",
+      "baseline_matches_synthetic_gold": false,
+      "candidate_matches_synthetic_gold": true,
+      "candidate_reason_satisfies_oracle": true,
+      "baseline_false_proceed_on_synthetic_gold": true,
+      "candidate_false_proceed_on_synthetic_gold": false,
+      "candidate_contract_issue_codes": [
+        "PA_REGISTRY_STRONG_MATCH_INCONSISTENT"
       ]
     },
     {
@@ -133,7 +208,8 @@
       "baseline_false_proceed_on_synthetic_gold": true,
       "candidate_false_proceed_on_synthetic_gold": false,
       "candidate_contract_issue_codes": [
-        "PA_REGISTRY_CARDINALITY_INCONSISTENT"
+        "PA_REGISTRY_CARDINALITY_INCONSISTENT",
+        "PA_REGISTRY_STRONG_MATCH_INCONSISTENT"
       ]
     },
     {
@@ -148,7 +224,8 @@
       "baseline_false_proceed_on_synthetic_gold": true,
       "candidate_false_proceed_on_synthetic_gold": false,
       "candidate_contract_issue_codes": [
-        "PA_REGISTRY_CARDINALITY_INCONSISTENT"
+        "PA_REGISTRY_CARDINALITY_INCONSISTENT",
+        "PA_REGISTRY_STRONG_MATCH_INCONSISTENT"
       ]
     },
     {
@@ -195,7 +272,7 @@
     {
       "id": "ofac_total_positive_candidates_empty",
       "predeclared_synthetic_expected_decision": "human_review",
-      "expected_reason_code": "OFAC_CANDIDATE_REQUIRES_REVIEW",
+      "expected_reason_code": "OFAC_CANDIDATE_COUNTS_INCONSISTENT",
       "baseline_decision": "human_review",
       "candidate_decision": "human_review",
       "baseline_matches_synthetic_gold": true,
@@ -203,7 +280,9 @@
       "candidate_reason_satisfies_oracle": true,
       "baseline_false_proceed_on_synthetic_gold": false,
       "candidate_false_proceed_on_synthetic_gold": false,
-      "candidate_contract_issue_codes": []
+      "candidate_contract_issue_codes": [
+        "OFAC_CANDIDATE_COUNTS_INCONSISTENT"
+      ]
     },
     {
       "id": "ofac_negative_total",
@@ -281,6 +360,64 @@
       ]
     },
     {
+      "id": "ofac_wrong_entity_screened",
+      "predeclared_synthetic_expected_decision": "human_review",
+      "expected_reason_code": "OFAC_SCREEN_CONTEXT_INCONSISTENT",
+      "baseline_decision": "proceed",
+      "candidate_decision": "human_review",
+      "baseline_matches_synthetic_gold": false,
+      "candidate_matches_synthetic_gold": true,
+      "candidate_reason_satisfies_oracle": true,
+      "baseline_false_proceed_on_synthetic_gold": true,
+      "candidate_false_proceed_on_synthetic_gold": false,
+      "candidate_contract_issue_codes": [
+        "OFAC_SCREEN_CONTEXT_INCONSISTENT"
+      ]
+    },
+    {
+      "id": "ofac_wrong_threshold_screened",
+      "predeclared_synthetic_expected_decision": "human_review",
+      "expected_reason_code": "OFAC_SCREEN_CONTEXT_INCONSISTENT",
+      "baseline_decision": "proceed",
+      "candidate_decision": "human_review",
+      "baseline_matches_synthetic_gold": false,
+      "candidate_matches_synthetic_gold": true,
+      "candidate_reason_satisfies_oracle": true,
+      "baseline_false_proceed_on_synthetic_gold": true,
+      "candidate_false_proceed_on_synthetic_gold": false,
+      "candidate_contract_issue_codes": [
+        "OFAC_SCREEN_CONTEXT_INCONSISTENT"
+      ]
+    },
+    {
+      "id": "ofac_missing_screen_context",
+      "predeclared_synthetic_expected_decision": "human_review",
+      "expected_reason_code": "OFAC_SCREEN_CONTEXT_INCONSISTENT",
+      "baseline_decision": "proceed",
+      "candidate_decision": "human_review",
+      "baseline_matches_synthetic_gold": false,
+      "candidate_matches_synthetic_gold": true,
+      "candidate_reason_satisfies_oracle": true,
+      "baseline_false_proceed_on_synthetic_gold": true,
+      "candidate_false_proceed_on_synthetic_gold": false,
+      "candidate_contract_issue_codes": [
+        "OFAC_SCREEN_CONTEXT_INCONSISTENT"
+      ]
+    },
+    {
+      "id": "ofac_valid_truncated_three_of_four",
+      "predeclared_synthetic_expected_decision": "human_review",
+      "expected_reason_code": "OFAC_CANDIDATE_REQUIRES_REVIEW",
+      "baseline_decision": "human_review",
+      "candidate_decision": "human_review",
+      "baseline_matches_synthetic_gold": true,
+      "candidate_matches_synthetic_gold": true,
+      "candidate_reason_satisfies_oracle": true,
+      "baseline_false_proceed_on_synthetic_gold": false,
+      "candidate_false_proceed_on_synthetic_gold": false,
+      "candidate_contract_issue_codes": []
+    },
+    {
       "id": "rdap_unavailable",
       "predeclared_synthetic_expected_decision": "human_review",
       "expected_reason_code": "RDAP_EVIDENCE_UNAVAILABLE",
@@ -347,6 +484,21 @@
     },
     {
       "id": "domain_invalid_calendar",
+      "predeclared_synthetic_expected_decision": "human_review",
+      "expected_reason_code": "DOMAIN_REGISTRATION_DATE_INVALID",
+      "baseline_decision": "proceed",
+      "candidate_decision": "human_review",
+      "baseline_matches_synthetic_gold": false,
+      "candidate_matches_synthetic_gold": true,
+      "candidate_reason_satisfies_oracle": true,
+      "baseline_false_proceed_on_synthetic_gold": true,
+      "candidate_false_proceed_on_synthetic_gold": false,
+      "candidate_contract_issue_codes": [
+        "DOMAIN_REGISTRATION_DATE_INVALID"
+      ]
+    },
+    {
+      "id": "domain_malformed_timestamp",
       "predeclared_synthetic_expected_decision": "human_review",
       "expected_reason_code": "DOMAIN_REGISTRATION_DATE_INVALID",
       "baseline_decision": "proceed",

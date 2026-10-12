@@ -8,9 +8,9 @@ const NOW="2026-10-02T12:00:00Z";
 function simulatedAdapters(changes={}){
   const calls={registry:0,ofac:0,rdap:0};
   const responses={
-    registry:{available:true,strongMatch:true,ambiguous:false,candidateCount:1,
+    registry:{available:true,strongMatch:true,ambiguous:false,candidateCount:1,strongCandidateCount:1,identityComplete:true,matchScore:0,
       entity:{businessName:"Example LLC"}},
-    ofac:{available:true,totalCandidatesAboveThreshold:0,candidates:[]},
+    ofac:{available:true,query:"Example LLC",minScore:90,totalCandidatesAboveThreshold:0,candidates:[]},
     rdap:{available:true,registered:true,domain:"example.com",
       events:{registration:"2020-01-01T00:00:00Z"}}
   };
@@ -34,12 +34,20 @@ async function run(changes={}){
   return {actual,proposal,calls:f.calls};
 }
 test("source-contract replay catches contradictory unique-registry status",async()=>{
-  const x=await run({registry:{available:true,strongMatch:true,ambiguous:false,candidateCount:2,
+  const x=await run({registry:{available:true,strongMatch:true,ambiguous:false,candidateCount:2,strongCandidateCount:2,identityComplete:true,matchScore:0,
     entity:{businessName:"Example LLC"}}});
   assert.deepEqual(x.calls,{registry:1,ofac:1,rdap:1});
   assert.equal(x.actual.decision,"proceed"); // factual baseline finding; not approved.
   assert.equal(x.proposal.decision,"human_review");
   assert.ok(x.proposal.reasonCodes.includes("PA_REGISTRY_CARDINALITY_INCONSISTENT"));
+});
+test("adapter-consistent two ranked PA candidates with one strong match remain valid",async()=>{
+ const f=simulatedAdapters({registry:{available:true,strongMatch:true,ambiguous:false,candidateCount:2,
+    strongCandidateCount:1,identityComplete:true,matchScore:0,entity:{businessName:"Example LLC"}}});
+ const result=await createCounterpartyReviewService({...f.adapters,now:()=>NOW}).check({
+    company:"Example LLC",domain:"example.com",minScore:90,minDomainAgeDays:90
+ });
+ assert.equal(assessHardenedCounterparty(result.evidence,{now:NOW}).decision,"proceed");
 });
 test("source-contract replay catches negative OFAC candidate tally",async()=>{
   const x=await run({ofac:{available:true,totalCandidatesAboveThreshold:-1,candidates:[]}});

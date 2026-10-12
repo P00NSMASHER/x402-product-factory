@@ -60,6 +60,7 @@ jobs:
           node quality/benchmarks/018-masked-pilot.js --check
           node quality/benchmarks/cost-evidence-gate.js --check
           node quality/benchmarks/018-decision-oracle.js --check
+          node --test quality/benchmarks/018-source-contract-v2.test.js quality/benchmarks/018-source-adapter-v2.test.js
 
       - name: Validate product registry
         run: node scripts/validate-registry.js
