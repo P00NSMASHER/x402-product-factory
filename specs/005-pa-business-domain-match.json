@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "number": "005",
+  "id": "pa-business-domain-match",
+  "discovery": {
+    "operation_id": "matchPennsylvaniaBusinessDomain",
+    "service_name": "PA Business Domain Match",
+    "summary": "Check a Pennsylvania business domain against registry identity",
+    "description": "Resolve a Pennsylvania business to a unique strong registry entity and check whether the supplied registered domain plausibly aligns with the company name using authoritative RDAP. Returns match or human_review. A match is not proof of domain ownership/control, good standing, ownership, authority, fraud/sanctions/credit status, or legal compliance.",
+    "resource_description": "Check whether a supplied domain is a plausible identity match for a uniquely resolved Pennsylvania registry entity using official registry and authoritative RDAP evidence. Returns match or human_review and does not prove domain ownership, good standing, authority, fraud/sanctions/credit status, or legal compliance.",
+    "search_tags": [
+      "business-domain",
+      "vendor-identity",
+      "pennsylvania-business-registry",
+      "rdap",
+      "human-review"
+    ],
+    "openapi_tags": [
+      "Business Domain",
+      "Pennsylvania Business Registry",
+      "RDAP",
+      "Vendor Identity"
+    ]
+  },
+  "buyer": {
+    "task": "Check whether a supplied registered domain plausibly aligns with the name of a uniquely resolved Pennsylvania business entity.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure independent settled purchases and repeat buyers per product after launch; do not infer demand from tests or crawler probes."
+    }
+  },
+  "api": {
+    "method": "GET",
+    "path": "/api/pa-business-domain-match",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "required": true,
+        "minLength": 2,
+        "maxLength": 120
+      },
+      {
+        "name": "domain",
+        "type": "string",
+        "required": true,
+        "minLength": 3,
+        "maxLength": 253
+      }
+    ],
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "domain": "openai.com"
+    },
+    "outputs": {
+      "decisions": [
+        "match",
+        "human_review"
+      ],
+      "fields": [
+        "decision",
+        "reasonCodes",
+        "checks",
+        "matchedEntity",
+        "policy",
+        "checkedAt",
+        "sourceFailures",
+        "evidence",
+        "paid",
+        "price"
+      ]
+    },
+    "input_rule": null
+  },
+  "sources": [
+    {
+      "id": "pa_registry",
+      "adapter": "createPaRegistryAdapter",
+      "authority": "Pennsylvania Department of State via data.pa.gov",
+      "refresh_policy": "live lookup on each paid request",
+      "cache_policy": "none",
+      "freshness_limit_seconds": null
+    },
+    {
+      "id": "rdap",
+      "adapter": "createRdapAdapter",
+      "authority": "IANA DNS bootstrap plus authoritative registry RDAP",
+      "refresh_policy": "authoritative domain lookup on each paid request",
+      "cache_policy": "IANA bootstrap cached in memory for adapter lifetime; authoritative domain result not cached",
+      "freshness_limit_seconds": null
+    }
+  ],
+  "decision": {
+    "implementation": "products/pa-business-domain-match/decision.js",
+    "parameters": {},
+    "rules": [
+      "Require a unique strong Pennsylvania registry match.",
+      "Require authoritative RDAP to confirm the supplied domain is registered.",
+      "Require deterministic company/domain name alignment.",
+      "Return match only when all checks pass; otherwise return human_review."
+    ]
+  },
+  "failure_behavior": {
+    "invalid_input": "HTTP 400; do not settle payment.",
+    "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+    "payment_unresolved": "HTTP 503; caller should retry the same payment authorization.",
+    "automatic_reject": false
+  },
+  "economics": {
+    "price_usdc": "0.003",
+    "paid_settlement_cost_usd": "0.002310",
+    "configured_direct_source_fee_usd": "0.000000",
+    "incremental_hosting_cost_usd": null,
+    "post_allowance_margin_floor_pct": 23,
+    "target_contribution_margin_pct": 70,
+    "meets_target_before_unknown_costs": false
+  },
+  "launch": {
+    "current_status": "live-source-verified-staging",
+    "release_gate": "scripts/validate-product-005.js",
+    "criteria": [
+      "Release gate passes from the same registry revision.",
+      "Authoritative live-source smoke passes without source failures.",
+      "Shared non-credit-gated hosting is available and measured.",
+      "Commercial promotion remains blocked until complete unit economics meet the target or an explicit exception is approved."
+    ]
+  },
+  "implementation": {
+    "handler_template": "standard-x402-get-v1",
+    "service_module": "products/pa-business-domain-match/service.js",
+    "input_validator_export": "validateBusinessDomainInput"
+  }
+}

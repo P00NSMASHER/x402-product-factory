@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "number": "019",
+  "id": "pa-vendor-maturity-review",
+  "discovery": {
+    "operation_id": "reviewPennsylvaniaVendorMaturity",
+    "service_name": "PA Vendor Maturity Review",
+    "summary": "Review Pennsylvania vendor entity and domain maturity",
+    "description": "Resolve a supplied Pennsylvania company name to one unique strong Department of State legal entity, compare its formation age against minEntityAgeDays, verify the supplied domain through authoritative RDAP, require legal-name/domain alignment, and compare domain registration age against minDomainAgeDays. Returns established_vendor or human_review. Established history is a bounded maturity signal only and is not proof of legitimacy, safety, fraud risk, creditworthiness, ownership, authority, good standing, or legal compliance.",
+    "resource_description": "Resolve a Pennsylvania vendor to a unique legal entity, compare entity formation age and legal-name-aligned authoritative domain registration age against caller thresholds, and return established_vendor or human_review. This is a maturity/history workflow signal, not proof of legitimacy, safety, fraud risk, creditworthiness, ownership, authority, or legal compliance.",
+    "search_tags": [
+      "vendor-intake",
+      "vendor-maturity",
+      "pennsylvania-business-registry",
+      "formation-age",
+      "domain-age"
+    ],
+    "openapi_tags": [
+      "Vendor Maturity",
+      "Pennsylvania Business Registry",
+      "Formation Age",
+      "Domain Age",
+      "RDAP",
+      "Human Review"
+    ]
+  },
+  "buyer": {
+    "task": "Review whether a prospective Pennsylvania vendor has both an established legal-entity history and an established legal-name-aligned domain history before an automated workflow continues.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure independently verified external settled purchases and repeat demand; do not treat synthetic fixtures, public discovery or HTTP 200 as sales."
+    }
+  },
+  "api": {
+    "method": "GET",
+    "path": "/api/pa-vendor-maturity-review",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "name": "domain",
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253,
+        "required": true
+      },
+      {
+        "name": "minEntityAgeDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 36500,
+        "default": 30,
+        "required": false
+      },
+      {
+        "name": "minDomainAgeDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 90,
+        "required": false
+      }
+    ],
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "domain": "openai.com",
+      "minEntityAgeDays": 30,
+      "minDomainAgeDays": 90
+    },
+    "payment_example_query": {
+      "company": "OpenAI OpCo",
+      "domain": "openai.com",
+      "minEntityAgeDays": "30",
+      "minDomainAgeDays": "90"
+    },
+    "payment_example_output": {
+      "decision": "established_vendor",
+      "entityAgeDays": 368,
+      "domainAgeDays": 7196,
+      "paid": true
+    },
+    "outputs": {
+      "decisions": [
+        "established_vendor",
+        "human_review"
+      ],
+      "fields": [
+        "decision",
+        "reasonCodes",
+        "matchedEntity",
+        "resolvedLegalName",
+        "entityAgeDays",
+        "minEntityAgeDays",
+        "domain",
+        "domainAgeDays",
+        "minDomainAgeDays",
+        "limitations",
+        "checkedAt",
+        "input",
+        "sourceFailures",
+        "evidence",
+        "chargeable",
+        "paid",
+        "price"
+      ]
+    },
+    "input_rule": null
+  },
+  "sources": [
+    {
+      "id": "pa_registry",
+      "adapter": "createPaRegistryAdapter",
+      "authority": "Pennsylvania Department of State via data.pa.gov",
+      "refresh_policy": "live lookup on each paid request",
+      "cache_policy": "none",
+      "freshness_limit_seconds": null
+    },
+    {
+      "id": "rdap",
+      "adapter": "createRdapAdapter",
+      "authority": "IANA DNS bootstrap plus authoritative registry RDAP",
+      "refresh_policy": "authoritative domain lookup on each paid request",
+      "cache_policy": "IANA bootstrap cached in memory for adapter lifetime; authoritative domain result not cached",
+      "freshness_limit_seconds": null
+    }
+  ],
+  "decision": {
+    "implementation": "products/pa-vendor-maturity-review/decision.js",
+    "parameters": {
+      "minEntityAgeDays": {
+        "default": 30,
+        "minimum": 1,
+        "maximum": 36500
+      },
+      "minDomainAgeDays": {
+        "default": 90,
+        "minimum": 1,
+        "maximum": 3650
+      }
+    },
+    "rules": [
+      "Require one strong unique PA entity with usable creation date at least minEntityAgeDays old.",
+      "Require authoritative RDAP registered domain aligned to resolved legal name and registered at least minDomainAgeDays ago.",
+      "Missing or young entity/domain records require human_review and do not establish fraud or safety.",
+      "established_vendor is a maturity/history workflow signal only",
+      "entity age does not establish current good standing, ownership, authority, legitimacy, creditworthiness, or legal compliance",
+      "domain age and legal-name alignment do not prove domain ownership or control",
+      "older entity/domain history is not proof a vendor is safe or trustworthy",
+      "recent entity or domain registration is a review signal, not proof of fraud"
+    ]
+  },
+  "failure_behavior": {
+    "invalid_input": "HTTP 400; do not settle payment.",
+    "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+    "payment_unresolved": "HTTP 503; retry the same authorization.",
+    "automatic_reject": false
+  },
+  "economics": {
+    "price_usdc": "0.007",
+    "paid_settlement_cost_usd": "0.002310",
+    "configured_direct_source_fee_usd": "0.000000",
+    "incremental_hosting_cost_usd": null,
+    "post_allowance_margin_floor_pct": 67,
+    "target_contribution_margin_pct": 70,
+    "meets_target_before_unknown_costs": false
+  },
+  "launch": {
+    "current_status": "live-source-verified-staging",
+    "release_gate": "scripts/validate-product-019.js",
+    "criteria": [
+      "Existing exact-revision release gate and deterministic tests must pass before a reviewed deployment.",
+      "Independently verify authoritative-source availability, payment identity, and current facilitator fee/allowance terms.",
+      "Commercial release remains blocked until true hosting/source/refund economics and independently verified customer demand are established."
+    ]
+  },
+  "implementation": {
+    "handler_template": "standard-x402-get-v1",
+    "service_module": "products/pa-vendor-maturity-review/service.js",
+    "input_validator_export": "validateVendorMaturityInput"
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "number": "008",
+  "id": "treasury-average-rate-threshold",
+  "discovery": {
+    "operation_id": "checkTreasuryAverageRateThreshold",
+    "service_name": "Treasury Average Rate Threshold Check",
+    "summary": "Compare a Treasury average rate with a threshold",
+    "description": "Select exactly one latest monthly Treasury average-interest-rate category from the official Fiscal Data dataset and compare its weighted-average rate on outstanding debt with a caller threshold. Returns threshold_met, threshold_not_met, or human_review for missing/ambiguous data. These are monthly averages on outstanding debt, not live market yields or rates for a specific new issuance.",
+    "resource_description": "Compare the latest official monthly weighted-average interest rate for one U.S. Treasury security category to a caller threshold. Returns threshold_met, threshold_not_met, or human_review. This is not a live market yield, forecast, or investment recommendation.",
+    "search_tags": [
+      "treasury",
+      "interest-rates",
+      "threshold",
+      "macro",
+      "government-data"
+    ],
+    "openapi_tags": [
+      "Treasury",
+      "Interest Rates",
+      "Threshold",
+      "Macro"
+    ]
+  },
+  "buyer": {
+    "task": "Compare the latest official monthly weighted-average interest rate for one Treasury security category to a caller threshold.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure only independently verified external settled purchases, not HTTP 200 responses, probes or tests."
+    }
+  },
+  "api": {
+    "method": "GET",
+    "path": "/api/treasury-average-rate-threshold",
+    "inputs": [
+      {
+        "name": "security",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 100,
+        "required": true
+      },
+      {
+        "name": "thresholdPercent",
+        "type": "number",
+        "minimum": 0,
+        "maximum": 100,
+        "required": true
+      },
+      {
+        "name": "operator",
+        "type": "string",
+        "enum": [
+          "gte",
+          "lte"
+        ],
+        "default": "gte",
+        "required": false
+      }
+    ],
+    "example_query": {
+      "security": "Total Marketable",
+      "thresholdPercent": 4
+    },
+    "payment_example_query": {
+      "security": "Total Marketable",
+      "thresholdPercent": "4",
+      "operator": "gte"
+    },
+    "outputs": {
+      "decisions": [
+        "threshold_met",
+        "threshold_not_met",
+        "human_review"
+      ],
+      "fields": [
+        "decision",
+        "reasonCodes",
+        "thresholdPercent",
+        "operator",
+        "recordDate",
+        "selectedRate",
+        "ratePercent",
+        "checkedAt",
+        "input",
+        "sourceFailures",
+        "evidence",
+        "chargeable",
+        "paid",
+        "price"
+      ]
+    },
+    "input_rule": null
+  },
+  "sources": [
+    {
+      "id": "treasury_fiscal_data",
+      "adapter": "createTreasuryAverageRatesAdapter",
+      "authority": "U.S. Treasury Fiscal Data monthly Average Interest Rates on U.S. Treasury Securities",
+      "refresh_policy": "authoritative source lookup on each paid request, subject to adapter caching behavior",
+      "cache_policy": "source-specific adapter caching; no new cache introduced by spec",
+      "freshness_limit_seconds": null
+    }
+  ],
+  "decision": {
+    "implementation": "products/treasury-average-rate-threshold/decision.js",
+    "parameters": {
+      "thresholdPercent": {
+        "minimum": 0,
+        "maximum": 100
+      },
+      "operator": {
+        "default": "gte",
+        "allowed": [
+          "gte",
+          "lte"
+        ]
+      }
+    },
+    "rules": [
+      "Require one unambiguous latest Treasury security category record with its published weighted-average rate.",
+      "Compare ratePercent to thresholdPercent with operator gte/lte; it is not a live market yield.",
+      "the source is the monthly weighted average interest rate on outstanding Treasury securities",
+      "the result is not a live Treasury market yield",
+      "the result is not a forecast or investment recommendation",
+      "the result does not represent the rate on a specific new Treasury issuance"
+    ]
+  },
+  "failure_behavior": {
+    "invalid_input": "HTTP 400; payment is not settled.",
+    "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+    "payment_unresolved": "HTTP 503; retry the same payment authorization.",
+    "automatic_reject": false
+  },
+  "economics": {
+    "price_usdc": "0.003",
+    "paid_settlement_cost_usd": "0.002310",
+    "configured_direct_source_fee_usd": "0.000000",
+    "incremental_hosting_cost_usd": null,
+    "post_allowance_margin_floor_pct": 23,
+    "target_contribution_margin_pct": 70,
+    "meets_target_before_unknown_costs": false
+  },
+  "launch": {
+    "current_status": "live-source-verified-staging",
+    "release_gate": "scripts/validate-product-008.js",
+    "criteria": [
+      "Pass existing exact-revision release gate and authoritative source smokes.",
+      "Measure non-credit-gated production hosting, failures, refunds and source costs.",
+      "Block commercial release until real margin and external demand are independently evidenced."
+    ]
+  },
+  "implementation": {
+    "handler_template": "standard-x402-get-v1",
+    "service_module": "products/treasury-average-rate-threshold/service.js",
+    "input_validator_export": "validateTreasuryThresholdInput"
+  }
+}

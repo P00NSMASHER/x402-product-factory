@@ -1,0 +1,979 @@
+{
+  "schema_version": 1,
+  "products": [
+    {
+      "number": "003",
+      "id": "pa-vendor-identity-match",
+      "buyer_task": "Determine whether a prospective Pennsylvania vendor's submitted company name, address, and domain are mutually consistent with authoritative public identity evidence.",
+      "operation_id": "matchPennsylvaniaVendorIdentity",
+      "service_name": "PA Vendor Identity Match",
+      "search_tags": [
+        "vendor-identity",
+        "company-identity",
+        "pennsylvania-business-registry",
+        "census-geocoder",
+        "rdap"
+      ],
+      "method": "GET",
+      "path": "/api/pa-vendor-identity-match",
+      "price_usdc": "0.005",
+      "decisions": [
+        "consistent",
+        "human_review"
+      ],
+      "source_ids": [
+        "pa_registry",
+        "census_address",
+        "rdap"
+      ],
+      "decision_implementation": "products/pa-vendor-identity-match/decision.js",
+      "decision_parameters": {
+        "censusMaxDistanceMiles": 0.25
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; do not settle payment.",
+        "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+        "payment_unresolved": "HTTP 503; caller should retry the same payment authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-003.js"
+      }
+    },
+    {
+      "number": "004",
+      "id": "pa-business-address-match",
+      "buyer_task": "Check whether a submitted Pennsylvania business address is consistent with the address of a uniquely resolved Pennsylvania registry entity.",
+      "operation_id": "matchPennsylvaniaBusinessAddress",
+      "service_name": "PA Business Address Match",
+      "search_tags": [
+        "business-address",
+        "vendor-identity",
+        "pennsylvania-business-registry",
+        "census-geocoder",
+        "human-review"
+      ],
+      "method": "GET",
+      "path": "/api/pa-business-address-match",
+      "price_usdc": "0.003",
+      "decisions": [
+        "match",
+        "human_review"
+      ],
+      "source_ids": [
+        "pa_registry",
+        "census_address"
+      ],
+      "decision_implementation": "products/pa-business-address-match/decision.js",
+      "decision_parameters": {
+        "censusMaxDistanceMiles": 0.25
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; do not settle payment.",
+        "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+        "payment_unresolved": "HTTP 503; caller should retry the same payment authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-004.js"
+      }
+    },
+    {
+      "number": "005",
+      "id": "pa-business-domain-match",
+      "buyer_task": "Check whether a supplied registered domain plausibly aligns with the name of a uniquely resolved Pennsylvania business entity.",
+      "operation_id": "matchPennsylvaniaBusinessDomain",
+      "service_name": "PA Business Domain Match",
+      "search_tags": [
+        "business-domain",
+        "vendor-identity",
+        "pennsylvania-business-registry",
+        "rdap",
+        "human-review"
+      ],
+      "method": "GET",
+      "path": "/api/pa-business-domain-match",
+      "price_usdc": "0.003",
+      "decisions": [
+        "match",
+        "human_review"
+      ],
+      "source_ids": [
+        "pa_registry",
+        "rdap"
+      ],
+      "decision_implementation": "products/pa-business-domain-match/decision.js",
+      "decision_parameters": {},
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; do not settle payment.",
+        "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+        "payment_unresolved": "HTTP 503; caller should retry the same payment authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-005.js"
+      }
+    },
+    {
+      "number": "006",
+      "id": "sec-filing-freshness",
+      "buyer_task": "Determine whether a U.S. public filer has an SEC EDGAR filing matching an optional exact form filter inside a caller-selected freshness window.",
+      "operation_id": "checkSecFilingFreshness",
+      "service_name": "SEC Filing Freshness Check",
+      "search_tags": [
+        "SEC",
+        "EDGAR",
+        "filing-freshness",
+        "company-data",
+        "agent-decision"
+      ],
+      "method": "GET",
+      "path": "/api/sec-filing-freshness",
+      "price_usdc": "0.005",
+      "decisions": [
+        "recent_filing",
+        "no_recent_filing",
+        "company_not_found"
+      ],
+      "source_ids": [
+        "sec_edgar"
+      ],
+      "decision_implementation": "products/sec-filing-freshness/decision.js",
+      "decision_parameters": {
+        "maxAgeDays": {
+          "default": 30,
+          "minimum": 1,
+          "maximum": 365
+        },
+        "formFilter": "optional exact match"
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; do not settle payment.",
+        "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment. Live SEC transport also requires SEC_USER_AGENT containing a contact email.",
+        "payment_unresolved": "HTTP 503; caller should retry the same payment authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "source-contract-verified-staging",
+        "release_gate": "scripts/validate-product-006.js"
+      }
+    },
+    {
+      "number": "007",
+      "id": "domain-registration-age",
+      "buyer_task": "Determine whether an authoritative RDAP domain registration date is at least a caller-selected minimum age.",
+      "operation_id": "checkDomainRegistrationAge",
+      "service_name": "Domain Registration Age",
+      "search_tags": [
+        "domain",
+        "rdap",
+        "registration-age",
+        "vendor-check",
+        "human-review"
+      ],
+      "method": "GET",
+      "path": "/api/domain-registration-age",
+      "price_usdc": "0.002",
+      "decisions": [
+        "established",
+        "recent_registration",
+        "unregistered",
+        "human_review"
+      ],
+      "source_ids": [
+        "rdap"
+      ],
+      "decision_implementation": "products/domain-registration-age/decision.js",
+      "decision_parameters": {
+        "minAgeDays": {
+          "default": 90,
+          "minimum": 1,
+          "maximum": 3650
+        }
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; do not settle payment.",
+        "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+        "payment_unresolved": "HTTP 503; caller should retry the same payment authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-007.js"
+      }
+    },
+    {
+      "number": "008",
+      "id": "treasury-average-rate-threshold",
+      "buyer_task": "Compare the latest official monthly weighted-average interest rate for one Treasury security category to a caller threshold.",
+      "operation_id": "checkTreasuryAverageRateThreshold",
+      "service_name": "Treasury Average Rate Threshold Check",
+      "search_tags": [
+        "treasury",
+        "interest-rates",
+        "threshold",
+        "macro",
+        "government-data"
+      ],
+      "method": "GET",
+      "path": "/api/treasury-average-rate-threshold",
+      "price_usdc": "0.003",
+      "decisions": [
+        "threshold_met",
+        "threshold_not_met",
+        "human_review"
+      ],
+      "source_ids": [
+        "treasury_fiscal_data"
+      ],
+      "decision_implementation": "products/treasury-average-rate-threshold/decision.js",
+      "decision_parameters": {
+        "thresholdPercent": {
+          "minimum": 0,
+          "maximum": 100
+        },
+        "operator": {
+          "default": "gte",
+          "allowed": [
+            "gte",
+            "lte"
+          ]
+        }
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; payment is not settled.",
+        "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+        "payment_unresolved": "HTTP 503; retry the same payment authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-008.js"
+      }
+    },
+    {
+      "number": "009",
+      "id": "ofac-name-review-gate",
+      "buyer_task": "Perform deterministic first-pass name/alias screening against the current OFAC SDN list and return whether one or more review candidates meet a caller-selected similarity threshold.",
+      "operation_id": "reviewOfacSdnName",
+      "service_name": "OFAC Name Review Gate",
+      "search_tags": [
+        "OFAC",
+        "SDN",
+        "sanctions-screening",
+        "name-review",
+        "human-review"
+      ],
+      "method": "GET",
+      "path": "/api/ofac-name-review-gate",
+      "price_usdc": "0.003",
+      "decisions": [
+        "candidate_found",
+        "no_candidate",
+        "human_review"
+      ],
+      "source_ids": [
+        "ofac_sdn"
+      ],
+      "decision_implementation": "products/ofac-name-review-gate/decision.js",
+      "decision_parameters": {
+        "minScore": {
+          "default": 90,
+          "minimum": 70,
+          "maximum": 100
+        },
+        "maxReturnedCandidates": 3
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; payment is not settled.",
+        "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+        "payment_unresolved": "HTTP 503; retry the same payment authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-009.js"
+      }
+    },
+    {
+      "number": "010",
+      "id": "pa-business-formation-age",
+      "buyer_task": "Determine whether a uniquely resolved Pennsylvania business entity is at least a caller-selected age using Pennsylvania Department of State creation-date evidence.",
+      "operation_id": "checkPennsylvaniaBusinessFormationAge",
+      "service_name": "PA Business Formation Age",
+      "search_tags": [
+        "pennsylvania-business-registry",
+        "business-age",
+        "formation-date",
+        "vendor-history",
+        "human-review"
+      ],
+      "method": "GET",
+      "path": "/api/pa-business-formation-age",
+      "price_usdc": "0.002",
+      "decisions": [
+        "established_entity",
+        "recent_entity",
+        "company_not_found",
+        "human_review"
+      ],
+      "source_ids": [
+        "pa_registry"
+      ],
+      "decision_implementation": "products/pa-business-formation-age/decision.js",
+      "decision_parameters": {
+        "minAgeDays": {
+          "default": 365,
+          "minimum": 1,
+          "maximum": 36500
+        }
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; payment is not settled.",
+        "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+        "payment_unresolved": "HTTP 503; retry the same payment authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-010.js"
+      }
+    },
+    {
+      "number": "011",
+      "id": "domain-expiration-horizon",
+      "buyer_task": "Determine whether an authoritative RDAP registration expiration date falls within a caller-selected future horizon.",
+      "operation_id": "checkDomainExpirationHorizon",
+      "service_name": "Domain Expiration Horizon",
+      "search_tags": [
+        "domain",
+        "rdap",
+        "expiration",
+        "renewal",
+        "monitoring"
+      ],
+      "method": "GET",
+      "path": "/api/domain-expiration-horizon",
+      "price_usdc": "0.002",
+      "decisions": [
+        "expiring_soon",
+        "not_expiring_soon",
+        "unregistered",
+        "human_review"
+      ],
+      "source_ids": [
+        "rdap"
+      ],
+      "decision_implementation": "products/domain-expiration-horizon/decision.js",
+      "decision_parameters": {
+        "horizonDays": {
+          "default": 60,
+          "minimum": 1,
+          "maximum": 3650
+        }
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; payment is not settled.",
+        "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+        "payment_unresolved": "HTTP 503; retry the same payment authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-011.js"
+      }
+    },
+    {
+      "number": "012",
+      "id": "domain-last-changed-recency",
+      "buyer_task": "Determine whether an authoritative RDAP last-changed event falls within a caller-selected recent window.",
+      "operation_id": "checkDomainLastChangedRecency",
+      "service_name": "Domain Last-Changed Recency",
+      "search_tags": [
+        "domain",
+        "rdap",
+        "last-changed",
+        "recency",
+        "monitoring"
+      ],
+      "method": "GET",
+      "path": "/api/domain-last-changed-recency",
+      "price_usdc": "0.002",
+      "decisions": [
+        "recently_changed",
+        "stable_since_window",
+        "unregistered",
+        "human_review"
+      ],
+      "source_ids": [
+        "rdap"
+      ],
+      "decision_implementation": "products/domain-last-changed-recency/decision.js",
+      "decision_parameters": {
+        "maxAgeDays": {
+          "default": 90,
+          "minimum": 1,
+          "maximum": 3650
+        }
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; payment is not settled.",
+        "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+        "payment_unresolved": "HTTP 503; retry the same payment authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-012.js"
+      }
+    },
+    {
+      "number": "013",
+      "id": "sec-company-identity-match",
+      "buyer_task": "Check whether a supplied expected company name matches the authoritative SEC EDGAR company identity resolved from exactly one ticker or CIK.",
+      "operation_id": "matchSecPublicCompanyIdentity",
+      "service_name": "SEC Public Company Identity Match",
+      "search_tags": [
+        "sec",
+        "edgar",
+        "company-identity",
+        "ticker",
+        "cik"
+      ],
+      "method": "GET",
+      "path": "/api/sec-company-identity-match",
+      "price_usdc": "0.003",
+      "decisions": [
+        "match",
+        "human_review",
+        "company_not_found"
+      ],
+      "source_ids": [
+        "sec_edgar"
+      ],
+      "decision_implementation": "products/sec-company-identity-match/decision.js",
+      "decision_parameters": {
+        "companyNameMatch": "conservative corporate suffix normalization"
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; payment is not settled.",
+        "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+        "payment_unresolved": "HTTP 503; retry the same authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "source-contract-verified-staging",
+        "release_gate": "scripts/validate-product-013.js"
+      }
+    },
+    {
+      "number": "014",
+      "id": "treasury-average-rate-trend",
+      "buyer_task": "Compare the latest official monthly average interest rate for one Treasury security description with the prior month's rate and return a bounded directional signal.",
+      "operation_id": "getTreasuryAverageRateTrend",
+      "service_name": "Treasury Average Rate Trend",
+      "search_tags": [
+        "treasury",
+        "interest-rates",
+        "trend",
+        "macro",
+        "government-data"
+      ],
+      "method": "GET",
+      "path": "/api/treasury-average-rate-trend",
+      "price_usdc": "0.003",
+      "decisions": [
+        "rising",
+        "falling",
+        "unchanged",
+        "human_review"
+      ],
+      "source_ids": [
+        "treasury_fiscal_data"
+      ],
+      "decision_implementation": "products/treasury-average-rate-trend/decision.js",
+      "decision_parameters": {
+        "minChangeBps": {
+          "default": 1,
+          "minimum": 1,
+          "maximum": 1000
+        }
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; payment is not settled.",
+        "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+        "payment_unresolved": "HTTP 503; retry the same authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-014.js"
+      }
+    },
+    {
+      "number": "015",
+      "id": "treasury-average-rate-spread",
+      "buyer_task": "Compare the latest official monthly weighted-average interest rates for two U.S. Treasury security categories from the same record date and classify their spread.",
+      "operation_id": "compareTreasuryAverageRateSpread",
+      "service_name": "Treasury Average Rate Spread",
+      "search_tags": [
+        "treasury",
+        "interest-rates",
+        "rate-spread",
+        "macro",
+        "government-data"
+      ],
+      "method": "GET",
+      "path": "/api/treasury-average-rate-spread",
+      "price_usdc": "0.003",
+      "decisions": [
+        "left_higher",
+        "right_higher",
+        "within_tolerance",
+        "human_review"
+      ],
+      "source_ids": [
+        "treasury_fiscal_data"
+      ],
+      "decision_implementation": "products/treasury-average-rate-spread/decision.js",
+      "decision_parameters": {
+        "toleranceBps": {
+          "default": 2,
+          "minimum": 0,
+          "maximum": 1000
+        }
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; payment is not settled.",
+        "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+        "payment_unresolved": "HTTP 503; retry the same authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-015.js"
+      }
+    },
+    {
+      "number": "016",
+      "id": "pa-entity-ofac-review",
+      "buyer_task": "Resolve a prospective Pennsylvania company to a unique legal entity, then run deterministic current OFAC SDN primary-name and alias screening against the resolved legal name.",
+      "operation_id": "reviewPennsylvaniaEntityOfacName",
+      "service_name": "PA Entity OFAC Review Gate",
+      "search_tags": [
+        "pennsylvania-business-registry",
+        "OFAC",
+        "SDN",
+        "legal-entity",
+        "sanctions-screening"
+      ],
+      "method": "GET",
+      "path": "/api/pa-entity-ofac-review",
+      "price_usdc": "0.005",
+      "decisions": [
+        "candidate_found",
+        "no_candidate",
+        "company_not_found",
+        "human_review"
+      ],
+      "source_ids": [
+        "pa_registry",
+        "ofac_sdn"
+      ],
+      "decision_implementation": "products/pa-entity-ofac-review/decision.js",
+      "decision_parameters": {
+        "minScore": {
+          "default": 90,
+          "minimum": 70,
+          "maximum": 100
+        },
+        "ofacCandidateLimit": 3
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; payment is not settled.",
+        "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+        "payment_unresolved": "HTTP 503; retry the same authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-016.js"
+      }
+    },
+    {
+      "number": "017",
+      "id": "pa-vendor-new-domain-review",
+      "buyer_task": "Resolve a prospective Pennsylvania vendor to a unique legal entity, verify the supplied domain plausibly aligns with that resolved legal name, and flag recently registered domains for human review.",
+      "operation_id": "reviewPennsylvaniaVendorDomainAge",
+      "service_name": "PA Vendor New-Domain Review",
+      "search_tags": [
+        "pennsylvania-business-registry",
+        "vendor-identity",
+        "domain-age",
+        "rdap",
+        "new-domain"
+      ],
+      "method": "GET",
+      "path": "/api/pa-vendor-new-domain-review",
+      "price_usdc": "0.005",
+      "decisions": [
+        "established_domain_match",
+        "recent_domain_review",
+        "domain_mismatch",
+        "unregistered_domain",
+        "company_not_found",
+        "human_review"
+      ],
+      "source_ids": [
+        "pa_registry",
+        "rdap"
+      ],
+      "decision_implementation": "products/pa-vendor-new-domain-review/decision.js",
+      "decision_parameters": {
+        "minDomainAgeDays": {
+          "default": 90,
+          "minimum": 1,
+          "maximum": 3650
+        }
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; payment is not settled.",
+        "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+        "payment_unresolved": "HTTP 503; retry the same authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-017.js"
+      }
+    },
+    {
+      "number": "018",
+      "id": "pa-vendor-counterparty-review",
+      "buyer_task": "Give an autonomous agent a bounded proceed or human_review decision for a prospective Pennsylvania vendor using legal-entity identity, OFAC SDN candidate-name screening, and domain registration/name/age evidence.",
+      "operation_id": "reviewPennsylvaniaVendorCounterparty",
+      "service_name": "PA Vendor Counterparty Review",
+      "search_tags": [
+        "vendor-intake",
+        "counterparty-review",
+        "pennsylvania-business-registry",
+        "ofac",
+        "domain-age"
+      ],
+      "method": "GET",
+      "path": "/api/pa-vendor-counterparty-review",
+      "price_usdc": "0.010",
+      "decisions": [
+        "proceed",
+        "human_review"
+      ],
+      "source_ids": [
+        "pa_registry",
+        "ofac_sdn",
+        "rdap"
+      ],
+      "decision_implementation": "products/pa-vendor-counterparty-review/decision.js",
+      "decision_parameters": {
+        "minScore": {
+          "default": 90,
+          "minimum": 70,
+          "maximum": 100
+        },
+        "minDomainAgeDays": {
+          "default": 90,
+          "minimum": 1,
+          "maximum": 3650
+        }
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; do not settle payment.",
+        "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+        "payment_unresolved": "HTTP 503; retry the same authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-018.js"
+      }
+    },
+    {
+      "number": "019",
+      "id": "pa-vendor-maturity-review",
+      "buyer_task": "Review whether a prospective Pennsylvania vendor has both an established legal-entity history and an established legal-name-aligned domain history before an automated workflow continues.",
+      "operation_id": "reviewPennsylvaniaVendorMaturity",
+      "service_name": "PA Vendor Maturity Review",
+      "search_tags": [
+        "vendor-intake",
+        "vendor-maturity",
+        "pennsylvania-business-registry",
+        "formation-age",
+        "domain-age"
+      ],
+      "method": "GET",
+      "path": "/api/pa-vendor-maturity-review",
+      "price_usdc": "0.007",
+      "decisions": [
+        "established_vendor",
+        "human_review"
+      ],
+      "source_ids": [
+        "pa_registry",
+        "rdap"
+      ],
+      "decision_implementation": "products/pa-vendor-maturity-review/decision.js",
+      "decision_parameters": {
+        "minEntityAgeDays": {
+          "default": 30,
+          "minimum": 1,
+          "maximum": 36500
+        },
+        "minDomainAgeDays": {
+          "default": 90,
+          "minimum": 1,
+          "maximum": 3650
+        }
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; do not settle payment.",
+        "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+        "payment_unresolved": "HTTP 503; retry the same authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-019.js"
+      }
+    },
+    {
+      "number": "020",
+      "id": "pa-vendor-domain-continuity-review",
+      "buyer_task": "Review whether a prospective Pennsylvania vendor's legal-name-aligned domain has sufficient expiration runway and has not changed too recently for automated continuation.",
+      "operation_id": "reviewPennsylvaniaVendorDomainContinuity",
+      "service_name": "PA Vendor Domain Continuity Review",
+      "search_tags": [
+        "vendor-intake",
+        "domain-continuity",
+        "pennsylvania-business-registry",
+        "rdap",
+        "expiration"
+      ],
+      "method": "GET",
+      "path": "/api/pa-vendor-domain-continuity-review",
+      "price_usdc": "0.006",
+      "decisions": [
+        "stable_domain",
+        "human_review"
+      ],
+      "source_ids": [
+        "pa_registry",
+        "rdap"
+      ],
+      "decision_implementation": "products/pa-vendor-domain-continuity-review/decision.js",
+      "decision_parameters": {
+        "minExpirationDays": {
+          "default": 180,
+          "minimum": 1,
+          "maximum": 3650
+        },
+        "minStableDays": {
+          "default": 30,
+          "minimum": 1,
+          "maximum": 3650
+        }
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; do not settle payment.",
+        "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+        "payment_unresolved": "HTTP 503; retry the same authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-020.js"
+      }
+    },
+    {
+      "number": "021",
+      "id": "pa-entity-type-policy",
+      "buyer_task": "Resolve a Pennsylvania business to one strong registry entity, normalize its registration type to a stable policy kind, and compare that kind with a caller-supplied allowed set.",
+      "operation_id": "checkPennsylvaniaEntityTypePolicy",
+      "service_name": "PA Entity Type Policy",
+      "search_tags": [
+        "pennsylvania-business-registry",
+        "entity-type",
+        "procurement-policy",
+        "vendor-policy",
+        "human-review"
+      ],
+      "method": "GET",
+      "path": "/api/pa-entity-type-policy",
+      "price_usdc": "0.002",
+      "decisions": [
+        "policy_match",
+        "policy_mismatch",
+        "company_not_found",
+        "human_review"
+      ],
+      "source_ids": [
+        "pa_registry"
+      ],
+      "decision_implementation": "products/pa-entity-type-policy/decision.js",
+      "decision_parameters": {
+        "allowedKinds": [
+          "llc",
+          "corporation",
+          "limited_partnership",
+          "llp",
+          "professional_corporation",
+          "other"
+        ],
+        "maxCount": 6
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; do not settle payment.",
+        "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+        "payment_unresolved": "HTTP 503; retry the same authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-021.js"
+      }
+    },
+    {
+      "number": "022",
+      "id": "pa-registered-county-policy",
+      "buyer_task": "Resolve a Pennsylvania business to one strong registry entity and compare its source-published registered county with a caller-supplied allowed Pennsylvania county set.",
+      "operation_id": "checkPennsylvaniaRegisteredCountyPolicy",
+      "service_name": "PA Registered County Policy",
+      "search_tags": [
+        "pennsylvania-business-registry",
+        "registered-county",
+        "local-vendor-policy",
+        "procurement-policy",
+        "human-review"
+      ],
+      "method": "GET",
+      "path": "/api/pa-registered-county-policy",
+      "price_usdc": "0.002",
+      "decisions": [
+        "policy_match",
+        "policy_mismatch",
+        "company_not_found",
+        "human_review"
+      ],
+      "source_ids": [
+        "pa_registry"
+      ],
+      "decision_implementation": "products/pa-registered-county-policy/decision.js",
+      "decision_parameters": {
+        "allowedCounties": "caller-supplied, validated against 67 Pennsylvania counties",
+        "maxCount": 67,
+        "acceptOptionalCountySuffix": true
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; do not settle payment.",
+        "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+        "payment_unresolved": "HTTP 503; retry the same authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-022.js"
+      }
+    },
+    {
+      "number": "023",
+      "id": "pa-local-vendor-policy-gate",
+      "buyer_task": "Evaluate a prospective Pennsylvania vendor against caller-defined entity-type, registered-county, and minimum-formation-age rules using one public registry lookup.",
+      "operation_id": "checkPennsylvaniaLocalVendorPolicy",
+      "service_name": "PA Local Vendor Policy Gate",
+      "search_tags": [
+        "pennsylvania-business-registry",
+        "local-vendor-policy",
+        "procurement-policy",
+        "entity-type",
+        "registered-county"
+      ],
+      "method": "GET",
+      "path": "/api/pa-local-vendor-policy-gate",
+      "price_usdc": "0.004",
+      "decisions": [
+        "proceed",
+        "human_review",
+        "company_not_found"
+      ],
+      "source_ids": [
+        "pa_registry"
+      ],
+      "decision_implementation": "products/pa-local-vendor-policy-gate/decision.js",
+      "decision_parameters": {
+        "allowedKinds": "comma-separated set of normalized PA entity kinds",
+        "allowedCounties": "comma-separated PA counties",
+        "minAgeDays": {
+          "default": 365,
+          "minimum": 1,
+          "maximum": 36500
+        }
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; do not settle payment.",
+        "required_source_failure": "HTTP 502, chargeable=false; do not settle payment.",
+        "payment_unresolved": "HTTP 503; retry same payment authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-023.js"
+      }
+    },
+    {
+      "number": "024",
+      "id": "pa-vendor-distance-gate",
+      "buyer_task": "Resolve a Pennsylvania business to one strong registry entity, geocode a caller-supplied origin address and the source-published registry address, and compare straight-line Census-coordinate distance with a caller-supplied radius.",
+      "operation_id": "checkPennsylvaniaVendorDistance",
+      "service_name": "PA Vendor Distance Gate",
+      "search_tags": [
+        "pennsylvania-business-registry",
+        "census-geocoder",
+        "vendor-distance",
+        "local-procurement",
+        "geographic-policy"
+      ],
+      "method": "GET",
+      "path": "/api/pa-vendor-distance-gate",
+      "price_usdc": "0.004",
+      "decisions": [
+        "within_radius",
+        "outside_radius",
+        "company_not_found",
+        "human_review"
+      ],
+      "source_ids": [
+        "pa_registry",
+        "census_address"
+      ],
+      "decision_implementation": "products/pa-vendor-distance-gate/decision.js",
+      "decision_parameters": {
+        "maxDistanceMiles": {
+          "minimum": 0.1,
+          "maximum": 1000
+        },
+        "measure": "straight-line great-circle Census-coordinate miles; never driving mileage"
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; do not settle payment.",
+        "required_source_failure": "HTTP 502, chargeable=false; do not settle payment.",
+        "payment_unresolved": "HTTP 503; retry same payment authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-024.js"
+      }
+    }
+  ]
+}

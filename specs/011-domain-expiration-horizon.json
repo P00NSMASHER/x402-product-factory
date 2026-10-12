@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "number": "011",
+  "id": "domain-expiration-horizon",
+  "discovery": {
+    "operation_id": "checkDomainExpirationHorizon",
+    "service_name": "Domain Expiration Horizon",
+    "summary": "Check whether a domain expires within a future horizon",
+    "description": "Resolve a domain via IANA RDAP bootstrap and its authoritative registry, then compare the published expiration date with a caller-selected future horizon. Returns expiring_soon, not_expiring_soon, unregistered, or human_review. Registry grace/renewal policies vary; this is a registration timing signal and not proof of ownership, control, legitimacy, security, fraud risk, or business identity.",
+    "resource_description": "Determine whether an authoritative RDAP domain expiration date falls within a caller-selected future horizon. Returns expiring_soon, not_expiring_soon, unregistered, or human_review. This is a registration timing signal only and does not prove ownership, control, legitimacy, security, fraud risk, or business identity.",
+    "search_tags": [
+      "domain",
+      "rdap",
+      "expiration",
+      "renewal",
+      "monitoring"
+    ],
+    "openapi_tags": [
+      "Domain",
+      "RDAP",
+      "Expiration",
+      "Monitoring"
+    ]
+  },
+  "buyer": {
+    "task": "Determine whether an authoritative RDAP registration expiration date falls within a caller-selected future horizon.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure only independently verified external settled purchases, not HTTP 200 responses, probes or tests."
+    }
+  },
+  "api": {
+    "method": "GET",
+    "path": "/api/domain-expiration-horizon",
+    "inputs": [
+      {
+        "name": "domain",
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253,
+        "required": true
+      },
+      {
+        "name": "horizonDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 60,
+        "required": false
+      }
+    ],
+    "example_query": {
+      "domain": "openai.com",
+      "horizonDays": 60
+    },
+    "payment_example_query": {
+      "domain": "openai.com",
+      "horizonDays": "60"
+    },
+    "payment_example_output": {
+      "decision": "not_expiring_soon",
+      "horizonDays": 60,
+      "paid": true
+    },
+    "outputs": {
+      "decisions": [
+        "expiring_soon",
+        "not_expiring_soon",
+        "unregistered",
+        "human_review"
+      ],
+      "fields": [
+        "decision",
+        "reasonCodes",
+        "expirationDate",
+        "daysUntilExpiration",
+        "horizonDays",
+        "cutoffDate",
+        "checkedAt",
+        "input",
+        "sourceFailures",
+        "evidence",
+        "chargeable",
+        "paid",
+        "price"
+      ]
+    },
+    "input_rule": null
+  },
+  "sources": [
+    {
+      "id": "rdap",
+      "adapter": "createRdapAdapter",
+      "authority": "IANA DNS bootstrap and authoritative registry RDAP",
+      "refresh_policy": "authoritative source lookup on each paid request, subject to adapter caching behavior",
+      "cache_policy": "source-specific adapter caching; no new cache introduced by spec",
+      "freshness_limit_seconds": null
+    }
+  ],
+  "decision": {
+    "implementation": "products/domain-expiration-horizon/decision.js",
+    "parameters": {
+      "horizonDays": {
+        "default": 60,
+        "minimum": 1,
+        "maximum": 3650
+      }
+    },
+    "rules": [
+      "Require authoritative RDAP expiration event when registered.",
+      "Compare expiration to today plus horizonDays; unknown registration or missing date requires review.",
+      "expiration horizon is a domain-registration timing signal only",
+      "registry renewal/grace/redemption policies vary and can change actual lifecycle outcomes",
+      "it does not prove domain ownership, control, legitimacy, security, fraud risk, or business identity"
+    ]
+  },
+  "failure_behavior": {
+    "invalid_input": "HTTP 400; payment is not settled.",
+    "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+    "payment_unresolved": "HTTP 503; retry the same payment authorization.",
+    "automatic_reject": false
+  },
+  "economics": {
+    "price_usdc": "0.002",
+    "paid_settlement_cost_usd": "0.002310",
+    "configured_direct_source_fee_usd": "0.000000",
+    "incremental_hosting_cost_usd": null,
+    "post_allowance_margin_floor_pct": -15.5,
+    "target_contribution_margin_pct": 70,
+    "meets_target_before_unknown_costs": false
+  },
+  "launch": {
+    "current_status": "live-source-verified-staging",
+    "release_gate": "scripts/validate-product-011.js",
+    "criteria": [
+      "Pass existing exact-revision release gate and authoritative source smokes.",
+      "Measure non-credit-gated production hosting, failures, refunds and source costs.",
+      "Block commercial release until real margin and external demand are independently evidenced."
+    ]
+  },
+  "implementation": {
+    "handler_template": "standard-x402-get-v1",
+    "service_module": "products/domain-expiration-horizon/service.js",
+    "input_validator_export": "validateExpirationInput"
+  }
+}

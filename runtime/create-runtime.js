@@ -5,7 +5,8 @@ const {createPaRegistryAdapter,createCensusAddressAdapter,createRdapAdapter}=req
 const {createSecFilingsAdapter}=require("../packages/sources/sec-filings");
 const {createTreasuryAverageRatesAdapter}=require("../packages/sources/treasury-average-rates");
 const {createOfacNameAdapter}=require("../packages/sources/ofac-name-screen");
-const {SERVICE_MODULES,PAID_HANDLER_MODULES}=require("../generated/product-modules");
+const {SERVICE_MODULES:HAND_SERVICE_MODULES,PAID_HANDLER_MODULES:HAND_PAID_HANDLER_MODULES}=require("../generated/product-modules");
+const {SERVICE_MODULES:SPEC_SERVICE_MODULES,PAID_HANDLER_MODULES:SPEC_PAID_HANDLER_MODULES}=require("../generated/spec-paid-handlers");
 
 const PREFLIGHT_HEADERS=Object.freeze({
   "access-control-allow-origin":"*",
@@ -67,15 +68,23 @@ function chooseFactory(moduleExports,{kind,productId}){
   return matches[0][1];
 }
 
+function serviceModule(productId){
+  return SPEC_SERVICE_MODULES[productId]||HAND_SERVICE_MODULES[productId]||null;
+}
+
+function paidHandlerModule(productId){
+  return SPEC_PAID_HANDLER_MODULES[productId]||HAND_PAID_HANDLER_MODULES[productId]||null;
+}
+
 function discoverRuntimeWiring(products=managedProducts()){
   const wiring={};
   for(const product of products){
-    const serviceModule=SERVICE_MODULES[product.id];
-    const handlerModule=PAID_HANDLER_MODULES[product.id];
-    if(!serviceModule) throw new Error(product.id+" runtime service module missing");
+    const serviceExports=serviceModule(product.id);
+    const handlerModule=paidHandlerModule(product.id);
+    if(!serviceExports) throw new Error(product.id+" runtime service module missing");
     if(!handlerModule) throw new Error(product.id+" runtime paid-handler module missing");
     wiring[product.id]={
-      createService:chooseFactory(serviceModule,{kind:"service",productId:product.id}),
+      createService:chooseFactory(serviceExports,{kind:"service",productId:product.id}),
       createPaidHandler:chooseFactory(handlerModule,{kind:"handler",productId:product.id})
     };
   }
@@ -170,6 +179,8 @@ module.exports={
   PREFLIGHT_HEADERS,
   defaultAdapters,
   chooseFactory,
+  serviceModule,
+  paidHandlerModule,
   discoverRuntimeWiring,
   createFactoryRuntime
 };

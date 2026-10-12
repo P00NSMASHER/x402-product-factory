@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "number": "021",
+  "id": "pa-entity-type-policy",
+  "discovery": {
+    "operation_id": "checkPennsylvaniaEntityTypePolicy",
+    "service_name": "PA Entity Type Policy",
+    "summary": "Check a Pennsylvania entity type against caller policy",
+    "description": "Resolve a Pennsylvania business name to one strong registry entity, normalize its Department of State registration type to llc, corporation, limited_partnership, llp, professional_corporation, or other, and compare it with caller-supplied allowedKinds. Returns policy_match, policy_mismatch, company_not_found, or human_review. The result only evaluates the supplied policy and is not legal advice or proof of good standing, ownership, authority, tax treatment, liability protection, fraud risk, sanctions status, creditworthiness, or regulatory compliance.",
+    "resource_description": "Resolve a Pennsylvania business entity, normalize its public registration type to a stable policy kind, and compare that kind with a caller-supplied allowed set. Returns policy_match, policy_mismatch, company_not_found, or human_review. It is a caller-defined workflow policy check, not legal advice or proof of good standing, ownership, authority, tax treatment, liability protection, fraud risk, sanctions status, creditworthiness, or regulatory compliance.",
+    "search_tags": [
+      "pennsylvania-business-registry",
+      "entity-type",
+      "procurement-policy",
+      "vendor-policy",
+      "human-review"
+    ],
+    "openapi_tags": [
+      "Pennsylvania Business Registry",
+      "Entity Type",
+      "Procurement Policy"
+    ]
+  },
+  "buyer": {
+    "task": "Resolve a Pennsylvania business to one strong registry entity, normalize its registration type to a stable policy kind, and compare that kind with a caller-supplied allowed set.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure independently verified external settled purchases and repeat demand; do not treat synthetic fixtures, public discovery or HTTP 200 as sales."
+    }
+  },
+  "api": {
+    "method": "GET",
+    "path": "/api/pa-entity-type-policy",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "name": "allowedKinds",
+        "type": "string",
+        "required": true
+      }
+    ],
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "allowedKinds": "llc,corporation"
+    },
+    "payment_example_output": {
+      "decision": "policy_match",
+      "registrationKind": "llc",
+      "paid": true
+    },
+    "outputs": {
+      "decisions": [
+        "policy_match",
+        "policy_mismatch",
+        "company_not_found",
+        "human_review"
+      ],
+      "fields": [
+        "decision",
+        "reasonCodes",
+        "reasonCode",
+        "allowedKinds",
+        "registrationKind",
+        "registrationType",
+        "matchedEntity",
+        "checkedAt",
+        "input",
+        "sourceFailures",
+        "evidence",
+        "chargeable",
+        "paid",
+        "price"
+      ]
+    },
+    "input_rule": null
+  },
+  "sources": [
+    {
+      "id": "pa_registry",
+      "adapter": "createPaRegistryAdapter",
+      "authority": "Pennsylvania Department of State via data.pa.gov",
+      "refresh_policy": "live lookup on each paid request",
+      "cache_policy": "none",
+      "freshness_limit_seconds": null
+    }
+  ],
+  "decision": {
+    "implementation": "products/pa-entity-type-policy/decision.js",
+    "parameters": {
+      "allowedKinds": [
+        "llc",
+        "corporation",
+        "limited_partnership",
+        "llp",
+        "professional_corporation",
+        "other"
+      ],
+      "maxCount": 6
+    },
+    "rules": [
+      "Resolve one strong PA registry business and normalize source registration type to a known policy kind.",
+      "Compare normalized kind with the caller-declared comma-separated allowedKinds; no automatic legal/status finding.",
+      "Unknown or ambiguous registry evidence returns human_review.",
+      "policy_match only evaluates the caller-supplied entity-type policy",
+      "it is not legal advice or proof of good standing, ownership, authority, tax treatment, liability protection, fraud risk, sanctions status, creditworthiness, or regulatory compliance"
+    ]
+  },
+  "failure_behavior": {
+    "invalid_input": "HTTP 400; do not settle payment.",
+    "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+    "payment_unresolved": "HTTP 503; retry the same authorization.",
+    "automatic_reject": false
+  },
+  "economics": {
+    "price_usdc": "0.002",
+    "paid_settlement_cost_usd": "0.002310",
+    "configured_direct_source_fee_usd": "0.000000",
+    "incremental_hosting_cost_usd": null,
+    "post_allowance_margin_floor_pct": -15.5,
+    "target_contribution_margin_pct": 70,
+    "meets_target_before_unknown_costs": false
+  },
+  "launch": {
+    "current_status": "live-source-verified-staging",
+    "release_gate": "scripts/validate-product-021.js",
+    "criteria": [
+      "Existing exact-revision release gate and deterministic tests must pass before a reviewed deployment.",
+      "Independently verify authoritative-source availability, payment identity, and current facilitator fee/allowance terms.",
+      "Commercial release remains blocked until true hosting/source/refund economics and independently verified customer demand are established."
+    ]
+  },
+  "implementation": {
+    "handler_template": "standard-x402-get-v1",
+    "service_module": "products/pa-entity-type-policy/service.js",
+    "input_validator_export": "validateEntityTypePolicyInput"
+  }
+}

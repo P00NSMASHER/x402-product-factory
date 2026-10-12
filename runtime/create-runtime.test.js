@@ -4,7 +4,8 @@ const test=require("node:test");
 const assert=require("node:assert/strict");
 const {managedProducts}=require("../packages/discovery/generator");
 const {encodeHeader}=require("../packages/x402/payment");
-const {createFactoryRuntime}=require("./create-runtime");
+const {serviceModule,paidHandlerModule,createFactoryRuntime}=require("./create-runtime");
+const {SERVICE_MODULES:SPEC_SERVICE_MODULES}=require("../generated/spec-paid-handlers");
 
 function adapters(){
   const never=async()=>{throw new Error("source should not run for unpaid request");};
@@ -17,6 +18,18 @@ function adapters(){
     ofac:{screen:never,lookup:never}
   };
 }
+
+test("runtime uses spec-generated modules for all 22 staging products",()=>{
+  const eligible=managedProducts();
+  assert.equal(eligible.length,22);
+  assert.deepEqual(Object.keys(SPEC_SERVICE_MODULES),eligible.map(p=>p.id));
+  for(const {id} of eligible){
+    assert.strictEqual(serviceModule(id),SPEC_SERVICE_MODULES[id],id+" service source");
+    assert.equal(paidHandlerModule(id)?.source,"spec-generated",id+" handler source");
+  }
+  assert.equal(serviceModule("unknown-product-025"),null);
+  assert.equal(paidHandlerModule("unknown-product-025"),null);
+});
 
 test("runtime wires exactly every modular staging product",()=>{
   const runtime=createFactoryRuntime({publicApiBase:"https://candidate.example",adapters:adapters(),fetchImpl:async()=>{throw new Error("network should not run");}});

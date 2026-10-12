@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "number": "007",
+  "id": "domain-registration-age",
+  "discovery": {
+    "operation_id": "checkDomainRegistrationAge",
+    "service_name": "Domain Registration Age",
+    "summary": "Check authoritative domain registration age",
+    "description": "Use IANA RDAP bootstrap and the authoritative registry RDAP service to compare a domain registration date against a caller-selected minimum age. Returns established, recent_registration, unregistered, or human_review. Domain age alone does not establish ownership, control, legitimacy, fraud risk, safety, or business history.",
+    "resource_description": "Determine whether a domain's authoritative RDAP registration date is at least a caller-selected age. Returns established, recent_registration, unregistered, or human_review. Domain age is an identity signal, not a fraud, legitimacy, safety, or ownership verdict.",
+    "search_tags": [
+      "domain",
+      "rdap",
+      "registration-age",
+      "vendor-check",
+      "human-review"
+    ],
+    "openapi_tags": [
+      "Domain",
+      "RDAP",
+      "Registration Age"
+    ]
+  },
+  "buyer": {
+    "task": "Determine whether an authoritative RDAP domain registration date is at least a caller-selected minimum age.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure independent settled purchases and repeat buyers per product after launch; do not infer demand from tests or crawler probes."
+    }
+  },
+  "api": {
+    "method": "GET",
+    "path": "/api/domain-registration-age",
+    "inputs": [
+      {
+        "name": "domain",
+        "type": "string",
+        "required": true,
+        "minLength": 3,
+        "maxLength": 253
+      },
+      {
+        "name": "minAgeDays",
+        "type": "integer",
+        "required": false,
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 90
+      }
+    ],
+    "example_query": {
+      "domain": "openai.com",
+      "minAgeDays": 90
+    },
+    "outputs": {
+      "decisions": [
+        "established",
+        "recent_registration",
+        "unregistered",
+        "human_review"
+      ],
+      "fields": [
+        "decision",
+        "reasonCodes",
+        "registrationDate",
+        "ageDays",
+        "minAgeDays",
+        "cutoffDate",
+        "checkedAt",
+        "sourceFailures",
+        "evidence",
+        "paid",
+        "price"
+      ]
+    },
+    "input_rule": null
+  },
+  "sources": [
+    {
+      "id": "rdap",
+      "adapter": "createRdapAdapter",
+      "authority": "IANA DNS bootstrap plus authoritative registry RDAP",
+      "refresh_policy": "authoritative domain lookup on each paid request",
+      "cache_policy": "IANA bootstrap cached in memory for adapter lifetime; authoritative domain result not cached",
+      "freshness_limit_seconds": null
+    }
+  ],
+  "decision": {
+    "implementation": "products/domain-registration-age/decision.js",
+    "parameters": {
+      "minAgeDays": {
+        "default": 90,
+        "minimum": 1,
+        "maximum": 3650
+      }
+    },
+    "rules": [
+      "Use authoritative RDAP registration/registered event date when present.",
+      "Compute domain age at UTC day granularity.",
+      "Return unregistered when authoritative RDAP reports the domain is not registered.",
+      "Return established when registration date is on or before the minimum-age cutoff; return recent_registration when newer; return human_review when required RDAP evidence or registration date is unavailable."
+    ]
+  },
+  "failure_behavior": {
+    "invalid_input": "HTTP 400; do not settle payment.",
+    "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+    "payment_unresolved": "HTTP 503; caller should retry the same payment authorization.",
+    "automatic_reject": false
+  },
+  "economics": {
+    "price_usdc": "0.002",
+    "paid_settlement_cost_usd": "0.002310",
+    "configured_direct_source_fee_usd": "0.000000",
+    "incremental_hosting_cost_usd": null,
+    "post_allowance_margin_floor_pct": -15.5,
+    "target_contribution_margin_pct": 70,
+    "meets_target_before_unknown_costs": false
+  },
+  "launch": {
+    "current_status": "live-source-verified-staging",
+    "release_gate": "scripts/validate-product-007.js",
+    "criteria": [
+      "Release gate passes from the same registry revision.",
+      "Authoritative live-source smoke passes without source failures.",
+      "Shared non-credit-gated hosting is available and measured.",
+      "Post-allowance unit economics are settlement-negative at the current price; commercial promotion remains blocked until economics are repaired or an explicit exception is approved."
+    ]
+  },
+  "implementation": {
+    "handler_template": "standard-x402-get-v1",
+    "service_module": "products/domain-registration-age/service.js",
+    "input_validator_export": "validateDomainAgeInput"
+  }
+}

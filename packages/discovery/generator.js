@@ -1,9 +1,26 @@
 "use strict";
 
 const registry=require("../../product-registry.json");
-const {METADATA_MODULES}=require("../../generated/product-modules");
+const {METADATA_MODULES:HAND_METADATA_MODULES}=require("../../generated/product-modules");
+const SPEC_METADATA=require("../../generated/spec-metadata");
 
-const MODULES=METADATA_MODULES;
+function specMetadataModule(productId){
+  if(!SPEC_METADATA.PRODUCTS[productId])return null;
+  return Object.freeze({
+    source:"spec-generated",
+    catalogResource(base){return SPEC_METADATA.catalogResource(productId,base);},
+    openApiPath(){return SPEC_METADATA.openApiPath(productId);}
+  });
+}
+
+const MODULES=Object.freeze(Object.fromEntries(
+  registry.products
+    .map(product=>[
+      product.id,
+      specMetadataModule(product.id)||HAND_METADATA_MODULES[product.id]
+    ])
+    .filter(([,moduleExports])=>Boolean(moduleExports))
+));
 
 function managedProducts(){
   const staging=registry.products.filter(product=>/staging$/.test(product.status));
@@ -126,6 +143,9 @@ function validateCompiled(base){
 }
 
 module.exports={
+  HAND_METADATA_MODULES,
+  SPEC_METADATA,
+  specMetadataModule,
   MODULES,
   managedProducts,
   buildCatalog,

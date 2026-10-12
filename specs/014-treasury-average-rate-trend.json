@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "number": "014",
+  "id": "treasury-average-rate-trend",
+  "discovery": {
+    "operation_id": "getTreasuryAverageRateTrend",
+    "service_name": "Treasury Average Rate Trend",
+    "summary": "Compare latest Treasury average rate with prior month",
+    "description": "Select one official U.S. Treasury Fiscal Data monthly average-interest-rate category, compare the latest observation with the prior month, and return rising, falling, unchanged, or human_review using a caller minimum change in basis points. This is a two-point monthly direction signal using averages on outstanding Treasury debt, not a long-term trend determination, live market yield, forecast, monetary-policy prediction, or investment recommendation.",
+    "resource_description": "Compare the latest official monthly average interest rate for one U.S. Treasury security category with the prior month and return rising, falling, unchanged, or human_review. This is not a forecast, live market yield, monetary-policy prediction, or investment recommendation.",
+    "search_tags": [
+      "treasury",
+      "interest-rates",
+      "trend",
+      "macro",
+      "government-data"
+    ],
+    "openapi_tags": [
+      "Treasury",
+      "Interest Rates",
+      "Trend",
+      "Macro"
+    ]
+  },
+  "buyer": {
+    "task": "Compare the latest official monthly average interest rate for one Treasury security description with the prior month's rate and return a bounded directional signal.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure only independent external settled buyers and repeat demand; never count test responses, discovery visits, or synthetic transactions as sales."
+    }
+  },
+  "api": {
+    "method": "GET",
+    "path": "/api/treasury-average-rate-trend",
+    "inputs": [
+      {
+        "name": "security",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 100,
+        "required": true
+      },
+      {
+        "name": "minChangeBps",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 1,
+        "required": false
+      }
+    ],
+    "example_query": {
+      "security": "Total Marketable",
+      "minChangeBps": 1
+    },
+    "payment_example_output": {
+      "decision": "falling",
+      "changeBps": -5,
+      "paid": true
+    },
+    "outputs": {
+      "decisions": [
+        "rising",
+        "falling",
+        "unchanged",
+        "human_review"
+      ],
+      "fields": [
+        "decision",
+        "reasonCodes",
+        "latest",
+        "previous",
+        "latestRatePercent",
+        "previousRatePercent",
+        "minChangeBps",
+        "changePercentPoints",
+        "changeBps",
+        "checkedAt",
+        "input",
+        "sourceFailures",
+        "evidence",
+        "chargeable",
+        "paid",
+        "price"
+      ]
+    },
+    "input_rule": null
+  },
+  "sources": [
+    {
+      "id": "treasury_fiscal_data",
+      "adapter": "createTreasuryAverageRatesAdapter",
+      "authority": "U.S. Treasury Fiscal Data monthly Average Interest Rates on U.S. Treasury Securities",
+      "refresh_policy": "Live official monthly two-observation history lookup on paid request",
+      "cache_policy": "adapter controlled",
+      "freshness_limit_seconds": null
+    }
+  ],
+  "decision": {
+    "implementation": "products/treasury-average-rate-trend/decision.js",
+    "parameters": {
+      "minChangeBps": {
+        "default": 1,
+        "minimum": 1,
+        "maximum": 1000
+      }
+    },
+    "rules": [
+      "Require the latest and prior monthly Treasury observations for exactly one unambiguous category.",
+      "Compute rate change in basis points and return rising, falling or unchanged relative to minChangeBps.",
+      "Do not describe a two-month comparison as a long-term trend or forecast.",
+      "the result is a mechanical comparison of official monthly average-interest-rate records",
+      "it is not an interest-rate forecast, investment advice, monetary-policy prediction, or recommendation",
+      "a two-month directional comparison is not a long-term trend determination"
+    ]
+  },
+  "failure_behavior": {
+    "invalid_input": "HTTP 400; payment is not settled.",
+    "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+    "payment_unresolved": "HTTP 503; retry the same authorization.",
+    "automatic_reject": false
+  },
+  "economics": {
+    "price_usdc": "0.003",
+    "paid_settlement_cost_usd": "0.002310",
+    "configured_direct_source_fee_usd": "0.000000",
+    "incremental_hosting_cost_usd": null,
+    "post_allowance_margin_floor_pct": 23,
+    "target_contribution_margin_pct": 70,
+    "meets_target_before_unknown_costs": false
+  },
+  "launch": {
+    "current_status": "live-source-verified-staging",
+    "release_gate": "scripts/validate-product-014.js",
+    "criteria": [
+      "Exact-head existing product release gates and deterministic/source checks must pass.",
+      "Authority-dependent live smokes and required production credentials (including SEC_USER_AGENT) must pass before any approved deployment.",
+      "Complete unit economics and genuine independent external-buyer evidence are unavailable; do not authorize commercial release."
+    ]
+  },
+  "implementation": {
+    "handler_template": "standard-x402-get-v1",
+    "service_module": "products/treasury-average-rate-trend/service.js",
+    "input_validator_export": "validateTreasuryTrendInput"
+  }
+}

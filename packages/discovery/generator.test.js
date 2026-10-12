@@ -5,6 +5,7 @@ const assert=require("node:assert/strict");
 const registry=require("../../product-registry.json");
 const {
   MODULES,
+  SPEC_METADATA,
   managedProducts,
   buildCatalog,
   buildOpenApi,
@@ -30,6 +31,16 @@ test("compiler includes every staging product exactly once",()=>{
 test("staging products must have a metadata module",()=>{
   for(const product of expectedManaged()){
     assert.ok(MODULES[product.id],product.id+" must expose metadata.js before staging publication");
+  }
+});
+
+test("specified staging products publish from generated spec metadata",()=>{
+  const specified=expectedManaged().filter(product=>SPEC_METADATA.PRODUCTS[product.id]);
+  const specIndex=require("../../generated/product-spec-index.json");
+  assert.deepEqual(specified.map(product=>product.number),specIndex.products.map(product=>product.number));
+  assert.deepEqual(specified.map(product=>product.id),specIndex.products.map(product=>product.id));
+  for(const product of specified){
+    assert.equal(MODULES[product.id].source,"spec-generated",product.id+" must publish from generated spec metadata");
   }
 });
 
