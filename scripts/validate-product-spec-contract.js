@@ -204,8 +204,9 @@ function validateInputExamples(api,number){
   }
   if(grouped.length){
     must(grouped.sort().join(",")==="cik,ticker"&&
-      (api.input_rule==="Provide exactly one of ticker or cik." ||
-        (number==="013"&&api.input_rule==="Provide company plus exactly one of ticker or cik."))&&
+      (number==="013"
+        ?api.input_rule==="Provide company plus exactly one of ticker or cik."
+        :api.input_rule==="Provide exactly one of ticker or cik.")&&
       Number(Object.hasOwn(api.example_query,"ticker"))+
       Number(Object.hasOwn(api.example_query,"cik"))===1,
       "exactly-one input example or rule invalid for "+number);
