@@ -6,6 +6,12 @@ Canonical repository for the x402 Product Factory.
 
 Build narrow, deterministic, machine-purchasable decision tools for autonomous agents while sharing one hardened x402, evidence, source-adapter, test, and discovery layer.
 
+## Product Quality Lab — design quality, not just output volume
+
+The draft [Quality Lab](quality/README.md) adds **all-22-product scorecards**, fee-only economic triage, **schema-guided adversarial input replay** against the existing handwritten and generated handlers, and measurable, blinded customer-workflow improvement proposals. It tracks unverified demand, measured accuracy, current source costs and external buyer evidence as **unknown**, never invented.
+
+The lab is an **offline precommercial review layer**, not a new pricing, billing, auto-launch, or Product 025+ creation system. Improvements to products 007, 018 and 024 are hypotheses awaiting real buyer/ground-truth comparison, not modifications of live product decision logic.
+
 ## Current portfolio
 
 | # | Product | Status | Route | Price |

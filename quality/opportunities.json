@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "report_type": "unverified_product_improvement_hypotheses",
+  "opportunities": [
+    {
+      "product_id": "pa-vendor-counterparty-review",
+      "lifecycle_status": "hypothesis",
+      "customer_job": {
+        "persona": "Pennsylvania procurement analyst reviewing a newly submitted vendor before onboarding",
+        "trigger": "A vendor requests approval and the analyst must decide whether to escalate for review",
+        "success_action": "Open a reviewer-ready evidence brief with clear source-specific findings and next actions",
+        "consequence_of_failure": "An ambiguous name or source failure is incorrectly treated as permission to proceed"
+      },
+      "comparator": {
+        "method": "Manual separate Pennsylvania registry, OFAC SDN, and authoritative RDAP queries plus analyst consolidation",
+        "measured_baseline_time_seconds": null,
+        "measured_baseline_error_rate": null
+      },
+      "improvement": {
+        "proposed_change": "Prototype an evidence-linked reviewer brief with explicit uncertainty, missing-source flags, and action codes while preserving human_review boundaries",
+        "expected_benefit": "Reduce repeated source lookup and escalation ambiguity without increasing incorrect automatic proceed decisions",
+        "primary_metric": "median_reviewer_task_seconds",
+        "target_direction": "decrease",
+        "hypothesis_target_percent": 25,
+        "change_scope": "proposed_not_live"
+      },
+      "blind_evaluation": {
+        "synthetic_case_count": 40,
+        "independent_reviewers_target": 2,
+        "counterexamples": [
+          "ambiguous_registry_identity",
+          "source_outage",
+          "ofac_name_candidate",
+          "recent_domain",
+          "domain_name_mismatch"
+        ],
+        "acceptance_rule": "Record baseline task time and error counts blind; require zero incorrect proceed verdicts on every deliberately blocked fixture before review."
+      },
+      "evidence": {
+        "independent_buyer_interviews": null,
+        "settled_repeat_external_buys": null,
+        "measured_baseline": null,
+        "verified_unit_profit": null,
+        "blind_test_false_proceed_rate": null
+      },
+      "safety": {
+        "auto_deploy": false,
+        "requires_manual_release_review": true,
+        "customer_data_in_repo": false,
+        "unlocks_product_025": false
+      }
+    },
+    {
+      "product_id": "pa-vendor-distance-gate",
+      "lifecycle_status": "hypothesis",
+      "customer_job": {
+        "persona": "Local procurement analyst screening a legal registered address against a radius rule",
+        "trigger": "A new vendor is compared against a geographic registered-address rule before human procurement review",
+        "success_action": "Receive auditable coordinate evidence, explicit distance units, and referral when geocoding is inconclusive",
+        "consequence_of_failure": "A registered address is misrepresented as an operating site or straight-line distance as actual travel time"
+      },
+      "comparator": {
+        "method": "Manual Pennsylvania registry lookup followed by Census geocoding and separate great-circle distance calculation",
+        "measured_baseline_time_seconds": null,
+        "measured_baseline_error_rate": null
+      },
+      "improvement": {
+        "proposed_change": "Prototype a provenance-first distance assessment that prominently labels registered-address and straight-line limits, and exposes missing-geocode reasons",
+        "expected_benefit": "Reduce reviewer reconciliation work without misrepresenting distance as operational eligibility",
+        "primary_metric": "median_reviewer_task_seconds",
+        "target_direction": "decrease",
+        "hypothesis_target_percent": 20,
+        "change_scope": "proposed_not_live"
+      },
+      "blind_evaluation": {
+        "synthetic_case_count": 36,
+        "independent_reviewers_target": 2,
+        "counterexamples": [
+          "ambiguous_registry_identity",
+          "unmatched_census_address",
+          "source_outage",
+          "exact_radius_boundary",
+          "unreliable_registry_address"
+        ],
+        "acceptance_rule": "Independent reviewers compare the proposed output to baseline using identical blinded cases; record time/error and require all source-failure cases to remain non-chargeable."
+      },
+      "evidence": {
+        "independent_buyer_interviews": null,
+        "settled_repeat_external_buys": null,
+        "measured_baseline": null,
+        "verified_unit_profit": null,
+        "blind_test_false_proceed_rate": null
+      },
+      "safety": {
+        "auto_deploy": false,
+        "requires_manual_release_review": true,
+        "customer_data_in_repo": false,
+        "unlocks_product_025": false
+      }
+    },
+    {
+      "product_id": "domain-registration-age",
+      "lifecycle_status": "hypothesis",
+      "customer_job": {
+        "persona": "Vendor-onboarding workflow designer evaluating registration age as one of several review signals",
+        "trigger": "A newly submitted vendor domain needs review during a broader company identity process",
+        "success_action": "Use authoritative registration age with clear caveats as part of a broader human-review workflow",
+        "consequence_of_failure": "A single cheap age signal is overinterpreted as vendor safety and consumes more settlement fees than it earns"
+      },
+      "comparator": {
+        "method": "Direct free authoritative registry RDAP lookup within an existing vendor identity-check workflow",
+        "measured_baseline_time_seconds": null,
+        "measured_baseline_error_rate": null
+      },
+      "improvement": {
+        "proposed_change": "Test including domain-age evidence inside an existing composite vendor review instead of marketing it as a standalone paid verdict",
+        "expected_benefit": "Preserve useful evidence while reducing fragmented paid calls and overclaiming standalone value",
+        "primary_metric": "paid_calls_per_completed_vendor_review",
+        "target_direction": "decrease",
+        "hypothesis_target_percent": 20,
+        "change_scope": "proposed_not_live"
+      },
+      "blind_evaluation": {
+        "synthetic_case_count": 30,
+        "independent_reviewers_target": 2,
+        "counterexamples": [
+          "unregistered_domain",
+          "missing_registration_date",
+          "new_domain",
+          "malformed_domain_input",
+          "stale_rdap_record"
+        ],
+        "acceptance_rule": "Compare identical synthetic vendor-review workflows, measure paid calls and reviewer accuracy, and forbid independent safety conclusions from domain age alone."
+      },
+      "evidence": {
+        "independent_buyer_interviews": null,
+        "settled_repeat_external_buys": null,
+        "measured_baseline": null,
+        "verified_unit_profit": null,
+        "blind_test_false_proceed_rate": null
+      },
+      "safety": {
+        "auto_deploy": false,
+        "requires_manual_release_review": true,
+        "customer_data_in_repo": false,
+        "unlocks_product_025": false
+      }
+    }
+  ]
+}
