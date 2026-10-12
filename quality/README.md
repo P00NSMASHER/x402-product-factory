@@ -24,6 +24,7 @@ node quality/prototypes/018-counterparty-brief.js --check
 node quality/benchmarks/cost-frontier.js --check
 node quality/benchmarks/018-masked-pilot.js --check
 node quality/benchmarks/cost-evidence-gate.js --check
+node quality/benchmarks/018-decision-oracle.js --check
 node --test quality/product-quality-lab.test.js quality/opportunity-lab.test.js quality/adversarial-contracts.test.js
 ```
 
@@ -38,6 +39,14 @@ For a consciously revised spec or experiment, regenerate deterministic reports u
 7. **Private operating-cost intake:** [COST_EVIDENCE_GATE.md](generated/COST_EVIDENCE_GATE.md) remains **HOLD** because no independently reconciled settlement receipts, source invoices, hosting charges, refunds, or external purchases have been supplied. A strict offline [template](benchmarks/018-private-cost-evidence.template.json) can calculate *unattested* operator-input arithmetic but cannot self-certify its evidence or grant commercial approval.
 
 Detailed replication, reviewer packet use, adversarial observation guards, and independent release requirements: [benchmarks/README.md](benchmarks/README.md).
+
+## Decision-quality oracle — Product 018 (offline)
+
+The [predeclared synthetic decision oracle](generated/018_DECISION_ORACLE.md) tests **30 evidence variants** for the existing Product 018 registry/OFAC/RDAP workflow, including malformed candidate counts, missing source fields, disputed identity matches, impossible registration dates and exact age boundaries. It checks the existing decision logic against conservative review expectations and compares it to a separate [offline hardening candidate](benchmarks/018-hardened-decision.js). A [service-level replay suite](benchmarks/018-source-contract-replay.test.js) checks real module composition with injected in-memory source adapters. **Neither the candidate nor the tests are wired into a paid runtime.**
+
+At the recorded source revision, the baseline disagrees with 11 of 30 repository-authored synthetic review expectations by returning `proceed`; the offline candidate matches all 30. This is a **test-suite finding**, not an independently assessed production error rate or an estimate of improved market value. Changing the actual Product 018 decision handler is expressly deferred to separate security, source-contract, and product-owner review.
+
+Run `node quality/benchmarks/018-decision-oracle.js --check` or all discovered tests. Any changed expected outcomes require inspecting the synthetic gold labels and independent review; the generator does not automatically declare a fix production-ready.
 
 ## How an improved product graduates
 
