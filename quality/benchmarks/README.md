@@ -57,6 +57,19 @@ node quality/benchmarks/cost-evidence-gate.js --assess /private/018-costs.json
 
 The engine accepts fixed-point money, a bounded date window, reconciled settlement counts, and four external document-reference digests but does **not** verify the source documents from the supplied hash strings. Even a mathematically viable operator-entered result remains `HOLD_PENDING_INDEPENDENT_INVOICE_AND_BUYER_AUDIT`; documents and independently corroborated customer purchases must be reviewed out of band. Never commit invoices, settlement details, raw buyer responses, names, payment signatures, tokens or documents.
 
+### Product 018 evidence-contradiction oracle (offline proposed fix)
+
+Run from the repository root:
+
+```bash
+node quality/benchmarks/018-decision-oracle.js --check
+node --test quality/benchmarks/018-hardened-decision.test.js quality/benchmarks/018-decision-oracle.test.js quality/benchmarks/018-source-contract-replay.test.js
+```
+
+[Read the synthetic benchmark report](../generated/018_DECISION_ORACLE.md). Its **30 predeclared synthetic cases** cover identity cardinality contradictions, inconsistent/missing OFAC candidate tallies, source failures, invalid/future domain registration dates and inclusive age thresholds. The current Product 018 decision implementation returns `proceed` on **11** scenarios with predeclared human-review expectations. The **offline-only** prototype conservatively returns `human_review` in all 11 and matches all 30 expected labels. These fixtures are neither externally verified ground truth nor actual buyer observations; **no production error rate, customer improvement, sanctions determination or independent review is established**.
+
+The generated report and the benchmark suite are gated in CI. The existing product/source/payment/runtime implementations remain unchanged. Before integrating a candidate fix, independently audit the shape and meaning of authoritative registry and OFAC source contracts, review legal/identity claim boundaries, use additional blind held-out adversarial cases, and obtain explicit product/security approval. The Product 025+ freeze and commercial-economics HOLD remain intact.
+
 ### Test and release barriers
 
 The unchanged Factory product CI continues to run every existing staging release gate and all discovered tests, plus deterministic `--check` gates for these artifacts. Tests include tampered artifacts, unauthorized Product 025+ assertions, partial/private evidence input, inconsistent price arithmetic, duplicate trial entries, and fake approvals.
