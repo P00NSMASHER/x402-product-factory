@@ -1,4 +1,5 @@
 "use strict";
+const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
 
 const {assessBusinessAddress}=require("./decision");
 const {sourceUnavailable,requireAdapter,normalizedEvidence}=require("../../packages/sources/contracts");
@@ -20,12 +21,13 @@ function createBusinessAddressService({registry,address,now=()=>new Date().toISO
   async function check(input){
     const normalized=validateBusinessAddressInput(input);
     const sourceFailures=[];
+  const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);
 
     let registryEvidence;
     try{
-      registryEvidence=normalizedEvidence("pa_registry",await registry.lookup({company:normalized.company}));
+      registryEvidence=recordEvidence("pa_registry",await registry.lookup({company:normalized.company}));
     }catch(error){
-      const detail=error?.code||error?.message||"lookup failed";
+      const detail=safeSourceErrorCode(error);
       sourceFailures.push({source:"pa_registry",detail});
       registryEvidence=sourceUnavailable("pa_registry",detail);
     }
@@ -36,12 +38,12 @@ function createBusinessAddressService({registry,address,now=()=>new Date().toISO
       addressEvidence=sourceUnavailable("census_address","registry identity/address unavailable for comparison");
     }else{
       try{
-        addressEvidence=normalizedEvidence("census_address",await address.compare({
+        addressEvidence=recordEvidence("census_address",await address.compare({
           suppliedAddress:normalized.address,
           registryAddress:registeredAddress
         }));
       }catch(error){
-        const detail=error?.code||error?.message||"comparison failed";
+        const detail=safeSourceErrorCode(error);
         sourceFailures.push({source:"census_address",detail});
         addressEvidence=sourceUnavailable("census_address",detail);
       }

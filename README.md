@@ -324,7 +324,7 @@ Default production rail:
 Products follow:
 `402 -> validate input -> verify payment -> source work -> settle -> 200`.
 
-Required-source transport failure is non-chargeable and must not settle.
+Required-source transport **or completed response with `available:false`** is non-chargeable and must not settle. A new [17-product billing guard audit](quality/benchmarks/REMAINING_SOURCE_BILLING_SAFETY.md) extends this to staging Products 003–015 and 021–024, in addition to the existing audited composite Products 016–020.
 
 ## Deployment readiness
 

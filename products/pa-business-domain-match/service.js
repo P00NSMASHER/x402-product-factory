@@ -1,4 +1,5 @@
 "use strict";
+const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
 const {assessBusinessDomain}=require("./decision");
 const {sourceUnavailable,requireAdapter,normalizedEvidence}=require("../../packages/sources/contracts");
 const {validateVendorIdentityInput,canonicalBusinessName,domainNameAligned}=require("../pa-vendor-identity-match/service");
@@ -14,17 +15,18 @@ function createBusinessDomainService({registry,rdap,now=()=>new Date().toISOStri
   return {async check(input){
     const normalized=validateBusinessDomainInput(input);
     const sourceFailures=[];
+  const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);
     let registryEvidence;
-    try{registryEvidence=normalizedEvidence("pa_registry",await registry.lookup({company:normalized.company}));}
+    try{registryEvidence=recordEvidence("pa_registry",await registry.lookup({company:normalized.company}));}
     catch(error){
-      const detail=error?.code||error?.message||"lookup failed";
+      const detail=safeSourceErrorCode(error);
       sourceFailures.push({source:"pa_registry",detail});
       registryEvidence=sourceUnavailable("pa_registry",detail);
     }
 
     let rdapEvidence;
     try{
-      rdapEvidence=normalizedEvidence("rdap",await rdap.lookup({domain:normalized.domain}));
+      rdapEvidence=recordEvidence("rdap",await rdap.lookup({domain:normalized.domain}));
       rdapEvidence={
         ...rdapEvidence,
         nameAligned:
@@ -33,7 +35,7 @@ function createBusinessDomainService({registry,rdap,now=()=>new Date().toISOStri
             : false
       };
     }catch(error){
-      const detail=error?.code||error?.message||"lookup failed";
+      const detail=safeSourceErrorCode(error);
       sourceFailures.push({source:"rdap",detail});
       rdapEvidence=sourceUnavailable("rdap",detail);
     }

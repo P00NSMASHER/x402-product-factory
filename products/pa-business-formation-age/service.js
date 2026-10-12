@@ -1,4 +1,5 @@
 "use strict";
+const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
 
 const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
 const {assessFormationAge}=require("./decision");
@@ -23,11 +24,12 @@ function createFormationAgeService({registry,now=()=>new Date().toISOString()}){
   return {async check(input){
     const normalized=validateFormationAgeInput(input);
     const sourceFailures=[];
+  const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);
     let evidence;
     try{
-      evidence=normalizedEvidence("pa_registry",await registry.lookup({company:normalized.company}));
+      evidence=recordEvidence("pa_registry",await registry.lookup({company:normalized.company}));
     }catch(error){
-      const detail=error?.code||error?.message||"lookup failed";
+      const detail=safeSourceErrorCode(error);
       sourceFailures.push({source:"pa_registry",detail});
       evidence=sourceUnavailable("pa_registry",detail);
     }

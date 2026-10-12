@@ -1,4 +1,5 @@
 "use strict";
+const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
 const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
 const {entityAddress}=require("../pa-vendor-identity-match/service");
 const {assessVendorDistance}=require("./decision");
@@ -10,16 +11,17 @@ function createVendorDistanceService({registry,address,now=()=>new Date().toISOS
  requireAdapter("registry",registry,"lookup");requireAdapter("address",address,"compare");
  return{async check(input){
   const normalized=validateVendorDistanceInput(input),sourceFailures=[];
+  const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);
   let registryEvidence;
-  try{registryEvidence=normalizedEvidence("pa_registry",await registry.lookup({company:normalized.company}));}
-  catch(error){const detail=error?.code||error?.message||"lookup failed";sourceFailures.push({source:"pa_registry",detail});registryEvidence=sourceUnavailable("pa_registry",detail);}
+  try{registryEvidence=recordEvidence("pa_registry",await registry.lookup({company:normalized.company}));}
+  catch(error){const detail=safeSourceErrorCode(error);sourceFailures.push({source:"pa_registry",detail});registryEvidence=sourceUnavailable("pa_registry",detail);}
   const registeredAddress=entityAddress(registryEvidence?.entity??null);
   let addressEvidence;
   if(registryEvidence.available!==true||registryEvidence.strongMatch!==true||!registeredAddress){
     addressEvidence=sourceUnavailable("census_address","registry identity/address unavailable for distance comparison");
   }else{
-    try{addressEvidence=normalizedEvidence("census_address",await address.compare({suppliedAddress:normalized.originAddress,registryAddress:registeredAddress}));}
-    catch(error){const detail=error?.code||error?.message||"comparison failed";sourceFailures.push({source:"census_address",detail});addressEvidence=sourceUnavailable("census_address",detail);}
+    try{addressEvidence=recordEvidence("census_address",await address.compare({suppliedAddress:normalized.originAddress,registryAddress:registeredAddress}));}
+    catch(error){const detail=safeSourceErrorCode(error);sourceFailures.push({source:"census_address",detail});addressEvidence=sourceUnavailable("census_address",detail);}
   }
   const result=assessVendorDistance({registry:registryEvidence,address:addressEvidence},normalized.maxDistanceMiles,now());
   return{...result,input:normalized,sourceFailures,chargeable:sourceFailures.length===0,evidence:{registry:registryEvidence,address:addressEvidence}};

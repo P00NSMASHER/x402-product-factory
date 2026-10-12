@@ -1,4 +1,5 @@
 "use strict";
+const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
 const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
 const {assessOfacNameReview}=require("./decision");
 function validateOfacInput(input){
@@ -12,9 +13,10 @@ function validateOfacInput(input){
 function createOfacReviewService({ofac,now=()=>new Date().toISOString()}){
  requireAdapter("ofac",ofac,"lookup");
  return{async check(input){
-  const normalized=validateOfacInput(input);const sourceFailures=[];let evidence;
-  try{evidence=normalizedEvidence("ofac_sdn",await ofac.lookup({name:normalized.name,minScore:normalized.minScore,limit:3}));}
-  catch(error){const detail=error?.code||error?.message||"lookup failed";sourceFailures.push({source:"ofac_sdn",detail});evidence=sourceUnavailable("ofac_sdn",detail);}
+  const normalized=validateOfacInput(input);const sourceFailures=[];
+  const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);let evidence;
+  try{evidence=recordEvidence("ofac_sdn",await ofac.lookup({name:normalized.name,minScore:normalized.minScore,limit:3}));}
+  catch(error){const detail=safeSourceErrorCode(error);sourceFailures.push({source:"ofac_sdn",detail});evidence=sourceUnavailable("ofac_sdn",detail);}
   const result=assessOfacNameReview(evidence,{minScore:normalized.minScore,checkedAt:now()});
   return{...result,input:normalized,sourceFailures,chargeable:sourceFailures.length===0,evidence,limitations:["Candidate-name screening only; a match is not a legal determination.","A no-candidate result is not sanctions clearance.","OFAC 50 Percent Rule ownership analysis is not included."]};
  }};

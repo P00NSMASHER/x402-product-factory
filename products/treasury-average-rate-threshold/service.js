@@ -1,4 +1,5 @@
 "use strict";
+const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
 
 const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
 const {assessTreasuryRateThreshold}=require("./decision");
@@ -36,11 +37,12 @@ function createTreasuryRateThresholdService({treasury,now=()=>new Date().toISOSt
   return {async check(input){
     const normalized=validateTreasuryThresholdInput(input);
     const sourceFailures=[];
+  const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);
     let evidence;
     try{
-      evidence=normalizedEvidence("treasury_fiscal_data",await treasury.lookup({security:normalized.security}));
+      evidence=recordEvidence("treasury_fiscal_data",await treasury.lookup({security:normalized.security}));
     }catch(error){
-      const detail=error?.code||error?.message||"lookup failed";
+      const detail=safeSourceErrorCode(error);
       sourceFailures.push({source:"treasury_fiscal_data",detail});
       evidence=sourceUnavailable("treasury_fiscal_data",detail);
     }

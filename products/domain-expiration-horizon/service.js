@@ -1,4 +1,5 @@
 "use strict";
+const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
 const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
 const {validateDomainAgeInput}=require("../domain-registration-age/service");
 const {assessDomainExpiration}=require("./decision");
@@ -17,9 +18,10 @@ function createDomainExpirationService({rdap,now=()=>new Date().toISOString()}){
   return{async check(input){
     const normalized=validateExpirationInput(input);
     const sourceFailures=[];
+  const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);
     let evidence;
-    try{evidence=normalizedEvidence("rdap",await rdap.lookup({domain:normalized.domain}));}
-    catch(error){const detail=error?.code||error?.message||"lookup failed";sourceFailures.push({source:"rdap",detail});evidence=sourceUnavailable("rdap",detail);}
+    try{evidence=recordEvidence("rdap",await rdap.lookup({domain:normalized.domain}));}
+    catch(error){const detail=safeSourceErrorCode(error);sourceFailures.push({source:"rdap",detail});evidence=sourceUnavailable("rdap",detail);}
     const result=assessDomainExpiration(evidence,{horizonDays:normalized.horizonDays,now:now()});
     return{...result,input:normalized,sourceFailures,chargeable:sourceFailures.length===0,evidence};
   }};
