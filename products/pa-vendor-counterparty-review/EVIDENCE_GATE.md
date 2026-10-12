@@ -10,6 +10,10 @@ The Product 018 **staging service** now validates each required source's evidenc
 - **Payment safety:** existing handwritten and generated x402 handlers verify the submitted authorization first, but both **skip settlement** after the service returns `chargeable:false` or required-source failures. No charged answer is returned on these source-contract failures.
 - **Output stability:** normal `proceed` and coherent `human_review` decisions keep existing price, decision set, source adapters, provenance, and x402 settlement behavior. Contract failures carry generic reason codes, not fake new clearance decisions.
 
+## Full route-level shadow acceptance
+
+A separate [mocked runtime canary](../../quality/benchmarks/018_RUNTIME_ACCEPTANCE.md) checks the AppDeploy bridge to the **actual Product 018 staging service**, including the generated paid handler, payment challenge identity, mock verifier/settler flow, source-contract failures, and non-leakage of upstream exception secrets. This is a draft integration test; no provider call or actual payment is made.
+
 ## Tests
 
 ```bash

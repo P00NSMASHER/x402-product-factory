@@ -74,6 +74,18 @@ The generated report and the benchmark suite are gated in CI. The existing produ
 
 [Product 018 evidence gate](../../products/pa-vendor-counterparty-review/EVIDENCE_GATE.md) applies the source-contract checks to the actual staging service, without changing authoritative data adapters or the core decision helper. Failed required source contracts are non-chargeable, with both generated and handwritten paid handlers prevented from settling the payment. Completed valid human-review findings remain eligible for the existing paid result. **Not merged or deployed.** Independent source and payment reviews remain mandatory.
 
+### Product 018 complete staging/AppDeploy-route canary
+
+[Read the staging shadow-canary protocol](018_RUNTIME_ACCEPTANCE.md). The executable `018-runtime-canary.js` instantiates the **actual** `createFactoryRuntime` and `createAppDeployRouteMap` for all 22 factory products, then probes the real Product 018 GET/OPTIONS route with **strictly injected fake provider and x402 facilitator functions**. It verifies:
+
+- A real unpaid `402` challenge in the simulated route with the existing payment network, asset, receiver and **10000 atomic USDC** amount, without making any facilitator request.
+- Invalid inputs, malformed signatures, rejected/unknown verifications, no source calls, and no mock settlement.
+- Both chargeable `proceed` and completed `human_review`, including a legitimate multi-ranked/one-strong PA match.
+- Contradictory registry/OFAC/RDAP evidence and transport exceptions returning `502 chargeable:false` with **zero mock settlement**. Source errors are normalized to fixed codes rather than echoing private upstream error messages or arbitrary `error.code`.
+- A terminal settlement result does not fabricate a `PAYMENT-RESPONSE`, and the route preserves its previous price, CORS and x402 identity.
+
+Run `node quality/benchmarks/018-runtime-canary.js --check` for a machine-readable **observed synthetic** readiness report. This is a deterministic CI test of the assembled *draft runtime*, not an independent live source probe, real payment, actual facilitator receipt or release approval. All real-money/user-evidence gates remain HOLD.
+
 ### Test and release barriers
 
 The unchanged Factory product CI continues to run every existing staging release gate and all discovered tests, plus deterministic `--check` gates for these artifacts. Tests include tampered artifacts, unauthorized Product 025+ assertions, partial/private evidence input, inconsistent price arithmetic, duplicate trial entries, and fake approvals.

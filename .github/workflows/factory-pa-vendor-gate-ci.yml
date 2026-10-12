@@ -80,6 +80,9 @@ jobs:
       - name: Build staging release bundle
         run: node scripts/build-release-bundle.js /tmp/x402-factory-bundle https://candidate.example
 
+      - name: Product 018 end-to-end mocked release acceptance
+        run: node quality/benchmarks/018-runtime-canary.js --check
+
       - name: Run every staging product release gate
         run: node scripts/run-release-gates.js
 
