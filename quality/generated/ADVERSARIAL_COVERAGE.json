@@ -1,0 +1,319 @@
+{
+  "schema_version": 1,
+  "coverage_type": "invalid_query_mutations_unpaid_before_verification",
+  "generator": "quality/adversarial-contracts.js",
+  "products_reviewed": 22,
+  "hostile_queries_per_implementation": 217,
+  "implementation_count": 2,
+  "real_upstream_requests_permitted": false,
+  "real_payment_submission_permitted": false,
+  "products": [
+    {
+      "number": "003",
+      "id": "pa-vendor-identity-match",
+      "hostile_case_count": 12,
+      "mutation_kinds": [
+        "above-string-max",
+        "below-string-min",
+        "blank-required",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "004",
+      "id": "pa-business-address-match",
+      "hostile_case_count": 8,
+      "mutation_kinds": [
+        "above-string-max",
+        "below-string-min",
+        "blank-required",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "005",
+      "id": "pa-business-domain-match",
+      "hostile_case_count": 8,
+      "mutation_kinds": [
+        "above-string-max",
+        "below-string-min",
+        "blank-required",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "006",
+      "id": "sec-filing-freshness",
+      "hostile_case_count": 9,
+      "mutation_kinds": [
+        "above-numeric-max",
+        "above-string-max",
+        "below-numeric-min",
+        "fractional-integer",
+        "malformed-exclusive-identifier",
+        "missing-exactly-one",
+        "multiple-exclusive-identifiers",
+        "non-numeric"
+      ]
+    },
+    {
+      "number": "007",
+      "id": "domain-registration-age",
+      "hostile_case_count": 8,
+      "mutation_kinds": [
+        "above-numeric-max",
+        "above-string-max",
+        "below-numeric-min",
+        "below-string-min",
+        "blank-required",
+        "fractional-integer",
+        "non-numeric",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "008",
+      "id": "treasury-average-rate-threshold",
+      "hostile_case_count": 9,
+      "mutation_kinds": [
+        "above-numeric-max",
+        "above-string-max",
+        "below-numeric-min",
+        "below-string-min",
+        "blank-required",
+        "non-numeric",
+        "omit-required",
+        "outside-enum"
+      ]
+    },
+    {
+      "number": "009",
+      "id": "ofac-name-review-gate",
+      "hostile_case_count": 8,
+      "mutation_kinds": [
+        "above-numeric-max",
+        "above-string-max",
+        "below-numeric-min",
+        "below-string-min",
+        "blank-required",
+        "fractional-integer",
+        "non-numeric",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "010",
+      "id": "pa-business-formation-age",
+      "hostile_case_count": 8,
+      "mutation_kinds": [
+        "above-numeric-max",
+        "above-string-max",
+        "below-numeric-min",
+        "below-string-min",
+        "blank-required",
+        "fractional-integer",
+        "non-numeric",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "011",
+      "id": "domain-expiration-horizon",
+      "hostile_case_count": 8,
+      "mutation_kinds": [
+        "above-numeric-max",
+        "above-string-max",
+        "below-numeric-min",
+        "below-string-min",
+        "blank-required",
+        "fractional-integer",
+        "non-numeric",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "012",
+      "id": "domain-last-changed-recency",
+      "hostile_case_count": 8,
+      "mutation_kinds": [
+        "above-numeric-max",
+        "above-string-max",
+        "below-numeric-min",
+        "below-string-min",
+        "blank-required",
+        "fractional-integer",
+        "non-numeric",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "013",
+      "id": "sec-company-identity-match",
+      "hostile_case_count": 8,
+      "mutation_kinds": [
+        "above-string-max",
+        "below-string-min",
+        "blank-required",
+        "malformed-exclusive-identifier",
+        "missing-exactly-one",
+        "multiple-exclusive-identifiers",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "014",
+      "id": "treasury-average-rate-trend",
+      "hostile_case_count": 8,
+      "mutation_kinds": [
+        "above-numeric-max",
+        "above-string-max",
+        "below-numeric-min",
+        "below-string-min",
+        "blank-required",
+        "fractional-integer",
+        "non-numeric",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "015",
+      "id": "treasury-average-rate-spread",
+      "hostile_case_count": 11,
+      "mutation_kinds": [
+        "above-numeric-max",
+        "above-string-max",
+        "below-numeric-min",
+        "below-string-min",
+        "blank-required",
+        "non-numeric",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "016",
+      "id": "pa-entity-ofac-review",
+      "hostile_case_count": 8,
+      "mutation_kinds": [
+        "above-numeric-max",
+        "above-string-max",
+        "below-numeric-min",
+        "below-string-min",
+        "blank-required",
+        "fractional-integer",
+        "non-numeric",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "017",
+      "id": "pa-vendor-new-domain-review",
+      "hostile_case_count": 12,
+      "mutation_kinds": [
+        "above-numeric-max",
+        "above-string-max",
+        "below-numeric-min",
+        "below-string-min",
+        "blank-required",
+        "fractional-integer",
+        "non-numeric",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "018",
+      "id": "pa-vendor-counterparty-review",
+      "hostile_case_count": 16,
+      "mutation_kinds": [
+        "above-numeric-max",
+        "above-string-max",
+        "below-numeric-min",
+        "below-string-min",
+        "blank-required",
+        "fractional-integer",
+        "non-numeric",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "019",
+      "id": "pa-vendor-maturity-review",
+      "hostile_case_count": 16,
+      "mutation_kinds": [
+        "above-numeric-max",
+        "above-string-max",
+        "below-numeric-min",
+        "below-string-min",
+        "blank-required",
+        "fractional-integer",
+        "non-numeric",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "020",
+      "id": "pa-vendor-domain-continuity-review",
+      "hostile_case_count": 16,
+      "mutation_kinds": [
+        "above-numeric-max",
+        "above-string-max",
+        "below-numeric-min",
+        "below-string-min",
+        "blank-required",
+        "fractional-integer",
+        "non-numeric",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "021",
+      "id": "pa-entity-type-policy",
+      "hostile_case_count": 6,
+      "mutation_kinds": [
+        "above-string-max",
+        "below-string-min",
+        "blank-required",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "022",
+      "id": "pa-registered-county-policy",
+      "hostile_case_count": 6,
+      "mutation_kinds": [
+        "above-string-max",
+        "below-string-min",
+        "blank-required",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "023",
+      "id": "pa-local-vendor-policy-gate",
+      "hostile_case_count": 12,
+      "mutation_kinds": [
+        "above-numeric-max",
+        "above-string-max",
+        "below-numeric-min",
+        "below-string-min",
+        "blank-required",
+        "fractional-integer",
+        "non-numeric",
+        "omit-required"
+      ]
+    },
+    {
+      "number": "024",
+      "id": "pa-vendor-distance-gate",
+      "hostile_case_count": 12,
+      "mutation_kinds": [
+        "above-numeric-max",
+        "above-string-max",
+        "below-numeric-min",
+        "below-string-min",
+        "blank-required",
+        "non-numeric",
+        "omit-required"
+      ]
+    }
+  ]
+}

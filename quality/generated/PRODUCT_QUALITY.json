@@ -1,0 +1,1299 @@
+{
+  "schema_version": 1,
+  "report_type": "design_opportunity_review_not_market_validation",
+  "catalog_scope": "registered_specifications_003_through_024_only",
+  "generated_by": "quality/product-quality-lab.js",
+  "observed_customer_data_in_report": false,
+  "economic_assumptions_are_current_market_quotes": false,
+  "commercial_approvals_granted": 0,
+  "independently_verified_external_demand_in_specifications": 0,
+  "independent_real_world_buyer_demand_status": "unmeasured",
+  "no_synthetic_success_counts_as_sale": true,
+  "product_025_unlock_evidence": false,
+  "product_count": 22,
+  "fee_only_category_counts": {
+    "fee_negative": 6,
+    "below_target_fee_only": 15,
+    "passes_fee_only_screen": 1
+  },
+  "products": [
+    {
+      "number": "003",
+      "id": "pa-vendor-identity-match",
+      "buyer_task_claimed_by_design": "Determine whether a prospective Pennsylvania vendor's submitted company name, address, and domain are mutually consistent with authoritative public identity evidence.",
+      "decision_values": [
+        "consistent",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "pa_registry",
+        "census_address",
+        "rdap"
+      ],
+      "known_source_adapters": [
+        "createPaRegistryAdapter",
+        "createCensusAddressAdapter",
+        "createRdapAdapter"
+      ],
+      "source_count": 3,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "below_target_fee_only",
+        "registered_price_usdc": "0.005",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "0.002690",
+        "hypothetical_margin_pct": 53.8,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "multi_source_conflict_benchmark_needed",
+        "domain_metadata_is_not_ownership_proof",
+        "geocoder_mismatch_and_straight_line_limits_need_testing"
+      ],
+      "next_design_experiment": "prove_incremental_buyer_value_and_full_cost_fit",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "004",
+      "id": "pa-business-address-match",
+      "buyer_task_claimed_by_design": "Check whether a submitted Pennsylvania business address is consistent with the address of a uniquely resolved Pennsylvania registry entity.",
+      "decision_values": [
+        "match",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "pa_registry",
+        "census_address"
+      ],
+      "known_source_adapters": [
+        "createPaRegistryAdapter",
+        "createCensusAddressAdapter"
+      ],
+      "source_count": 2,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "below_target_fee_only",
+        "registered_price_usdc": "0.003",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "0.000690",
+        "hypothetical_margin_pct": 23,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "multi_source_conflict_benchmark_needed",
+        "geocoder_mismatch_and_straight_line_limits_need_testing"
+      ],
+      "next_design_experiment": "prove_incremental_buyer_value_and_full_cost_fit",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "005",
+      "id": "pa-business-domain-match",
+      "buyer_task_claimed_by_design": "Check whether a supplied registered domain plausibly aligns with the name of a uniquely resolved Pennsylvania business entity.",
+      "decision_values": [
+        "match",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "pa_registry",
+        "rdap"
+      ],
+      "known_source_adapters": [
+        "createPaRegistryAdapter",
+        "createRdapAdapter"
+      ],
+      "source_count": 2,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "below_target_fee_only",
+        "registered_price_usdc": "0.003",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "0.000690",
+        "hypothetical_margin_pct": 23,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "multi_source_conflict_benchmark_needed",
+        "domain_metadata_is_not_ownership_proof"
+      ],
+      "next_design_experiment": "prove_incremental_buyer_value_and_full_cost_fit",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "006",
+      "id": "sec-filing-freshness",
+      "buyer_task_claimed_by_design": "Determine whether a U.S. public filer has an SEC EDGAR filing matching an optional exact form filter inside a caller-selected freshness window.",
+      "decision_values": [
+        "recent_filing",
+        "no_recent_filing",
+        "company_not_found"
+      ],
+      "authoritative_source_ids": [
+        "sec_edgar"
+      ],
+      "known_source_adapters": [
+        "createSecFilingsAdapter"
+      ],
+      "source_count": 1,
+      "specification_release_status": "source-contract-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "below_target_fee_only",
+        "registered_price_usdc": "0.005",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "0.002690",
+        "hypothetical_margin_pct": 53.8,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "single_source_alternative_value_benchmark_needed",
+        "production_sec_user_agent_and_source_review_needed"
+      ],
+      "next_design_experiment": "prove_incremental_buyer_value_and_full_cost_fit",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "007",
+      "id": "domain-registration-age",
+      "buyer_task_claimed_by_design": "Determine whether an authoritative RDAP domain registration date is at least a caller-selected minimum age.",
+      "decision_values": [
+        "established",
+        "recent_registration",
+        "unregistered",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "rdap"
+      ],
+      "known_source_adapters": [
+        "createRdapAdapter"
+      ],
+      "source_count": 1,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "fee_negative",
+        "registered_price_usdc": "0.002",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "-0.000310",
+        "hypothetical_margin_pct": -15.5,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "single_source_alternative_value_benchmark_needed",
+        "domain_metadata_is_not_ownership_proof"
+      ],
+      "next_design_experiment": "repackage_or_retire_standalone_hypothesis",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "008",
+      "id": "treasury-average-rate-threshold",
+      "buyer_task_claimed_by_design": "Compare the latest official monthly weighted-average interest rate for one Treasury security category to a caller threshold.",
+      "decision_values": [
+        "threshold_met",
+        "threshold_not_met",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "treasury_fiscal_data"
+      ],
+      "known_source_adapters": [
+        "createTreasuryAverageRatesAdapter"
+      ],
+      "source_count": 1,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "below_target_fee_only",
+        "registered_price_usdc": "0.003",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "0.000690",
+        "hypothetical_margin_pct": 23,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "single_source_alternative_value_benchmark_needed"
+      ],
+      "next_design_experiment": "prove_incremental_buyer_value_and_full_cost_fit",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "009",
+      "id": "ofac-name-review-gate",
+      "buyer_task_claimed_by_design": "Perform deterministic first-pass name/alias screening against the current OFAC SDN list and return whether one or more review candidates meet a caller-selected similarity threshold.",
+      "decision_values": [
+        "candidate_found",
+        "no_candidate",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "ofac_sdn"
+      ],
+      "known_source_adapters": [
+        "createOfacNameAdapter"
+      ],
+      "source_count": 1,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "below_target_fee_only",
+        "registered_price_usdc": "0.003",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "0.000690",
+        "hypothetical_margin_pct": 23,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "single_source_alternative_value_benchmark_needed",
+        "name_screening_is_not_sanctions_clearance"
+      ],
+      "next_design_experiment": "prove_incremental_buyer_value_and_full_cost_fit",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "010",
+      "id": "pa-business-formation-age",
+      "buyer_task_claimed_by_design": "Determine whether a uniquely resolved Pennsylvania business entity is at least a caller-selected age using Pennsylvania Department of State creation-date evidence.",
+      "decision_values": [
+        "established_entity",
+        "recent_entity",
+        "company_not_found",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "pa_registry"
+      ],
+      "known_source_adapters": [
+        "createPaRegistryAdapter"
+      ],
+      "source_count": 1,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "fee_negative",
+        "registered_price_usdc": "0.002",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "-0.000310",
+        "hypothetical_margin_pct": -15.5,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "single_source_alternative_value_benchmark_needed"
+      ],
+      "next_design_experiment": "repackage_or_retire_standalone_hypothesis",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "011",
+      "id": "domain-expiration-horizon",
+      "buyer_task_claimed_by_design": "Determine whether an authoritative RDAP registration expiration date falls within a caller-selected future horizon.",
+      "decision_values": [
+        "expiring_soon",
+        "not_expiring_soon",
+        "unregistered",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "rdap"
+      ],
+      "known_source_adapters": [
+        "createRdapAdapter"
+      ],
+      "source_count": 1,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "fee_negative",
+        "registered_price_usdc": "0.002",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "-0.000310",
+        "hypothetical_margin_pct": -15.5,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "single_source_alternative_value_benchmark_needed",
+        "domain_metadata_is_not_ownership_proof"
+      ],
+      "next_design_experiment": "repackage_or_retire_standalone_hypothesis",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "012",
+      "id": "domain-last-changed-recency",
+      "buyer_task_claimed_by_design": "Determine whether an authoritative RDAP last-changed event falls within a caller-selected recent window.",
+      "decision_values": [
+        "recently_changed",
+        "stable_since_window",
+        "unregistered",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "rdap"
+      ],
+      "known_source_adapters": [
+        "createRdapAdapter"
+      ],
+      "source_count": 1,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "fee_negative",
+        "registered_price_usdc": "0.002",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "-0.000310",
+        "hypothetical_margin_pct": -15.5,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "single_source_alternative_value_benchmark_needed",
+        "domain_metadata_is_not_ownership_proof"
+      ],
+      "next_design_experiment": "repackage_or_retire_standalone_hypothesis",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "013",
+      "id": "sec-company-identity-match",
+      "buyer_task_claimed_by_design": "Check whether a supplied expected company name matches the authoritative SEC EDGAR company identity resolved from exactly one ticker or CIK.",
+      "decision_values": [
+        "match",
+        "human_review",
+        "company_not_found"
+      ],
+      "authoritative_source_ids": [
+        "sec_edgar"
+      ],
+      "known_source_adapters": [
+        "createSecFilingsAdapter"
+      ],
+      "source_count": 1,
+      "specification_release_status": "source-contract-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "below_target_fee_only",
+        "registered_price_usdc": "0.003",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "0.000690",
+        "hypothetical_margin_pct": 23,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "single_source_alternative_value_benchmark_needed",
+        "production_sec_user_agent_and_source_review_needed"
+      ],
+      "next_design_experiment": "prove_incremental_buyer_value_and_full_cost_fit",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "014",
+      "id": "treasury-average-rate-trend",
+      "buyer_task_claimed_by_design": "Compare the latest official monthly average interest rate for one Treasury security description with the prior month's rate and return a bounded directional signal.",
+      "decision_values": [
+        "rising",
+        "falling",
+        "unchanged",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "treasury_fiscal_data"
+      ],
+      "known_source_adapters": [
+        "createTreasuryAverageRatesAdapter"
+      ],
+      "source_count": 1,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "below_target_fee_only",
+        "registered_price_usdc": "0.003",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "0.000690",
+        "hypothetical_margin_pct": 23,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "single_source_alternative_value_benchmark_needed"
+      ],
+      "next_design_experiment": "prove_incremental_buyer_value_and_full_cost_fit",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "015",
+      "id": "treasury-average-rate-spread",
+      "buyer_task_claimed_by_design": "Compare the latest official monthly weighted-average interest rates for two U.S. Treasury security categories from the same record date and classify their spread.",
+      "decision_values": [
+        "left_higher",
+        "right_higher",
+        "within_tolerance",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "treasury_fiscal_data"
+      ],
+      "known_source_adapters": [
+        "createTreasuryAverageRatesAdapter"
+      ],
+      "source_count": 1,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "below_target_fee_only",
+        "registered_price_usdc": "0.003",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "0.000690",
+        "hypothetical_margin_pct": 23,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "single_source_alternative_value_benchmark_needed"
+      ],
+      "next_design_experiment": "prove_incremental_buyer_value_and_full_cost_fit",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "016",
+      "id": "pa-entity-ofac-review",
+      "buyer_task_claimed_by_design": "Resolve a prospective Pennsylvania company to a unique legal entity, then run deterministic current OFAC SDN primary-name and alias screening against the resolved legal name.",
+      "decision_values": [
+        "candidate_found",
+        "no_candidate",
+        "company_not_found",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "pa_registry",
+        "ofac_sdn"
+      ],
+      "known_source_adapters": [
+        "createPaRegistryAdapter",
+        "createOfacNameAdapter"
+      ],
+      "source_count": 2,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "below_target_fee_only",
+        "registered_price_usdc": "0.005",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "0.002690",
+        "hypothetical_margin_pct": 53.8,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "multi_source_conflict_benchmark_needed",
+        "name_screening_is_not_sanctions_clearance"
+      ],
+      "next_design_experiment": "prove_incremental_buyer_value_and_full_cost_fit",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "017",
+      "id": "pa-vendor-new-domain-review",
+      "buyer_task_claimed_by_design": "Resolve a prospective Pennsylvania vendor to a unique legal entity, verify the supplied domain plausibly aligns with that resolved legal name, and flag recently registered domains for human review.",
+      "decision_values": [
+        "established_domain_match",
+        "recent_domain_review",
+        "domain_mismatch",
+        "unregistered_domain",
+        "company_not_found",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "pa_registry",
+        "rdap"
+      ],
+      "known_source_adapters": [
+        "createPaRegistryAdapter",
+        "createRdapAdapter"
+      ],
+      "source_count": 2,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "below_target_fee_only",
+        "registered_price_usdc": "0.005",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "0.002690",
+        "hypothetical_margin_pct": 53.8,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "multi_source_conflict_benchmark_needed",
+        "domain_metadata_is_not_ownership_proof"
+      ],
+      "next_design_experiment": "prove_incremental_buyer_value_and_full_cost_fit",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "018",
+      "id": "pa-vendor-counterparty-review",
+      "buyer_task_claimed_by_design": "Give an autonomous agent a bounded proceed or human_review decision for a prospective Pennsylvania vendor using legal-entity identity, OFAC SDN candidate-name screening, and domain registration/name/age evidence.",
+      "decision_values": [
+        "proceed",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "pa_registry",
+        "ofac_sdn",
+        "rdap"
+      ],
+      "known_source_adapters": [
+        "createPaRegistryAdapter",
+        "createOfacNameAdapter",
+        "createRdapAdapter"
+      ],
+      "source_count": 3,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "passes_fee_only_screen",
+        "registered_price_usdc": "0.010",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "0.007690",
+        "hypothetical_margin_pct": 76.9,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "multi_source_conflict_benchmark_needed",
+        "name_screening_is_not_sanctions_clearance",
+        "domain_metadata_is_not_ownership_proof"
+      ],
+      "next_design_experiment": "run_buyer_workflow_benchmark_before_any_commercial_claim",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "019",
+      "id": "pa-vendor-maturity-review",
+      "buyer_task_claimed_by_design": "Review whether a prospective Pennsylvania vendor has both an established legal-entity history and an established legal-name-aligned domain history before an automated workflow continues.",
+      "decision_values": [
+        "established_vendor",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "pa_registry",
+        "rdap"
+      ],
+      "known_source_adapters": [
+        "createPaRegistryAdapter",
+        "createRdapAdapter"
+      ],
+      "source_count": 2,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "below_target_fee_only",
+        "registered_price_usdc": "0.007",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "0.004690",
+        "hypothetical_margin_pct": 67,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "multi_source_conflict_benchmark_needed",
+        "domain_metadata_is_not_ownership_proof"
+      ],
+      "next_design_experiment": "prove_incremental_buyer_value_and_full_cost_fit",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "020",
+      "id": "pa-vendor-domain-continuity-review",
+      "buyer_task_claimed_by_design": "Review whether a prospective Pennsylvania vendor's legal-name-aligned domain has sufficient expiration runway and has not changed too recently for automated continuation.",
+      "decision_values": [
+        "stable_domain",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "pa_registry",
+        "rdap"
+      ],
+      "known_source_adapters": [
+        "createPaRegistryAdapter",
+        "createRdapAdapter"
+      ],
+      "source_count": 2,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "below_target_fee_only",
+        "registered_price_usdc": "0.006",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "0.003690",
+        "hypothetical_margin_pct": 61.5,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "multi_source_conflict_benchmark_needed",
+        "domain_metadata_is_not_ownership_proof"
+      ],
+      "next_design_experiment": "prove_incremental_buyer_value_and_full_cost_fit",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "021",
+      "id": "pa-entity-type-policy",
+      "buyer_task_claimed_by_design": "Resolve a Pennsylvania business to one strong registry entity, normalize its registration type to a stable policy kind, and compare that kind with a caller-supplied allowed set.",
+      "decision_values": [
+        "policy_match",
+        "policy_mismatch",
+        "company_not_found",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "pa_registry"
+      ],
+      "known_source_adapters": [
+        "createPaRegistryAdapter"
+      ],
+      "source_count": 1,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "fee_negative",
+        "registered_price_usdc": "0.002",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "-0.000310",
+        "hypothetical_margin_pct": -15.5,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "single_source_alternative_value_benchmark_needed"
+      ],
+      "next_design_experiment": "repackage_or_retire_standalone_hypothesis",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "022",
+      "id": "pa-registered-county-policy",
+      "buyer_task_claimed_by_design": "Resolve a Pennsylvania business to one strong registry entity and compare its source-published registered county with a caller-supplied allowed Pennsylvania county set.",
+      "decision_values": [
+        "policy_match",
+        "policy_mismatch",
+        "company_not_found",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "pa_registry"
+      ],
+      "known_source_adapters": [
+        "createPaRegistryAdapter"
+      ],
+      "source_count": 1,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "fee_negative",
+        "registered_price_usdc": "0.002",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "-0.000310",
+        "hypothetical_margin_pct": -15.5,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "single_source_alternative_value_benchmark_needed"
+      ],
+      "next_design_experiment": "repackage_or_retire_standalone_hypothesis",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "023",
+      "id": "pa-local-vendor-policy-gate",
+      "buyer_task_claimed_by_design": "Evaluate a prospective Pennsylvania vendor against caller-defined entity-type, registered-county, and minimum-formation-age rules using one public registry lookup.",
+      "decision_values": [
+        "proceed",
+        "human_review",
+        "company_not_found"
+      ],
+      "authoritative_source_ids": [
+        "pa_registry"
+      ],
+      "known_source_adapters": [
+        "createPaRegistryAdapter"
+      ],
+      "source_count": 1,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "below_target_fee_only",
+        "registered_price_usdc": "0.004",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "0.001690",
+        "hypothetical_margin_pct": 42.2,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "single_source_alternative_value_benchmark_needed"
+      ],
+      "next_design_experiment": "prove_incremental_buyer_value_and_full_cost_fit",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "number": "024",
+      "id": "pa-vendor-distance-gate",
+      "buyer_task_claimed_by_design": "Resolve a Pennsylvania business to one strong registry entity, geocode a caller-supplied origin address and the source-published registry address, and compare straight-line Census-coordinate distance with a caller-supplied radius.",
+      "decision_values": [
+        "within_radius",
+        "outside_radius",
+        "company_not_found",
+        "human_review"
+      ],
+      "authoritative_source_ids": [
+        "pa_registry",
+        "census_address"
+      ],
+      "known_source_adapters": [
+        "createPaRegistryAdapter",
+        "createCensusAddressAdapter"
+      ],
+      "source_count": 2,
+      "specification_release_status": "live-source-verified-staging",
+      "historical_fee_only_economics": {
+        "category": "below_target_fee_only",
+        "registered_price_usdc": "0.004",
+        "historically_assumed_paid_settlement_fee_usd": "0.002310",
+        "configured_direct_source_fee_usd": "0.000000",
+        "hypothetical_contribution_before_unknown_costs_usd": "0.001690",
+        "hypothetical_margin_pct": 42.2,
+        "target_fee_only_margin_pct": 70,
+        "full_unit_margin_pct": null,
+        "current_facilitator_rate_independently_verified": false
+      },
+      "evidence_not_established": {
+        "independent_external_buyer_count": null,
+        "settled_external_purchase_count": null,
+        "independently_measured_customer_time_saved": null,
+        "baseline_error_rate": null,
+        "measured_decision_accuracy": null,
+        "observed_source_failure_rate": null,
+        "actual_hosting_cost_per_sale_usd": null,
+        "actual_upstream_source_cost_per_sale_usd": null,
+        "actual_retry_refund_cost_per_sale_usd": null,
+        "actual_contribution_margin_pct": null
+      },
+      "needed_independent_reviews": [
+        "named_buyer_and_real_purchase_trigger",
+        "measured_comparator_workflow_or_free_alternative",
+        "blind_ground_truth_and_false_proceed_replay",
+        "actual_same_period_cost_invoice_and_refund_reconciliation",
+        "externally_corroborated_demand_and_repeat_use",
+        "human_privacy_integration_and_security_review"
+      ],
+      "product_specific_risks": [
+        "multi_source_conflict_benchmark_needed",
+        "geocoder_mismatch_and_straight_line_limits_need_testing"
+      ],
+      "next_design_experiment": "prove_incremental_buyer_value_and_full_cost_fit",
+      "value_quality_proven": false,
+      "production_or_pricing_change_authorized": false,
+      "product_025_unlock_evidence": false
+    }
+  ]
+}
