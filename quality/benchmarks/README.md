@@ -106,6 +106,12 @@ Run `node --test quality/benchmarks/018-source-drift.test.js` without network. S
 
 Tests exercise service decision boundaries and both handwritten/generated x402 handlers with injected source and facilitator responses—never real source/payment requests. Their green status does not establish buyer demand, current unit economics or approval to deploy.
 
+### Product 003–015 and 021–024 source-availability billing guard
+
+The [remaining-product source-billing audit](REMAINING_SOURCE_BILLING_SAFETY.md) checks the **17** registered products not already covered by Product 018's source gate and composite Products 016–020. Previously, adapters returning `available:false` without throwing could still leave `chargeable:true`, despite the required source being unavailable. The new shared `trackRequiredEvidence` helper records source failures **only when an adapter lookup really executes**; a downstream optional lookup skipped after a legitimate “company not found” does not trigger a spurious charge reversal.
+
+Every service normalizes arbitrary adapter error messages/codes before they reach an x402 response, while retaining completed adverse outcomes. A single table-driven test suite checks **both handwritten and generated** paid handlers for all 17 product IDs, rejection without settlement, privacy, and positive billing behavior on intentional valid negative signals. This is draft-only, no real payment or provider calls.
+
 ### Test and release barriers
 
 The unchanged Factory product CI continues to run every existing staging release gate and all discovered tests, plus deterministic `--check` gates for these artifacts. Tests include tampered artifacts, unauthorized Product 025+ assertions, partial/private evidence input, inconsistent price arithmetic, duplicate trial entries, and fake approvals.

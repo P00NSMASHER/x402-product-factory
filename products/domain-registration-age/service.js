@@ -1,4 +1,5 @@
 "use strict";
+const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
 const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
 const {assessDomainAge}=require("./decision");
 
@@ -28,10 +29,11 @@ function createDomainAgeService({rdap,now=()=>new Date().toISOString()}){
   return {async check(input){
     const normalized=validateDomainAgeInput(input);
     const sourceFailures=[];
+  const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);
     let evidence;
-    try{evidence=normalizedEvidence("rdap",await rdap.lookup({domain:normalized.domain}));}
+    try{evidence=recordEvidence("rdap",await rdap.lookup({domain:normalized.domain}));}
     catch(error){
-      const detail=error?.code||error?.message||"lookup failed";
+      const detail=safeSourceErrorCode(error);
       sourceFailures.push({source:"rdap",detail});
       evidence=sourceUnavailable("rdap",detail);
     }

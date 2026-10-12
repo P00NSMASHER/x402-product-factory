@@ -1,4 +1,5 @@
 "use strict";
+const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
 
 const { assessVendorIdentity } = require("./decision");
 const { sourceUnavailable, requireAdapter, normalizedEvidence } = require("../../packages/sources/contracts");
@@ -73,12 +74,13 @@ function createVendorIdentityService({ registry, address, rdap, now = () => new 
     const domain = normalized.domain;
 
     const sourceFailures = [];
+  const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);
 
     let registryEvidence;
     try {
-      registryEvidence = normalizedEvidence("pa_registry", await registry.lookup({ company }));
+      registryEvidence = recordEvidence("pa_registry", await registry.lookup({ company }));
     } catch (error) {
-      const detail = error?.code || error?.message || "lookup failed";
+      const detail=safeSourceErrorCode(error);
       sourceFailures.push({ source: "pa_registry", detail });
       registryEvidence = sourceUnavailable("pa_registry", detail);
     }
@@ -90,9 +92,9 @@ function createVendorIdentityService({ registry, address, rdap, now = () => new 
       addressEvidence = sourceUnavailable("census_address", "registry identity/address unavailable for comparison");
     } else {
       try {
-        addressEvidence = normalizedEvidence("census_address", await address.compare({ suppliedAddress, registryAddress: registeredAddress }));
+        addressEvidence = recordEvidence("census_address", await address.compare({ suppliedAddress, registryAddress: registeredAddress }));
       } catch (error) {
-        const detail = error?.code || error?.message || "comparison failed";
+        const detail=safeSourceErrorCode(error);
         sourceFailures.push({ source: "census_address", detail });
         addressEvidence = sourceUnavailable("census_address", detail);
       }
@@ -100,13 +102,13 @@ function createVendorIdentityService({ registry, address, rdap, now = () => new 
 
     let rdapEvidence;
     try {
-      rdapEvidence = normalizedEvidence("rdap", await rdap.lookup({ domain }));
+      rdapEvidence = recordEvidence("rdap", await rdap.lookup({ domain }));
       rdapEvidence.nameAligned =
         rdapEvidence.available === true &&
         rdapEvidence.registered === true &&
         domainNameAligned(domain, company);
     } catch (error) {
-      const detail = error?.code || error?.message || "lookup failed";
+      const detail=safeSourceErrorCode(error);
       sourceFailures.push({ source: "rdap", detail });
       rdapEvidence = sourceUnavailable("rdap", detail);
     }

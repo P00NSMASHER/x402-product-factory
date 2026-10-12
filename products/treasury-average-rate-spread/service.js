@@ -1,4 +1,5 @@
 "use strict";
+const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
 
 const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
 const {assessTreasuryRateSpread}=require("./decision");
@@ -36,17 +37,17 @@ function createTreasuryRateSpreadService({treasury,now=()=>new Date().toISOStrin
   return {async check(input){
     const normalized=validateTreasuryRateSpreadInput(input);
     const sourceFailures=[];
+  const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);
     let evidence;
     try{
-      evidence=normalizedEvidence(
-        "treasury_fiscal_data",
+      evidence=recordEvidence("treasury_fiscal_data",
         await treasury.compare({
           leftSecurity:normalized.leftSecurity,
           rightSecurity:normalized.rightSecurity
         })
       );
     }catch(error){
-      const detail=error?.code||error?.message||"comparison failed";
+      const detail=safeSourceErrorCode(error);
       sourceFailures.push({source:"treasury_fiscal_data",detail});
       evidence=sourceUnavailable("treasury_fiscal_data",detail);
     }

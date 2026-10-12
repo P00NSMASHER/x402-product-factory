@@ -68,6 +68,9 @@ jobs:
       - name: Check composite PA vendor source safety and x402 settlement
         run: node --test quality/benchmarks/composite-016-020-evidence-gate.test.js
 
+      - name: Check remaining 17 products for nonchargeable unavailable sources
+        run: node --test quality/benchmarks/remaining-source-evidence-billing.test.js
+
       - name: Validate product registry
         run: node scripts/validate-registry.js
 

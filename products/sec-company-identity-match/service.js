@@ -1,4 +1,5 @@
 "use strict";
+const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
 
 const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
 const {normalizeCik,normalizeTicker}=require("../../packages/sources/sec-filings");
@@ -42,16 +43,17 @@ function createSecCompanyIdentityService({sec,now=()=>new Date().toISOString()})
   return {async check(input){
     const normalized=validateSecCompanyIdentityInput(input);
     const sourceFailures=[];
+  const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);
     let evidence;
     try{
-      evidence=normalizedEvidence("sec_edgar",await sec.lookup({
+      evidence=recordEvidence("sec_edgar",await sec.lookup({
         ticker:normalized.ticker,
         cik:normalized.cik,
         form:"",
         limit:1
       }));
     }catch(error){
-      const detail=error?.code||error?.message||"lookup failed";
+      const detail=safeSourceErrorCode(error);
       sourceFailures.push({source:"sec_edgar",detail});
       evidence=sourceUnavailable("sec_edgar",detail);
     }
