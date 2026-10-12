@@ -3,6 +3,7 @@
 const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
 const {domainNameAligned}=require("../pa-vendor-identity-match/service");
 const {assessCounterpartyReview}=require("./decision");
+const {registryContradictions,contradictoryEvidence}=require("./evidence-contract");
 
 function normalizeDomain(raw){
   let domain=String(raw??"").trim().toLowerCase();
@@ -49,6 +50,13 @@ function createCounterpartyReviewService({registry,ofac,rdap,now=()=>new Date().
   return {async check(input){
     const normalized=validateCounterpartyInput(input);
     const sourceFailures=[];
+    function registerFailure(source,detail){
+      // One report per failed source, no duplicate "unavailable" and
+      // "inconsistent" entries for the same lookup.
+      if(!sourceFailures.some(item=>item.source===source)){
+        sourceFailures.push({source,detail});
+      }
+    }
     let registryEvidence;
 
     try{
@@ -59,15 +67,29 @@ function createCounterpartyReviewService({registry,ofac,rdap,now=()=>new Date().
       registryEvidence=sourceUnavailable("pa_registry",detail);
     }
 
-    let ofacEvidence=null;
-    let rdapEvidence=null;
-    const legalName=
+    // Validate BEFORE screening the legal name. A malformed strong-match
+    // claim cannot trigger downstream OFAC or RDAP work.
+    const registryIssues=registryContradictions(registryEvidence);
+    if(registryEvidence?.available!==true){
+      registerFailure("pa_registry","SOURCE_UNAVAILABLE");
+    }else if(registryIssues.length){
+      registerFailure("pa_registry","SOURCE_CONTRACT_INVALID");
+    }
+    const legalNameCandidate=
       registryEvidence?.available===true&&
       registryEvidence?.strongMatch===true&&
       registryEvidence?.ambiguous!==true&&
       typeof registryEvidence?.entity?.businessName==="string"
         ?registryEvidence.entity.businessName.trim()
         :"";
+    if(registryEvidence?.strongMatch===true&&!legalNameCandidate){
+      registerFailure("pa_registry","LEGAL_NAME_MISSING");
+    }
+    let ofacEvidence=null;
+    let rdapEvidence=null;
+    const legalName=sourceFailures.some(item=>item.source==="pa_registry")
+      ?""
+      :legalNameCandidate;
 
     if(legalName){
       const [ofacResult,rdapResult]=await Promise.allSettled([
@@ -102,14 +124,46 @@ function createCounterpartyReviewService({registry,ofac,rdap,now=()=>new Date().
       }
     }
 
-    const result=assessCounterpartyReview(
-      {registry:registryEvidence,ofac:ofacEvidence,rdap:rdapEvidence},
-      {
-        minScore:normalized.minScore,
-        minDomainAgeDays:normalized.minDomainAgeDays,
-        now:now()
+    // The source adapter may complete a transport request but return
+    // unavailable or malformed evidence. That is a non-chargeable failure,
+    // not a paid "human_review" of successful required source evidence.
+    if(legalName){
+      if(ofacEvidence?.available!==true)registerFailure("ofac_sdn","SOURCE_UNAVAILABLE");
+      if(rdapEvidence?.available!==true)registerFailure("rdap","SOURCE_UNAVAILABLE");
+    }
+    const checkedAt=now();
+    const evidence={registry:registryEvidence,ofac:ofacEvidence,rdap:rdapEvidence};
+    const contractIssues=contradictoryEvidence(evidence,{
+      now:checkedAt,minScore:normalized.minScore
+    });
+    if(rdapEvidence?.available===true){
+      if(rdapEvidence.registered!==true&&rdapEvidence.registered!==false){
+        contractIssues.push({check:"domain",code:"DOMAIN_REGISTRATION_STATUS_UNKNOWN"});
+      }else if(rdapEvidence.registered===true&&
+          (rdapEvidence.events?.registration??rdapEvidence.events?.registered??null)===null){
+        contractIssues.push({check:"domain",code:"DOMAIN_REGISTRATION_DATE_UNAVAILABLE"});
       }
-    );
+    }
+    const labels={registry:"pa_registry",ofac:"ofac_sdn",domain:"rdap"};
+    for(const issue of contractIssues){
+      registerFailure(labels[issue.check],"SOURCE_CONTRACT_INVALID");
+    }
+    const assessed=assessCounterpartyReview(evidence,{
+      minScore:normalized.minScore,minDomainAgeDays:normalized.minDomainAgeDays,
+      now:checkedAt
+    });
+    const reasonCodes=[...new Set([
+      ...assessed.reasonCodes,...contractIssues.map(item=>item.code)
+    ])];
+    const checks={...assessed.checks};
+    for(const issue of contractIssues){
+      checks[issue.check]={status:"review",reason:issue.code};
+    }
+    const result={
+      ...assessed,
+      decision:contractIssues.length?"human_review":assessed.decision,
+      reasonCodes,checks
+    };
 
     return {
       ...result,
@@ -117,7 +171,7 @@ function createCounterpartyReviewService({registry,ofac,rdap,now=()=>new Date().
       resolvedLegalName:legalName||null,
       sourceFailures,
       chargeable:sourceFailures.length===0,
-      evidence:{registry:registryEvidence,ofac:ofacEvidence,rdap:rdapEvidence},
+      evidence,
       limitations:[
         "Proceed is only a workflow signal that configured review triggers were not hit.",
         "OFAC evidence is candidate-name screening only; a no-candidate result is not sanctions clearance.",

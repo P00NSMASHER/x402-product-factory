@@ -36,8 +36,10 @@ async function run(changes={}){
 test("source-contract replay catches contradictory unique-registry status",async()=>{
   const x=await run({registry:{available:true,strongMatch:true,ambiguous:false,candidateCount:2,strongCandidateCount:2,identityComplete:true,matchScore:0,
     entity:{businessName:"Example LLC"}}});
-  assert.deepEqual(x.calls,{registry:1,ofac:1,rdap:1});
-  assert.equal(x.actual.decision,"proceed"); // factual baseline finding; not approved.
+  assert.deepEqual(x.calls,{registry:1,ofac:0,rdap:0});
+  assert.equal(x.actual.decision,"human_review");
+  assert.equal(x.actual.chargeable,false);
+  assert.deepEqual(x.actual.sourceFailures.map(e=>e.source),["pa_registry"]);
   assert.equal(x.proposal.decision,"human_review");
   assert.ok(x.proposal.reasonCodes.includes("PA_REGISTRY_STRONG_MATCH_INCONSISTENT"));
 });
@@ -52,7 +54,9 @@ test("adapter-consistent two ranked PA candidates with one strong match remain v
 test("source-contract replay catches negative OFAC candidate tally",async()=>{
   const x=await run({ofac:{available:true,totalCandidatesAboveThreshold:-1,candidates:[]}});
   assert.deepEqual(x.calls,{registry:1,ofac:1,rdap:1});
-  assert.equal(x.actual.decision,"proceed");
+  assert.equal(x.actual.decision,"human_review");
+  assert.equal(x.actual.chargeable,false);
+  assert.deepEqual(x.actual.sourceFailures.map(e=>e.source),["ofac_sdn"]);
   assert.equal(x.proposal.decision,"human_review");
   assert.ok(x.proposal.reasonCodes.includes("OFAC_CANDIDATE_COUNTS_INCONSISTENT"));
 });
@@ -80,7 +84,9 @@ test("normal registry OFAC and RDAP evidence remains unchanged in offline candid
 test("impossible calendar date must not be accepted as established domain",async()=>{
   const x=await run({rdap:{available:true,registered:true,domain:"example.com",
     events:{registration:"2026-02-31"}}});
-  assert.equal(x.actual.decision,"proceed");
+  assert.equal(x.actual.decision,"human_review");
+  assert.equal(x.actual.chargeable,false);
+  assert.deepEqual(x.actual.sourceFailures.map(e=>e.source),["rdap"]);
   assert.equal(x.proposal.decision,"human_review");
   assert.ok(x.proposal.reasonCodes.includes("DOMAIN_REGISTRATION_DATE_INVALID"));
 });

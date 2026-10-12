@@ -48,6 +48,10 @@ After correcting the earlier mistaken assumption that every ranked Pennsylvania 
 
 Read the [source-contract audit](benchmarks/018-SOURCE_CONTRACT_AUDIT.md), which confirms that 2–3 ranked registry search results with one strong match are valid. Run `node quality/benchmarks/018-decision-oracle.js --check` or all discovered tests. Any changed expected outcomes require inspecting the synthetic gold labels and independent review; the generator does not automatically declare a fix production-ready.
 
+## Product 018 staging evidence gate — draft integration
+
+A separate [Product 018 source evidence gate](../products/pa-vendor-counterparty-review/EVIDENCE_GATE.md) now uses the audited registry/OFAC/RDAP contract checks in the actual **staging service**, not only in offline Quality Lab calculations. It preserves legitimate one-strong/multi-ranked matches, and marks contradictory or unavailable source evidence **non-chargeable** so the handwritten/generated handlers do not settle payment. This behavior is **proposed in draft code only**; the existing decision helper and production deployment are unchanged. Regression tests cover both positive paid responses and withheld settlement.
+
 ## How an improved product graduates
 
 **Design hypothesis** → select a buyer and a purchase trigger → document the **free/manual baseline** → build a read-only prototype retaining existing payment/source decision boundaries → blind-test representative correct/incorrect/ambiguous cases → compare **time, correctness, false proceeds and actual resource costs** → independently verify customer uptake and invoices → human privacy/integration/security review → **explicit separate release decision**.

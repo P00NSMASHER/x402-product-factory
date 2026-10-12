@@ -4,7 +4,7 @@ const {createCounterpartyReviewService}=require("./service");
 
 function good(){
  return {
-  registry:{async lookup({company}){return{available:true,strongMatch:true,ambiguous:false,candidateCount:1,entity:{businessName:company,filingNumber:"1",registrationType:"LLC",address1:"100 Market St",city:"Pottsville",state:"PA",zip:"17901"}};}},
+  registry:{async lookup({company}){return{available:true,strongMatch:true,ambiguous:false,candidateCount:1,strongCandidateCount:1,identityComplete:true,matchScore:0,entity:{businessName:company,filingNumber:"1",registrationType:"LLC",address1:"100 Market St",city:"Pottsville",state:"PA",zip:"17901"}};}},
   ofac:{async lookup({name,minScore}){return{available:true,query:name,minScore,totalCandidatesAboveThreshold:0,candidates:[]};}},
   rdap:{async lookup({domain}){return{available:true,registered:true,domain,events:{registration:"2020-01-01T00:00:00Z"}};}}
  };
