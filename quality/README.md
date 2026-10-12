@@ -21,12 +21,23 @@ node quality/product-quality-lab.js --check
 node quality/opportunity-lab.js --check
 node quality/adversarial-contracts.js --check
 node quality/prototypes/018-counterparty-brief.js --check
+node quality/benchmarks/cost-frontier.js --check
+node quality/benchmarks/018-masked-pilot.js --check
+node quality/benchmarks/cost-evidence-gate.js --check
 node --test quality/product-quality-lab.test.js quality/opportunity-lab.test.js quality/adversarial-contracts.test.js
 ```
 
 For a consciously revised spec or experiment, regenerate deterministic reports using the corresponding `--write` argument, inspect the diff, run CI, and request review. CI fails closed on stale reports, missing registered products, inaccurate fee arithmetic, unreviewed commercial assertions, spoofed evidence, invalid buyer-value proposals, and successful/charged hostile requests.
 
 4. **Concrete product-improvement prototype:** [Product 018 reviewer brief](generated/018_REVIEWER_BRIEF_PROTOTYPE.md) converts bounded existing reason codes and source-check status into a conservative human review action. Eight synthetic golden cases cover ambiguous registry, OFAC candidate, RDAP failure, mismatched/recent domain, and inconsistent \`proceed\`. It cannot claim buyer benefit or change the live handler, and refuses to echo raw source/customer/payment data.
+
+## Product Validation Engine (stacked draft)
+
+5. **Full-product cost frontier:** [COST_FRONTIER.md](generated/COST_FRONTIER.md) calculates historical per-transaction cost headroom for **all 22** existing product specs. Only Product 018 has positive headroom at the 70% target: **$0.000690** under the existing pinned settlement-fee assumption. [COST_FRONTIER.json](generated/COST_FRONTIER.json) includes explicitly hypothetical cost sensitivity; it makes no current fee or actual profitability claims.
+6. **Masked reviewer pilot:** [018_MASKED_PILOT_PROTOCOL.md](generated/018_MASKED_PILOT_PROTOCOL.md) and the [masked task packet](generated/018_MASKED_PILOT_PACKET.json) prepare **16 synthetic assignments** for two reviewer slots across **eight existing golden cases**. The packet does not publish ground-truth fields or comparator/candidate arm labels. It is *not a genuine 40-case independent blinded buyer study*: reviewers can still infer arms from presentation differences, and fixtures are publicly readable.
+7. **Private operating-cost intake:** [COST_EVIDENCE_GATE.md](generated/COST_EVIDENCE_GATE.md) remains **HOLD** because no independently reconciled settlement receipts, source invoices, hosting charges, refunds, or external purchases have been supplied. A strict offline [template](benchmarks/018-private-cost-evidence.template.json) can calculate *unattested* operator-input arithmetic but cannot self-certify its evidence or grant commercial approval.
+
+Detailed replication, reviewer packet use, adversarial observation guards, and independent release requirements: [benchmarks/README.md](benchmarks/README.md).
 
 ## How an improved product graduates
 

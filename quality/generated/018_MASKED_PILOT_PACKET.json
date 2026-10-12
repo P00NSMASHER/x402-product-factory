@@ -1,0 +1,532 @@
+{
+  "schema_version": 1,
+  "report_type": "SYNTHETIC_MASKED_PILOT_PACKET_NOT_REAL_BLIND_STUDY",
+  "synthetic_cases": 8,
+  "reviewer_slots": 2,
+  "assignments": 16,
+  "cases_in_proposed_full_experiment": 40,
+  "masked_presentation_only_not_cryptographically_blinded": true,
+  "public_fixture_labels_withheld_from_packet": true,
+  "personally_identifying_reviewer_data_permitted": false,
+  "reviewer_observations_collected": false,
+  "measured_reviewer_time_seconds": null,
+  "verified_external_buyer_outcomes": null,
+  "pilot_automated_regression_only": {
+    "baseline_raw_false_proceed_on_synthetic_gold": 2,
+    "prototype_false_proceed_on_synthetic_gold": 0,
+    "independently_heldout_ground_truth": false
+  },
+  "studies": {
+    "R1": [
+      {
+        "assignment_id": "P018_R1_001",
+        "task": "Read this synthetic vendor-screening summary. Choose a decision and the next reviewer action, then record independently timed task duration.",
+        "review_options": {
+          "decisions": [
+            "proceed",
+            "human_review"
+          ],
+          "next_actions": [
+            "CONTINUE_STANDARD_DUE_DILIGENCE",
+            "ESCALATE_NAME_SCREENING",
+            "VERIFY_LEGAL_ENTITY",
+            "VERIFY_DOMAIN_EVIDENCE",
+            "REVIEW_SOURCE_FAILURE",
+            "MANUAL_REVIEW_UNCLASSIFIED"
+          ]
+        },
+        "display": {
+          "reported_decision": "human_review",
+          "reason_codes": [
+            "OFAC_CANDIDATE_REQUIRES_REVIEW"
+          ],
+          "source_statuses": {
+            "registry": "pass",
+            "ofac": "review",
+            "domain": "pass"
+          },
+          "source_failed": false,
+          "reviewer_note": "Use the current workflow to interpret the reported decision, reason codes and source statuses.",
+          "warning": "This record is a synthetic review signal, not sanctions clearance or an approval to contract."
+        }
+      },
+      {
+        "assignment_id": "P018_R1_002",
+        "task": "Read this synthetic vendor-screening summary. Choose a decision and the next reviewer action, then record independently timed task duration.",
+        "review_options": {
+          "decisions": [
+            "proceed",
+            "human_review"
+          ],
+          "next_actions": [
+            "CONTINUE_STANDARD_DUE_DILIGENCE",
+            "ESCALATE_NAME_SCREENING",
+            "VERIFY_LEGAL_ENTITY",
+            "VERIFY_DOMAIN_EVIDENCE",
+            "REVIEW_SOURCE_FAILURE",
+            "MANUAL_REVIEW_UNCLASSIFIED"
+          ]
+        },
+        "display": {
+          "reported_decision": "human_review",
+          "reason_codes": [
+            "PA_REGISTRY_MATCH_AMBIGUOUS"
+          ],
+          "source_statuses": {
+            "registry": "review",
+            "ofac": "unknown",
+            "domain": "unknown"
+          },
+          "source_failed": false,
+          "reviewer_note": "Manually reconcile the Pennsylvania registry legal-entity match and unresolved identifiers.",
+          "warning": "This record is a synthetic review signal, not sanctions clearance or an approval to contract."
+        }
+      },
+      {
+        "assignment_id": "P018_R1_003",
+        "task": "Read this synthetic vendor-screening summary. Choose a decision and the next reviewer action, then record independently timed task duration.",
+        "review_options": {
+          "decisions": [
+            "proceed",
+            "human_review"
+          ],
+          "next_actions": [
+            "CONTINUE_STANDARD_DUE_DILIGENCE",
+            "ESCALATE_NAME_SCREENING",
+            "VERIFY_LEGAL_ENTITY",
+            "VERIFY_DOMAIN_EVIDENCE",
+            "REVIEW_SOURCE_FAILURE",
+            "MANUAL_REVIEW_UNCLASSIFIED"
+          ]
+        },
+        "display": {
+          "reported_decision": "proceed",
+          "reason_codes": [],
+          "source_statuses": {
+            "registry": "pass",
+            "ofac": "pass",
+            "domain": "pass"
+          },
+          "source_failed": false,
+          "reviewer_note": "Use the current workflow to interpret the reported decision, reason codes and source statuses.",
+          "warning": "This record is a synthetic review signal, not sanctions clearance or an approval to contract."
+        }
+      },
+      {
+        "assignment_id": "P018_R1_004",
+        "task": "Read this synthetic vendor-screening summary. Choose a decision and the next reviewer action, then record independently timed task duration.",
+        "review_options": {
+          "decisions": [
+            "proceed",
+            "human_review"
+          ],
+          "next_actions": [
+            "CONTINUE_STANDARD_DUE_DILIGENCE",
+            "ESCALATE_NAME_SCREENING",
+            "VERIFY_LEGAL_ENTITY",
+            "VERIFY_DOMAIN_EVIDENCE",
+            "REVIEW_SOURCE_FAILURE",
+            "MANUAL_REVIEW_UNCLASSIFIED"
+          ]
+        },
+        "display": {
+          "reported_decision": "human_review",
+          "reason_codes": [
+            "RDAP_EVIDENCE_UNAVAILABLE"
+          ],
+          "source_statuses": {
+            "registry": "pass",
+            "ofac": "pass",
+            "domain": "review"
+          },
+          "source_failed": true,
+          "reviewer_note": "Treat required upstream source failure as non-chargeable review; retry via the approved workflow before considering payment.",
+          "warning": "This record is a synthetic review signal, not sanctions clearance or an approval to contract."
+        }
+      },
+      {
+        "assignment_id": "P018_R1_005",
+        "task": "Read this synthetic vendor-screening summary. Choose a decision and the next reviewer action, then record independently timed task duration.",
+        "review_options": {
+          "decisions": [
+            "proceed",
+            "human_review"
+          ],
+          "next_actions": [
+            "CONTINUE_STANDARD_DUE_DILIGENCE",
+            "ESCALATE_NAME_SCREENING",
+            "VERIFY_LEGAL_ENTITY",
+            "VERIFY_DOMAIN_EVIDENCE",
+            "REVIEW_SOURCE_FAILURE",
+            "MANUAL_REVIEW_UNCLASSIFIED"
+          ]
+        },
+        "display": {
+          "reported_decision": "proceed",
+          "reason_codes": [],
+          "source_statuses": {
+            "registry": "pass",
+            "ofac": "unknown",
+            "domain": "unknown"
+          },
+          "source_failed": false,
+          "reviewer_note": "Use the current workflow to interpret the reported decision, reason codes and source statuses.",
+          "warning": "This record is a synthetic review signal, not sanctions clearance or an approval to contract."
+        }
+      },
+      {
+        "assignment_id": "P018_R1_006",
+        "task": "Read this synthetic vendor-screening summary. Choose a decision and the next reviewer action, then record independently timed task duration.",
+        "review_options": {
+          "decisions": [
+            "proceed",
+            "human_review"
+          ],
+          "next_actions": [
+            "CONTINUE_STANDARD_DUE_DILIGENCE",
+            "ESCALATE_NAME_SCREENING",
+            "VERIFY_LEGAL_ENTITY",
+            "VERIFY_DOMAIN_EVIDENCE",
+            "REVIEW_SOURCE_FAILURE",
+            "MANUAL_REVIEW_UNCLASSIFIED"
+          ]
+        },
+        "display": {
+          "reported_decision": "human_review",
+          "reason_codes": [
+            "DOMAIN_LEGAL_NAME_MISMATCH"
+          ],
+          "source_statuses": {
+            "registry": "pass",
+            "ofac": "pass",
+            "domain": "review"
+          },
+          "source_failed": false,
+          "reviewer_note": "Request independent domain-control evidence and review authoritative RDAP registration/name signals.",
+          "warning": "This record is a synthetic review signal, not sanctions clearance or an approval to contract."
+        }
+      },
+      {
+        "assignment_id": "P018_R1_007",
+        "task": "Read this synthetic vendor-screening summary. Choose a decision and the next reviewer action, then record independently timed task duration.",
+        "review_options": {
+          "decisions": [
+            "proceed",
+            "human_review"
+          ],
+          "next_actions": [
+            "CONTINUE_STANDARD_DUE_DILIGENCE",
+            "ESCALATE_NAME_SCREENING",
+            "VERIFY_LEGAL_ENTITY",
+            "VERIFY_DOMAIN_EVIDENCE",
+            "REVIEW_SOURCE_FAILURE",
+            "MANUAL_REVIEW_UNCLASSIFIED"
+          ]
+        },
+        "display": {
+          "reported_decision": "human_review",
+          "reason_codes": [
+            "DOMAIN_RECENT_REGISTRATION"
+          ],
+          "source_statuses": {
+            "registry": "pass",
+            "ofac": "pass",
+            "domain": "review"
+          },
+          "source_failed": false,
+          "reviewer_note": "Use the current workflow to interpret the reported decision, reason codes and source statuses.",
+          "warning": "This record is a synthetic review signal, not sanctions clearance or an approval to contract."
+        }
+      },
+      {
+        "assignment_id": "P018_R1_008",
+        "task": "Read this synthetic vendor-screening summary. Choose a decision and the next reviewer action, then record independently timed task duration.",
+        "review_options": {
+          "decisions": [
+            "proceed",
+            "human_review"
+          ],
+          "next_actions": [
+            "CONTINUE_STANDARD_DUE_DILIGENCE",
+            "ESCALATE_NAME_SCREENING",
+            "VERIFY_LEGAL_ENTITY",
+            "VERIFY_DOMAIN_EVIDENCE",
+            "REVIEW_SOURCE_FAILURE",
+            "MANUAL_REVIEW_UNCLASSIFIED"
+          ]
+        },
+        "display": {
+          "reported_decision": "human_review",
+          "reason_codes": [
+            "OFAC_CANDIDATE_REQUIRES_REVIEW"
+          ],
+          "source_statuses": {
+            "registry": "pass",
+            "ofac": "review",
+            "domain": "pass"
+          },
+          "source_failed": false,
+          "reviewer_note": "Escalate possible OFAC name or alias candidates to a qualified human reviewer; do not interpret as sanctions clearance.",
+          "warning": "This record is a synthetic review signal, not sanctions clearance or an approval to contract."
+        }
+      }
+    ],
+    "R2": [
+      {
+        "assignment_id": "P018_R2_001",
+        "task": "Read this synthetic vendor-screening summary. Choose a decision and the next reviewer action, then record independently timed task duration.",
+        "review_options": {
+          "decisions": [
+            "proceed",
+            "human_review"
+          ],
+          "next_actions": [
+            "CONTINUE_STANDARD_DUE_DILIGENCE",
+            "ESCALATE_NAME_SCREENING",
+            "VERIFY_LEGAL_ENTITY",
+            "VERIFY_DOMAIN_EVIDENCE",
+            "REVIEW_SOURCE_FAILURE",
+            "MANUAL_REVIEW_UNCLASSIFIED"
+          ]
+        },
+        "display": {
+          "reported_decision": "human_review",
+          "reason_codes": [
+            "OFAC_CANDIDATE_REQUIRES_REVIEW"
+          ],
+          "source_statuses": {
+            "registry": "pass",
+            "ofac": "review",
+            "domain": "pass"
+          },
+          "source_failed": false,
+          "reviewer_note": "Escalate possible OFAC name or alias candidates to a qualified human reviewer; do not interpret as sanctions clearance.",
+          "warning": "This record is a synthetic review signal, not sanctions clearance or an approval to contract."
+        }
+      },
+      {
+        "assignment_id": "P018_R2_002",
+        "task": "Read this synthetic vendor-screening summary. Choose a decision and the next reviewer action, then record independently timed task duration.",
+        "review_options": {
+          "decisions": [
+            "proceed",
+            "human_review"
+          ],
+          "next_actions": [
+            "CONTINUE_STANDARD_DUE_DILIGENCE",
+            "ESCALATE_NAME_SCREENING",
+            "VERIFY_LEGAL_ENTITY",
+            "VERIFY_DOMAIN_EVIDENCE",
+            "REVIEW_SOURCE_FAILURE",
+            "MANUAL_REVIEW_UNCLASSIFIED"
+          ]
+        },
+        "display": {
+          "reported_decision": "human_review",
+          "reason_codes": [
+            "PA_REGISTRY_MATCH_AMBIGUOUS"
+          ],
+          "source_statuses": {
+            "registry": "review",
+            "ofac": "unknown",
+            "domain": "unknown"
+          },
+          "source_failed": false,
+          "reviewer_note": "Use the current workflow to interpret the reported decision, reason codes and source statuses.",
+          "warning": "This record is a synthetic review signal, not sanctions clearance or an approval to contract."
+        }
+      },
+      {
+        "assignment_id": "P018_R2_003",
+        "task": "Read this synthetic vendor-screening summary. Choose a decision and the next reviewer action, then record independently timed task duration.",
+        "review_options": {
+          "decisions": [
+            "proceed",
+            "human_review"
+          ],
+          "next_actions": [
+            "CONTINUE_STANDARD_DUE_DILIGENCE",
+            "ESCALATE_NAME_SCREENING",
+            "VERIFY_LEGAL_ENTITY",
+            "VERIFY_DOMAIN_EVIDENCE",
+            "REVIEW_SOURCE_FAILURE",
+            "MANUAL_REVIEW_UNCLASSIFIED"
+          ]
+        },
+        "display": {
+          "reported_decision": "proceed",
+          "reason_codes": [],
+          "source_statuses": {
+            "registry": "pass",
+            "ofac": "pass",
+            "domain": "pass"
+          },
+          "source_failed": false,
+          "reviewer_note": "Continue normal procurement due diligence; the configured automated checks are not a legal clearance.",
+          "warning": "This record is a synthetic review signal, not sanctions clearance or an approval to contract."
+        }
+      },
+      {
+        "assignment_id": "P018_R2_004",
+        "task": "Read this synthetic vendor-screening summary. Choose a decision and the next reviewer action, then record independently timed task duration.",
+        "review_options": {
+          "decisions": [
+            "proceed",
+            "human_review"
+          ],
+          "next_actions": [
+            "CONTINUE_STANDARD_DUE_DILIGENCE",
+            "ESCALATE_NAME_SCREENING",
+            "VERIFY_LEGAL_ENTITY",
+            "VERIFY_DOMAIN_EVIDENCE",
+            "REVIEW_SOURCE_FAILURE",
+            "MANUAL_REVIEW_UNCLASSIFIED"
+          ]
+        },
+        "display": {
+          "reported_decision": "human_review",
+          "reason_codes": [
+            "RDAP_EVIDENCE_UNAVAILABLE"
+          ],
+          "source_statuses": {
+            "registry": "pass",
+            "ofac": "pass",
+            "domain": "review"
+          },
+          "source_failed": true,
+          "reviewer_note": "Use the current workflow to interpret the reported decision, reason codes and source statuses.",
+          "warning": "This record is a synthetic review signal, not sanctions clearance or an approval to contract."
+        }
+      },
+      {
+        "assignment_id": "P018_R2_005",
+        "task": "Read this synthetic vendor-screening summary. Choose a decision and the next reviewer action, then record independently timed task duration.",
+        "review_options": {
+          "decisions": [
+            "proceed",
+            "human_review"
+          ],
+          "next_actions": [
+            "CONTINUE_STANDARD_DUE_DILIGENCE",
+            "ESCALATE_NAME_SCREENING",
+            "VERIFY_LEGAL_ENTITY",
+            "VERIFY_DOMAIN_EVIDENCE",
+            "REVIEW_SOURCE_FAILURE",
+            "MANUAL_REVIEW_UNCLASSIFIED"
+          ]
+        },
+        "display": {
+          "reported_decision": "human_review",
+          "reason_codes": [],
+          "source_statuses": {
+            "registry": "pass",
+            "ofac": "unknown",
+            "domain": "unknown"
+          },
+          "source_failed": false,
+          "reviewer_note": "Escalate to manual review because the evidence/reason combination is incomplete or unfamiliar.",
+          "warning": "This record is a synthetic review signal, not sanctions clearance or an approval to contract."
+        }
+      },
+      {
+        "assignment_id": "P018_R2_006",
+        "task": "Read this synthetic vendor-screening summary. Choose a decision and the next reviewer action, then record independently timed task duration.",
+        "review_options": {
+          "decisions": [
+            "proceed",
+            "human_review"
+          ],
+          "next_actions": [
+            "CONTINUE_STANDARD_DUE_DILIGENCE",
+            "ESCALATE_NAME_SCREENING",
+            "VERIFY_LEGAL_ENTITY",
+            "VERIFY_DOMAIN_EVIDENCE",
+            "REVIEW_SOURCE_FAILURE",
+            "MANUAL_REVIEW_UNCLASSIFIED"
+          ]
+        },
+        "display": {
+          "reported_decision": "human_review",
+          "reason_codes": [
+            "DOMAIN_LEGAL_NAME_MISMATCH"
+          ],
+          "source_statuses": {
+            "registry": "pass",
+            "ofac": "pass",
+            "domain": "review"
+          },
+          "source_failed": false,
+          "reviewer_note": "Use the current workflow to interpret the reported decision, reason codes and source statuses.",
+          "warning": "This record is a synthetic review signal, not sanctions clearance or an approval to contract."
+        }
+      },
+      {
+        "assignment_id": "P018_R2_007",
+        "task": "Read this synthetic vendor-screening summary. Choose a decision and the next reviewer action, then record independently timed task duration.",
+        "review_options": {
+          "decisions": [
+            "proceed",
+            "human_review"
+          ],
+          "next_actions": [
+            "CONTINUE_STANDARD_DUE_DILIGENCE",
+            "ESCALATE_NAME_SCREENING",
+            "VERIFY_LEGAL_ENTITY",
+            "VERIFY_DOMAIN_EVIDENCE",
+            "REVIEW_SOURCE_FAILURE",
+            "MANUAL_REVIEW_UNCLASSIFIED"
+          ]
+        },
+        "display": {
+          "reported_decision": "human_review",
+          "reason_codes": [
+            "DOMAIN_RECENT_REGISTRATION"
+          ],
+          "source_statuses": {
+            "registry": "pass",
+            "ofac": "pass",
+            "domain": "review"
+          },
+          "source_failed": false,
+          "reviewer_note": "Request independent domain-control evidence and review authoritative RDAP registration/name signals.",
+          "warning": "This record is a synthetic review signal, not sanctions clearance or an approval to contract."
+        }
+      },
+      {
+        "assignment_id": "P018_R2_008",
+        "task": "Read this synthetic vendor-screening summary. Choose a decision and the next reviewer action, then record independently timed task duration.",
+        "review_options": {
+          "decisions": [
+            "proceed",
+            "human_review"
+          ],
+          "next_actions": [
+            "CONTINUE_STANDARD_DUE_DILIGENCE",
+            "ESCALATE_NAME_SCREENING",
+            "VERIFY_LEGAL_ENTITY",
+            "VERIFY_DOMAIN_EVIDENCE",
+            "REVIEW_SOURCE_FAILURE",
+            "MANUAL_REVIEW_UNCLASSIFIED"
+          ]
+        },
+        "display": {
+          "reported_decision": "proceed",
+          "reason_codes": [
+            "OFAC_CANDIDATE_REQUIRES_REVIEW"
+          ],
+          "source_statuses": {
+            "registry": "pass",
+            "ofac": "review",
+            "domain": "pass"
+          },
+          "source_failed": false,
+          "reviewer_note": "Use the current workflow to interpret the reported decision, reason codes and source statuses.",
+          "warning": "This record is a synthetic review signal, not sanctions clearance or an approval to contract."
+        }
+      }
+    ]
+  },
+  "release_status": "HOLD_SYNTHETIC_PILOT_ONLY",
+  "production_or_price_changes_authorized": false,
+  "product_025_unlock_evidence": false
+}

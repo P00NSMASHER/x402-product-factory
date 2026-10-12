@@ -56,6 +56,9 @@ jobs:
           node quality/opportunity-lab.js --check
           node quality/adversarial-contracts.js --check
           node quality/prototypes/018-counterparty-brief.js --check
+          node quality/benchmarks/cost-frontier.js --check
+          node quality/benchmarks/018-masked-pilot.js --check
+          node quality/benchmarks/cost-evidence-gate.js --check
 
       - name: Validate product registry
         run: node scripts/validate-registry.js
