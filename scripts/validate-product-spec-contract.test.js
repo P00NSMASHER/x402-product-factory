@@ -15,8 +15,8 @@ const rejected=(specs,match,options={filenames})=>{
   );
 };
 
-test("canonical 003-017 specification set passes before generation",()=>{
-  assert.strictEqual(validateSpecSet(clone(),{filenames}).length,15);
+test("canonical 003-022 specification set passes before generation",()=>{
+  assert.strictEqual(validateSpecSet(clone(),{filenames}).length,20);
 });
 
 test("filename and product identity drift fail closed",()=>{
@@ -150,5 +150,26 @@ test("013-017 forbid conflicting identifier examples and untrusted payment respo
   ];
   for(const [mutate,matcher] of mutations){
     const specs=clone();mutate(specs);rejected(specs,matcher);
+  }
+});
+
+
+test("018-022 reject fabricated economics and invalid composite examples",()=>{
+  const mutations=[
+    [s=>{s[15].economics.meets_target_before_unknown_costs=false;},
+      /margin-target claim inconsistent/],
+    [s=>{s[15].economics.post_allowance_margin_floor_pct=70;},
+      /post-allowance margin floor mismatch/],
+    [s=>{s[15].api.payment_example_query.minScore="91";},
+      /payment example differs from API example/],
+    [s=>{s[17].api.example_query.minStableDays=0;},
+      /example violates numeric input constraint/],
+    [s=>{s[18].api.example_query.allowedKinds="";},
+      /required example input cannot be blank/],
+    [s=>{s[19].api.payment_example_output.decision="approved";},
+      /invalid payment output example/]
+  ];
+  for(const [change,pattern] of mutations){
+    const s=clone();change(s);rejected(s,pattern);
   }
 });

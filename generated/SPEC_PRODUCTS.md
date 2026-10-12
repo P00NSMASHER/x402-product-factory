@@ -606,3 +606,214 @@ Resolve a prospective Pennsylvania vendor to a unique legal entity, verify the s
 - Authority-dependent live smokes and required production credentials (including SEC_USER_AGENT) must pass before any approved deployment.
 - Complete unit economics and genuine independent external-buyer evidence are unavailable; do not authorize commercial release.
 
+## 018 pa-vendor-counterparty-review
+
+Give an autonomous agent a bounded proceed or human_review decision for a prospective Pennsylvania vendor using legal-entity identity, OFAC SDN candidate-name screening, and domain registration/name/age evidence.
+
+- Endpoint: `GET /api/pa-vendor-counterparty-review`
+- Price: **$0.010000 USDC**
+- Decisions: `proceed`, `human_review`
+- Sources: Pennsylvania Department of State via data.pa.gov; U.S. Treasury OFAC SDN names and aliases; IANA DNS bootstrap plus authoritative registry RDAP
+- Purchase frequency: **unmeasured**
+- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **76.9%**
+
+### Inputs
+
+- `company` (string; required, minLength=2, maxLength=120)
+- `domain` (string; required, minLength=3, maxLength=253)
+- `minScore` (integer; optional, default=90, min=70, max=100)
+- `minDomainAgeDays` (integer; optional, default=90, min=1, max=3650)
+
+### Decision rules
+
+- Resolve a unique strong Pennsylvania legal entity before OFAC screening or RDAP legal-name alignment.
+- Require no current OFAC name candidates at configured score, legal-name-aligned registered RDAP domain, and domain age at or above minDomainAgeDays.
+- Any uncertain, conflicting, recent-domain, name-candidate, or missing required evidence is human_review, never a legal clearance.
+- proceed is only a workflow signal that configured review triggers were not hit
+- a no-candidate OFAC name result is not sanctions clearance
+- OFAC 50 Percent Rule ownership analysis is not included
+- domain registration/name alignment does not prove domain ownership or control
+- recent domain registration is a review signal, not proof of fraud
+- a Pennsylvania registry match does not prove good standing, ownership, authority to contract, creditworthiness, or legal compliance
+
+### Failure behavior
+
+- Invalid input: HTTP 400; do not settle payment.
+- Required source failure: HTTP 502 with chargeable=false; do not settle payment.
+- Payment unresolved: HTTP 503; retry the same authorization.
+- Automatic reject: **false**
+
+### Launch gate
+
+- Status: `live-source-verified-staging`
+- Release gate: `scripts/validate-product-018.js`
+- Existing exact-revision release gate and deterministic tests must pass before a reviewed deployment.
+- Independently verify authoritative-source availability, payment identity, and current facilitator fee/allowance terms.
+- Commercial release remains blocked until true hosting/source/refund economics and independently verified customer demand are established.
+
+## 019 pa-vendor-maturity-review
+
+Review whether a prospective Pennsylvania vendor has both an established legal-entity history and an established legal-name-aligned domain history before an automated workflow continues.
+
+- Endpoint: `GET /api/pa-vendor-maturity-review`
+- Price: **$0.007000 USDC**
+- Decisions: `established_vendor`, `human_review`
+- Sources: Pennsylvania Department of State via data.pa.gov; IANA DNS bootstrap plus authoritative registry RDAP
+- Purchase frequency: **unmeasured**
+- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **67.0%**
+
+### Inputs
+
+- `company` (string; required, minLength=2, maxLength=120)
+- `domain` (string; required, minLength=3, maxLength=253)
+- `minEntityAgeDays` (integer; optional, default=30, min=1, max=36500)
+- `minDomainAgeDays` (integer; optional, default=90, min=1, max=3650)
+
+### Decision rules
+
+- Require one strong unique PA entity with usable creation date at least minEntityAgeDays old.
+- Require authoritative RDAP registered domain aligned to resolved legal name and registered at least minDomainAgeDays ago.
+- Missing or young entity/domain records require human_review and do not establish fraud or safety.
+- established_vendor is a maturity/history workflow signal only
+- entity age does not establish current good standing, ownership, authority, legitimacy, creditworthiness, or legal compliance
+- domain age and legal-name alignment do not prove domain ownership or control
+- older entity/domain history is not proof a vendor is safe or trustworthy
+- recent entity or domain registration is a review signal, not proof of fraud
+
+### Failure behavior
+
+- Invalid input: HTTP 400; do not settle payment.
+- Required source failure: HTTP 502 with chargeable=false; do not settle payment.
+- Payment unresolved: HTTP 503; retry the same authorization.
+- Automatic reject: **false**
+
+### Launch gate
+
+- Status: `live-source-verified-staging`
+- Release gate: `scripts/validate-product-019.js`
+- Existing exact-revision release gate and deterministic tests must pass before a reviewed deployment.
+- Independently verify authoritative-source availability, payment identity, and current facilitator fee/allowance terms.
+- Commercial release remains blocked until true hosting/source/refund economics and independently verified customer demand are established.
+
+## 020 pa-vendor-domain-continuity-review
+
+Review whether a prospective Pennsylvania vendor's legal-name-aligned domain has sufficient expiration runway and has not changed too recently for automated continuation.
+
+- Endpoint: `GET /api/pa-vendor-domain-continuity-review`
+- Price: **$0.006000 USDC**
+- Decisions: `stable_domain`, `human_review`
+- Sources: Pennsylvania Department of State via data.pa.gov; IANA DNS bootstrap plus authoritative registry RDAP
+- Purchase frequency: **unmeasured**
+- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **61.5%**
+
+### Inputs
+
+- `company` (string; required, minLength=2, maxLength=120)
+- `domain` (string; required, minLength=3, maxLength=253)
+- `minExpirationDays` (integer; optional, default=180, min=1, max=3650)
+- `minStableDays` (integer; optional, default=30, min=1, max=3650)
+
+### Decision rules
+
+- Require one unique strong PA entity and an authoritative registered domain aligned to the resolved legal name.
+- Require expiration runway of at least minExpirationDays and lastChanged age of at least minStableDays.
+- Incomplete evidence or policy failures produce human_review; stability is not proof of ownership, safety or continuity guarantees.
+- stable_domain is a continuity/timing workflow signal only
+- expiration runway does not guarantee renewal or uninterrupted service
+- lastChanged recency does not by itself establish compromise, ownership transfer, malicious activity, or fraud
+- legal-name/domain alignment does not prove domain ownership or control
+- a Pennsylvania registry match does not prove good standing, ownership, authority, creditworthiness, or legal compliance
+
+### Failure behavior
+
+- Invalid input: HTTP 400; do not settle payment.
+- Required source failure: HTTP 502 with chargeable=false; do not settle payment.
+- Payment unresolved: HTTP 503; retry the same authorization.
+- Automatic reject: **false**
+
+### Launch gate
+
+- Status: `live-source-verified-staging`
+- Release gate: `scripts/validate-product-020.js`
+- Existing exact-revision release gate and deterministic tests must pass before a reviewed deployment.
+- Independently verify authoritative-source availability, payment identity, and current facilitator fee/allowance terms.
+- Commercial release remains blocked until true hosting/source/refund economics and independently verified customer demand are established.
+
+## 021 pa-entity-type-policy
+
+Resolve a Pennsylvania business to one strong registry entity, normalize its registration type to a stable policy kind, and compare that kind with a caller-supplied allowed set.
+
+- Endpoint: `GET /api/pa-entity-type-policy`
+- Price: **$0.002000 USDC**
+- Decisions: `policy_match`, `policy_mismatch`, `company_not_found`, `human_review`
+- Sources: Pennsylvania Department of State via data.pa.gov
+- Purchase frequency: **unmeasured**
+- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **-15.5%**
+
+### Inputs
+
+- `company` (string; required, minLength=2, maxLength=120)
+- `allowedKinds` (string; required)
+
+### Decision rules
+
+- Resolve one strong PA registry business and normalize source registration type to a known policy kind.
+- Compare normalized kind with the caller-declared comma-separated allowedKinds; no automatic legal/status finding.
+- Unknown or ambiguous registry evidence returns human_review.
+- policy_match only evaluates the caller-supplied entity-type policy
+- it is not legal advice or proof of good standing, ownership, authority, tax treatment, liability protection, fraud risk, sanctions status, creditworthiness, or regulatory compliance
+
+### Failure behavior
+
+- Invalid input: HTTP 400; do not settle payment.
+- Required source failure: HTTP 502 with chargeable=false; do not settle payment.
+- Payment unresolved: HTTP 503; retry the same authorization.
+- Automatic reject: **false**
+
+### Launch gate
+
+- Status: `live-source-verified-staging`
+- Release gate: `scripts/validate-product-021.js`
+- Existing exact-revision release gate and deterministic tests must pass before a reviewed deployment.
+- Independently verify authoritative-source availability, payment identity, and current facilitator fee/allowance terms.
+- Commercial release remains blocked until true hosting/source/refund economics and independently verified customer demand are established.
+
+## 022 pa-registered-county-policy
+
+Resolve a Pennsylvania business to one strong registry entity and compare its source-published registered county with a caller-supplied allowed Pennsylvania county set.
+
+- Endpoint: `GET /api/pa-registered-county-policy`
+- Price: **$0.002000 USDC**
+- Decisions: `policy_match`, `policy_mismatch`, `company_not_found`, `human_review`
+- Sources: Pennsylvania Department of State via data.pa.gov
+- Purchase frequency: **unmeasured**
+- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **-15.5%**
+
+### Inputs
+
+- `company` (string; required, minLength=2, maxLength=120)
+- `allowedCounties` (string; required)
+
+### Decision rules
+
+- Resolve one strong PA registry business and read its source-published registered county.
+- Normalize county names including optional County suffix and compare with the caller-declared allowedCounties set.
+- No match is only a caller policy outcome, not evidence of physical operations, residency, jurisdiction or legal compliance.
+- policy_match evaluates only source-published registered county against caller policy
+- it does not prove physical operations, headquarters, service area, residency, local ownership, tax situs, good standing, authority, or legal compliance
+
+### Failure behavior
+
+- Invalid input: HTTP 400; do not settle payment.
+- Required source failure: HTTP 502 with chargeable=false; do not settle payment.
+- Payment unresolved: HTTP 503; retry the same authorization.
+- Automatic reject: **false**
+
+### Launch gate
+
+- Status: `live-source-verified-staging`
+- Release gate: `scripts/validate-product-022.js`
+- Existing exact-revision release gate and deterministic tests must pass before a reviewed deployment.
+- Independently verify authoritative-source availability, payment identity, and current facilitator fee/allowance terms.
+- Commercial release remains blocked until true hosting/source/refund economics and independently verified customer demand are established.
+

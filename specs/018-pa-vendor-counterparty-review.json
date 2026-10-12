@@ -1,0 +1,199 @@
+{
+  "schema_version": 1,
+  "number": "018",
+  "id": "pa-vendor-counterparty-review",
+  "discovery": {
+    "operation_id": "reviewPennsylvaniaVendorCounterparty",
+    "service_name": "PA Vendor Counterparty Review",
+    "summary": "Review a Pennsylvania vendor counterparty before automated intake",
+    "description": "Resolve a supplied Pennsylvania company name to one unique strong Department of State legal-entity match, screen the resolved legal name against current OFAC SDN primary names and aliases, verify the supplied domain through authoritative RDAP, require legal-name/domain alignment, and compare registration age against a caller threshold. Returns proceed or human_review. Proceed only means the configured review triggers were not hit; it is not legal/compliance approval, sanctions clearance, fraud scoring, credit approval, good-standing certification, or proof of domain ownership/control.",
+    "resource_description": "Resolve a Pennsylvania vendor to a unique legal entity, screen that resolved legal name against current OFAC SDN primary names and aliases, and check whether the supplied registered domain plausibly aligns with the legal name and is old enough for automated continuation. Returns proceed or human_review with evidence. Proceed is not legal/compliance approval or sanctions clearance.",
+    "search_tags": [
+      "vendor-intake",
+      "counterparty-review",
+      "pennsylvania-business-registry",
+      "ofac",
+      "domain-age"
+    ],
+    "openapi_tags": [
+      "Vendor Intake",
+      "Counterparty Review",
+      "Pennsylvania Business Registry",
+      "OFAC",
+      "Domain Age",
+      "RDAP",
+      "Human Review"
+    ]
+  },
+  "buyer": {
+    "task": "Give an autonomous agent a bounded proceed or human_review decision for a prospective Pennsylvania vendor using legal-entity identity, OFAC SDN candidate-name screening, and domain registration/name/age evidence.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure independently verified external settled purchases and repeat demand; do not treat synthetic fixtures, public discovery or HTTP 200 as sales."
+    }
+  },
+  "api": {
+    "method": "GET",
+    "path": "/api/pa-vendor-counterparty-review",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "name": "domain",
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253,
+        "required": true
+      },
+      {
+        "name": "minScore",
+        "type": "integer",
+        "minimum": 70,
+        "maximum": 100,
+        "default": 90,
+        "required": false
+      },
+      {
+        "name": "minDomainAgeDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 90,
+        "required": false
+      }
+    ],
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "domain": "openai.com",
+      "minScore": 90,
+      "minDomainAgeDays": 90
+    },
+    "payment_example_query": {
+      "company": "OpenAI OpCo",
+      "domain": "openai.com",
+      "minScore": "90",
+      "minDomainAgeDays": "90"
+    },
+    "payment_example_output": {
+      "decision": "proceed",
+      "resolvedLegalName": "Openai Opco, Llc",
+      "domainAgeDays": 7196,
+      "paid": true
+    },
+    "outputs": {
+      "decisions": [
+        "proceed",
+        "human_review"
+      ],
+      "fields": [
+        "decision",
+        "reasonCodes",
+        "checks",
+        "matchedEntity",
+        "screenedLegalName",
+        "resolvedLegalName",
+        "domain",
+        "domainAgeDays",
+        "minScore",
+        "minDomainAgeDays",
+        "limitations",
+        "checkedAt",
+        "input",
+        "sourceFailures",
+        "evidence",
+        "chargeable",
+        "paid",
+        "price"
+      ]
+    },
+    "input_rule": null
+  },
+  "sources": [
+    {
+      "id": "pa_registry",
+      "adapter": "createPaRegistryAdapter",
+      "authority": "Pennsylvania Department of State via data.pa.gov",
+      "refresh_policy": "live lookup on each paid request",
+      "cache_policy": "none",
+      "freshness_limit_seconds": null
+    },
+    {
+      "id": "ofac_sdn",
+      "adapter": "createOfacNameAdapter",
+      "authority": "U.S. Treasury OFAC SDN names and aliases",
+      "refresh_policy": "authoritative source lookup on each paid request, subject to adapter caching behavior",
+      "cache_policy": "source-specific adapter caching; no new cache introduced by spec",
+      "freshness_limit_seconds": null
+    },
+    {
+      "id": "rdap",
+      "adapter": "createRdapAdapter",
+      "authority": "IANA DNS bootstrap plus authoritative registry RDAP",
+      "refresh_policy": "authoritative domain lookup on each paid request",
+      "cache_policy": "IANA bootstrap cached in memory for adapter lifetime; authoritative domain result not cached",
+      "freshness_limit_seconds": null
+    }
+  ],
+  "decision": {
+    "implementation": "products/pa-vendor-counterparty-review/decision.js",
+    "parameters": {
+      "minScore": {
+        "default": 90,
+        "minimum": 70,
+        "maximum": 100
+      },
+      "minDomainAgeDays": {
+        "default": 90,
+        "minimum": 1,
+        "maximum": 3650
+      }
+    },
+    "rules": [
+      "Resolve a unique strong Pennsylvania legal entity before OFAC screening or RDAP legal-name alignment.",
+      "Require no current OFAC name candidates at configured score, legal-name-aligned registered RDAP domain, and domain age at or above minDomainAgeDays.",
+      "Any uncertain, conflicting, recent-domain, name-candidate, or missing required evidence is human_review, never a legal clearance.",
+      "proceed is only a workflow signal that configured review triggers were not hit",
+      "a no-candidate OFAC name result is not sanctions clearance",
+      "OFAC 50 Percent Rule ownership analysis is not included",
+      "domain registration/name alignment does not prove domain ownership or control",
+      "recent domain registration is a review signal, not proof of fraud",
+      "a Pennsylvania registry match does not prove good standing, ownership, authority to contract, creditworthiness, or legal compliance"
+    ]
+  },
+  "failure_behavior": {
+    "invalid_input": "HTTP 400; do not settle payment.",
+    "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+    "payment_unresolved": "HTTP 503; retry the same authorization.",
+    "automatic_reject": false
+  },
+  "economics": {
+    "price_usdc": "0.010",
+    "paid_settlement_cost_usd": "0.002310",
+    "configured_direct_source_fee_usd": "0.000000",
+    "incremental_hosting_cost_usd": null,
+    "post_allowance_margin_floor_pct": 76.9,
+    "target_contribution_margin_pct": 70,
+    "meets_target_before_unknown_costs": true
+  },
+  "launch": {
+    "current_status": "live-source-verified-staging",
+    "release_gate": "scripts/validate-product-018.js",
+    "criteria": [
+      "Existing exact-revision release gate and deterministic tests must pass before a reviewed deployment.",
+      "Independently verify authoritative-source availability, payment identity, and current facilitator fee/allowance terms.",
+      "Commercial release remains blocked until true hosting/source/refund economics and independently verified customer demand are established."
+    ]
+  },
+  "implementation": {
+    "handler_template": "standard-x402-get-v1",
+    "service_module": "products/pa-vendor-counterparty-review/service.js",
+    "input_validator_export": "validateCounterpartyInput"
+  }
+}

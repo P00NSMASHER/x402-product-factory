@@ -19,7 +19,12 @@ const SERVICE_MODULES=Object.freeze({
   "treasury-average-rate-trend":require("../products/treasury-average-rate-trend/service"),
   "treasury-average-rate-spread":require("../products/treasury-average-rate-spread/service"),
   "pa-entity-ofac-review":require("../products/pa-entity-ofac-review/service"),
-  "pa-vendor-new-domain-review":require("../products/pa-vendor-new-domain-review/service")
+  "pa-vendor-new-domain-review":require("../products/pa-vendor-new-domain-review/service"),
+  "pa-vendor-counterparty-review":require("../products/pa-vendor-counterparty-review/service"),
+  "pa-vendor-maturity-review":require("../products/pa-vendor-maturity-review/service"),
+  "pa-vendor-domain-continuity-review":require("../products/pa-vendor-domain-continuity-review/service"),
+  "pa-entity-type-policy":require("../products/pa-entity-type-policy/service"),
+  "pa-registered-county-policy":require("../products/pa-registered-county-policy/service")
 });
 
 const VALIDATORS=Object.freeze({
@@ -37,7 +42,12 @@ const VALIDATORS=Object.freeze({
   "treasury-average-rate-trend":SERVICE_MODULES["treasury-average-rate-trend"]["validateTreasuryTrendInput"],
   "treasury-average-rate-spread":SERVICE_MODULES["treasury-average-rate-spread"]["validateTreasuryRateSpreadInput"],
   "pa-entity-ofac-review":SERVICE_MODULES["pa-entity-ofac-review"]["validatePaEntityOfacInput"],
-  "pa-vendor-new-domain-review":SERVICE_MODULES["pa-vendor-new-domain-review"]["validatePaVendorNewDomainInput"]
+  "pa-vendor-new-domain-review":SERVICE_MODULES["pa-vendor-new-domain-review"]["validatePaVendorNewDomainInput"],
+  "pa-vendor-counterparty-review":SERVICE_MODULES["pa-vendor-counterparty-review"]["validateCounterpartyInput"],
+  "pa-vendor-maturity-review":SERVICE_MODULES["pa-vendor-maturity-review"]["validateVendorMaturityInput"],
+  "pa-vendor-domain-continuity-review":SERVICE_MODULES["pa-vendor-domain-continuity-review"]["validateVendorDomainContinuityInput"],
+  "pa-entity-type-policy":SERVICE_MODULES["pa-entity-type-policy"]["validateEntityTypePolicyInput"],
+  "pa-registered-county-policy":SERVICE_MODULES["pa-registered-county-policy"]["validateRegisteredCountyPolicyInput"]
 });
 
 function moduleFor(productId){
@@ -73,7 +83,12 @@ const PAID_HANDLER_MODULES=Object.freeze({
   "treasury-average-rate-trend":moduleFor("treasury-average-rate-trend"),
   "treasury-average-rate-spread":moduleFor("treasury-average-rate-spread"),
   "pa-entity-ofac-review":moduleFor("pa-entity-ofac-review"),
-  "pa-vendor-new-domain-review":moduleFor("pa-vendor-new-domain-review")
+  "pa-vendor-new-domain-review":moduleFor("pa-vendor-new-domain-review"),
+  "pa-vendor-counterparty-review":moduleFor("pa-vendor-counterparty-review"),
+  "pa-vendor-maturity-review":moduleFor("pa-vendor-maturity-review"),
+  "pa-vendor-domain-continuity-review":moduleFor("pa-vendor-domain-continuity-review"),
+  "pa-entity-type-policy":moduleFor("pa-entity-type-policy"),
+  "pa-registered-county-policy":moduleFor("pa-registered-county-policy")
 });
 
 module.exports={SERVICE_MODULES,VALIDATORS,moduleFor,PAID_HANDLER_MODULES};

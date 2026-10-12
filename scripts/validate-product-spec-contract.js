@@ -128,6 +128,10 @@ function validateInputExamples(api,number){
     if(Object.hasOwn(input,"default"))checkValue(input.default,"default");
     if(Object.hasOwn(api.example_query,input.name)){
       checkValue(api.example_query[input.name],"example");
+      if(input.required===true&&input.type==="string"){
+        must(api.example_query[input.name].trim().length>0,
+          "required example input cannot be blank for "+number+": "+input.name);
+      }
     }else if(input.required===true){
       invalid("required example input missing for "+number+": "+input.name);
     }

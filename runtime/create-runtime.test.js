@@ -24,9 +24,9 @@ test("runtime uses generated service and paid-handler modules for spec-backed pr
     assert.strictEqual(serviceModule(id),SPEC_SERVICE_MODULES[id],id+" service source");
     assert.equal(paidHandlerModule(id)?.source,"spec-generated",id+" handler source");
   }
-  assert.ok(serviceModule("pa-vendor-counterparty-review"),"unspecced product service fallback");
+  assert.ok(serviceModule("pa-local-vendor-policy-gate"),"unspecced product service fallback");
   assert.notEqual(
-    paidHandlerModule("pa-vendor-counterparty-review")?.source,
+    paidHandlerModule("pa-local-vendor-policy-gate")?.source,
     "spec-generated",
     "unspecced product must keep hand-written handler fallback"
   );

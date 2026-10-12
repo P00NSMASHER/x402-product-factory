@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "number": "020",
+  "id": "pa-vendor-domain-continuity-review",
+  "discovery": {
+    "operation_id": "reviewPennsylvaniaVendorDomainContinuity",
+    "service_name": "PA Vendor Domain Continuity Review",
+    "summary": "Review Pennsylvania vendor domain continuity",
+    "description": "Resolve a supplied Pennsylvania company name to one unique strong Department of State legal entity, verify the supplied domain through authoritative RDAP, require legal-name/domain alignment, require days until expiration at/above minExpirationDays, and require days since the authoritative lastChanged event at/above minStableDays. Returns stable_domain or human_review. This is a continuity/timing workflow signal only and does not prove ownership, renewal, uninterrupted service, security, fraud risk, compromise, malicious activity, good standing, authority, or legal compliance.",
+    "resource_description": "Resolve a Pennsylvania vendor to a unique legal entity, verify legal-name/domain alignment through authoritative RDAP, require sufficient expiration runway, and require that the authoritative domain lastChanged event is old enough for automated continuation. Returns stable_domain or human_review. This is a continuity/timing workflow signal, not proof of ownership, safety, fraud risk, security, or legal compliance.",
+    "search_tags": [
+      "vendor-intake",
+      "domain-continuity",
+      "pennsylvania-business-registry",
+      "rdap",
+      "expiration"
+    ],
+    "openapi_tags": [
+      "Vendor Domain Continuity",
+      "Pennsylvania Business Registry",
+      "RDAP",
+      "Expiration",
+      "Last Changed",
+      "Human Review"
+    ]
+  },
+  "buyer": {
+    "task": "Review whether a prospective Pennsylvania vendor's legal-name-aligned domain has sufficient expiration runway and has not changed too recently for automated continuation.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure independently verified external settled purchases and repeat demand; do not treat synthetic fixtures, public discovery or HTTP 200 as sales."
+    }
+  },
+  "api": {
+    "method": "GET",
+    "path": "/api/pa-vendor-domain-continuity-review",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "name": "domain",
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253,
+        "required": true
+      },
+      {
+        "name": "minExpirationDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 180,
+        "required": false
+      },
+      {
+        "name": "minStableDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 30,
+        "required": false
+      }
+    ],
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "domain": "openai.com",
+      "minExpirationDays": 180,
+      "minStableDays": 30
+    },
+    "payment_example_query": {
+      "company": "OpenAI OpCo",
+      "domain": "openai.com",
+      "minExpirationDays": "180",
+      "minStableDays": "30"
+    },
+    "payment_example_output": {
+      "decision": "stable_domain",
+      "daysUntilExpiration": 840,
+      "daysSinceLastChanged": 715,
+      "paid": true
+    },
+    "outputs": {
+      "decisions": [
+        "stable_domain",
+        "human_review"
+      ],
+      "fields": [
+        "decision",
+        "reasonCodes",
+        "matchedEntity",
+        "resolvedLegalName",
+        "domain",
+        "expirationDate",
+        "daysUntilExpiration",
+        "minExpirationDays",
+        "lastChangedDate",
+        "daysSinceLastChanged",
+        "minStableDays",
+        "limitations",
+        "checkedAt",
+        "input",
+        "sourceFailures",
+        "evidence",
+        "chargeable",
+        "paid",
+        "price"
+      ]
+    },
+    "input_rule": null
+  },
+  "sources": [
+    {
+      "id": "pa_registry",
+      "adapter": "createPaRegistryAdapter",
+      "authority": "Pennsylvania Department of State via data.pa.gov",
+      "refresh_policy": "live lookup on each paid request",
+      "cache_policy": "none",
+      "freshness_limit_seconds": null
+    },
+    {
+      "id": "rdap",
+      "adapter": "createRdapAdapter",
+      "authority": "IANA DNS bootstrap plus authoritative registry RDAP",
+      "refresh_policy": "authoritative domain lookup on each paid request",
+      "cache_policy": "IANA bootstrap cached in memory for adapter lifetime; authoritative domain result not cached",
+      "freshness_limit_seconds": null
+    }
+  ],
+  "decision": {
+    "implementation": "products/pa-vendor-domain-continuity-review/decision.js",
+    "parameters": {
+      "minExpirationDays": {
+        "default": 180,
+        "minimum": 1,
+        "maximum": 3650
+      },
+      "minStableDays": {
+        "default": 30,
+        "minimum": 1,
+        "maximum": 3650
+      }
+    },
+    "rules": [
+      "Require one unique strong PA entity and an authoritative registered domain aligned to the resolved legal name.",
+      "Require expiration runway of at least minExpirationDays and lastChanged age of at least minStableDays.",
+      "Incomplete evidence or policy failures produce human_review; stability is not proof of ownership, safety or continuity guarantees.",
+      "stable_domain is a continuity/timing workflow signal only",
+      "expiration runway does not guarantee renewal or uninterrupted service",
+      "lastChanged recency does not by itself establish compromise, ownership transfer, malicious activity, or fraud",
+      "legal-name/domain alignment does not prove domain ownership or control",
+      "a Pennsylvania registry match does not prove good standing, ownership, authority, creditworthiness, or legal compliance"
+    ]
+  },
+  "failure_behavior": {
+    "invalid_input": "HTTP 400; do not settle payment.",
+    "required_source_failure": "HTTP 502 with chargeable=false; do not settle payment.",
+    "payment_unresolved": "HTTP 503; retry the same authorization.",
+    "automatic_reject": false
+  },
+  "economics": {
+    "price_usdc": "0.006",
+    "paid_settlement_cost_usd": "0.002310",
+    "configured_direct_source_fee_usd": "0.000000",
+    "incremental_hosting_cost_usd": null,
+    "post_allowance_margin_floor_pct": 61.5,
+    "target_contribution_margin_pct": 70,
+    "meets_target_before_unknown_costs": false
+  },
+  "launch": {
+    "current_status": "live-source-verified-staging",
+    "release_gate": "scripts/validate-product-020.js",
+    "criteria": [
+      "Existing exact-revision release gate and deterministic tests must pass before a reviewed deployment.",
+      "Independently verify authoritative-source availability, payment identity, and current facilitator fee/allowance terms.",
+      "Commercial release remains blocked until true hosting/source/refund economics and independently verified customer demand are established."
+    ]
+  },
+  "implementation": {
+    "handler_template": "standard-x402-get-v1",
+    "service_module": "products/pa-vendor-domain-continuity-review/service.js",
+    "input_validator_export": "validateVendorDomainContinuityInput"
+  }
+}

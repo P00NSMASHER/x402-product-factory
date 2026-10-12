@@ -33,7 +33,12 @@ const SPEC_FILES=[
   "014-treasury-average-rate-trend.json",
   "015-treasury-average-rate-spread.json",
   "016-pa-entity-ofac-review.json",
-  "017-pa-vendor-new-domain-review.json"
+  "017-pa-vendor-new-domain-review.json",
+  "018-pa-vendor-counterparty-review.json",
+  "019-pa-vendor-maturity-review.json",
+  "020-pa-vendor-domain-continuity-review.json",
+  "021-pa-entity-type-policy.json",
+  "022-pa-registered-county-policy.json"
 ];
 
 function toMicros(value){
@@ -54,10 +59,10 @@ function loadSpecs(){
   return SPEC_FILES.map(file=>JSON.parse(fs.readFileSync(path.join(__dirname,file),"utf8")));
 }
 
-test("product specs 003-017 are registry-bound and structurally complete",()=>{
+test("product specs 003-022 are registry-bound and structurally complete",()=>{
   const specs=loadSpecs();
-  assert.equal(specs.length,15);
-  assert.deepEqual(specs.map(spec=>spec.number),["003","004","005","006","007","008","009","010","011","012","013","014","015","016","017"]);
+  assert.equal(specs.length,20);
+  assert.deepEqual(specs.map(spec=>spec.number),["003","004","005","006","007","008","009","010","011","012","013","014","015","016","017","018","019","020","021","022"]);
 
   for(const spec of specs){
     assert.equal(spec.schema_version,1);
@@ -113,7 +118,12 @@ test("product specs 003-017 are registry-bound and structurally complete",()=>{
     assert.equal(spec.economics.configured_direct_source_fee_usd,"0.000000");
     assert.equal(spec.economics.incremental_hosting_cost_usd,null);
     assert.equal(spec.economics.target_contribution_margin_pct,70);
-    assert.equal(spec.economics.meets_target_before_unknown_costs,false);
+    const feeOnlyMeetThreshold =
+      (toMicros(spec.economics.price_usdc) -
+       toMicros(spec.economics.paid_settlement_cost_usd) -
+       toMicros(spec.economics.configured_direct_source_fee_usd))*100n >=
+      toMicros(spec.economics.price_usdc)*BigInt(spec.economics.target_contribution_margin_pct);
+    assert.equal(spec.economics.meets_target_before_unknown_costs,feeOnlyMeetThreshold);
 
     const price=toMicros(spec.economics.price_usdc);
     const settlement=toMicros(spec.economics.paid_settlement_cost_usd);
@@ -139,7 +149,7 @@ test("commercially important edge conditions remain explicit",()=>{
 test("generated product spec index is current",()=>{
   const index=buildIndex();
   assert.equal(index.schema_version,1);
-  assert.deepEqual(index.products.map(product=>product.number),["003","004","005","006","007","008","009","010","011","012","013","014","015","016","017"]);
+  assert.deepEqual(index.products.map(product=>product.number),["003","004","005","006","007","008","009","010","011","012","013","014","015","016","017","018","019","020","021","022"]);
   assert.doesNotThrow(()=>checkGeneratedIndex());
 });
 
@@ -147,8 +157,8 @@ test("generated product spec index is current",()=>{
 test("spec compiler generates discovery docs and standard contract cases without drift",()=>{
   const discovery=buildDiscovery();
   assert.equal(discovery.schema_version,1);
-  assert.equal(discovery.products.length,15);
-  assert.deepEqual(discovery.products.map(product=>product.number),["003","004","005","006","007","008","009","010","011","012","013","014","015","016","017"]);
+  assert.equal(discovery.products.length,20);
+  assert.deepEqual(discovery.products.map(product=>product.number),["003","004","005","006","007","008","009","010","011","012","013","014","015","016","017","018","019","020","021","022"]);
 
   for(const product of discovery.products){
     assert.equal(product.payment.x402_version,2);
@@ -163,8 +173,8 @@ test("spec compiler generates discovery docs and standard contract cases without
   }
 
   const contracts=buildContractCases();
-  assert.equal(contracts.cases.length,135);
-  for(const number of ["003","004","005","006","007","008","009","010","011","012","013","014","015","016","017"]){
+  assert.equal(contracts.cases.length,180);
+  for(const number of ["003","004","005","006","007","008","009","010","011","012","013","014","015","016","017","018","019","020","021","022"]){
     const spec=loadSpecs().find(item=>item.number===number);
     const cases=contracts.cases.filter(item=>item.path===spec.api.path);
     assert.equal(cases.length,9);
@@ -191,6 +201,7 @@ test("spec compiler generates discovery docs and standard contract cases without
   assert.match(docs,/007 domain-registration-age/);
   assert.match(docs,/012 domain-last-changed-recency/);
   assert.match(docs,/017 pa-vendor-new-domain-review/);
+  assert.match(docs,/022 pa-registered-county-policy/);
   assert.match(docs,/Purchase frequency: \*\*unmeasured\*\*/);
   assert.doesNotThrow(()=>checkGeneratedSpecArtifacts());
 });
@@ -296,7 +307,7 @@ test("generated spec paid handlers bind declared validators and product constant
 });
 
 
-test("008-017 generated OpenAPI and Bazaar examples preserve authoritative hand-written contracts",()=>{
+test("008-022 generated OpenAPI and Bazaar examples preserve authoritative hand-written contracts",()=>{
   for(const spec of loadSpecs().filter(x=>Number(x.number)>=8)){
     const old=METADATA_MODULES[spec.id];
     const oldResource=old.catalogResource("https://candidate.example");
@@ -307,4 +318,16 @@ test("008-017 generated OpenAPI and Bazaar examples preserve authoritative hand-
     assert.deepEqual(GENERATED_SPEC_METADATA.openApiPath(spec.id).get.parameters,
       old.openApiPath().get.parameters,"OpenAPI parameters: "+spec.id);
   }
+});
+
+
+test("018 fee-only screen does not establish commercial readiness or Product 025+ unlock",()=>{
+  const p=loadSpecs().find(spec=>spec.number==="018");
+  assert.ok(p);
+  assert.equal(p.economics.post_allowance_margin_floor_pct,76.9);
+  assert.equal(p.economics.meets_target_before_unknown_costs,true);
+  assert.equal(p.economics.incremental_hosting_cost_usd,null);
+  assert.equal(p.buyer.expected_purchase_frequency.status,"unmeasured");
+  assert.equal(p.buyer.expected_purchase_frequency.value,null);
+  assert.match(p.launch.current_status,/staging$/);
 });

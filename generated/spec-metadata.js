@@ -927,6 +927,361 @@ const PRODUCTS=Object.freeze({
       "company_not_found",
       "human_review"
     ]
+  },
+  "pa-vendor-counterparty-review": {
+    "id": "pa-vendor-counterparty-review",
+    "operation_id": "reviewPennsylvaniaVendorCounterparty",
+    "service_name": "PA Vendor Counterparty Review",
+    "summary": "Review a Pennsylvania vendor counterparty before automated intake",
+    "description": "Resolve a supplied Pennsylvania company name to one unique strong Department of State legal-entity match, screen the resolved legal name against current OFAC SDN primary names and aliases, verify the supplied domain through authoritative RDAP, require legal-name/domain alignment, and compare registration age against a caller threshold. Returns proceed or human_review. Proceed only means the configured review triggers were not hit; it is not legal/compliance approval, sanctions clearance, fraud scoring, credit approval, good-standing certification, or proof of domain ownership/control.",
+    "resource_description": "Resolve a Pennsylvania vendor to a unique legal entity, screen that resolved legal name against current OFAC SDN primary names and aliases, and check whether the supplied registered domain plausibly aligns with the legal name and is old enough for automated continuation. Returns proceed or human_review with evidence. Proceed is not legal/compliance approval or sanctions clearance.",
+    "search_tags": [
+      "vendor-intake",
+      "counterparty-review",
+      "pennsylvania-business-registry",
+      "ofac",
+      "domain-age"
+    ],
+    "openapi_tags": [
+      "Vendor Intake",
+      "Counterparty Review",
+      "Pennsylvania Business Registry",
+      "OFAC",
+      "Domain Age",
+      "RDAP",
+      "Human Review"
+    ],
+    "method": "GET",
+    "path": "/api/pa-vendor-counterparty-review",
+    "price_usdc": "0.010",
+    "amount_atomic_usdc": "10000",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "name": "domain",
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253,
+        "required": true
+      },
+      {
+        "name": "minScore",
+        "type": "integer",
+        "minimum": 70,
+        "maximum": 100,
+        "default": 90,
+        "required": false
+      },
+      {
+        "name": "minDomainAgeDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 90,
+        "required": false
+      }
+    ],
+    "input_rule": null,
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "domain": "openai.com",
+      "minScore": 90,
+      "minDomainAgeDays": 90
+    },
+    "payment_example_query": {
+      "company": "OpenAI OpCo",
+      "domain": "openai.com",
+      "minScore": "90",
+      "minDomainAgeDays": "90"
+    },
+    "payment_example_output": {
+      "decision": "proceed",
+      "resolvedLegalName": "Openai Opco, Llc",
+      "domainAgeDays": 7196,
+      "paid": true
+    },
+    "decisions": [
+      "proceed",
+      "human_review"
+    ]
+  },
+  "pa-vendor-maturity-review": {
+    "id": "pa-vendor-maturity-review",
+    "operation_id": "reviewPennsylvaniaVendorMaturity",
+    "service_name": "PA Vendor Maturity Review",
+    "summary": "Review Pennsylvania vendor entity and domain maturity",
+    "description": "Resolve a supplied Pennsylvania company name to one unique strong Department of State legal entity, compare its formation age against minEntityAgeDays, verify the supplied domain through authoritative RDAP, require legal-name/domain alignment, and compare domain registration age against minDomainAgeDays. Returns established_vendor or human_review. Established history is a bounded maturity signal only and is not proof of legitimacy, safety, fraud risk, creditworthiness, ownership, authority, good standing, or legal compliance.",
+    "resource_description": "Resolve a Pennsylvania vendor to a unique legal entity, compare entity formation age and legal-name-aligned authoritative domain registration age against caller thresholds, and return established_vendor or human_review. This is a maturity/history workflow signal, not proof of legitimacy, safety, fraud risk, creditworthiness, ownership, authority, or legal compliance.",
+    "search_tags": [
+      "vendor-intake",
+      "vendor-maturity",
+      "pennsylvania-business-registry",
+      "formation-age",
+      "domain-age"
+    ],
+    "openapi_tags": [
+      "Vendor Maturity",
+      "Pennsylvania Business Registry",
+      "Formation Age",
+      "Domain Age",
+      "RDAP",
+      "Human Review"
+    ],
+    "method": "GET",
+    "path": "/api/pa-vendor-maturity-review",
+    "price_usdc": "0.007",
+    "amount_atomic_usdc": "7000",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "name": "domain",
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253,
+        "required": true
+      },
+      {
+        "name": "minEntityAgeDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 36500,
+        "default": 30,
+        "required": false
+      },
+      {
+        "name": "minDomainAgeDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 90,
+        "required": false
+      }
+    ],
+    "input_rule": null,
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "domain": "openai.com",
+      "minEntityAgeDays": 30,
+      "minDomainAgeDays": 90
+    },
+    "payment_example_query": {
+      "company": "OpenAI OpCo",
+      "domain": "openai.com",
+      "minEntityAgeDays": "30",
+      "minDomainAgeDays": "90"
+    },
+    "payment_example_output": {
+      "decision": "established_vendor",
+      "entityAgeDays": 368,
+      "domainAgeDays": 7196,
+      "paid": true
+    },
+    "decisions": [
+      "established_vendor",
+      "human_review"
+    ]
+  },
+  "pa-vendor-domain-continuity-review": {
+    "id": "pa-vendor-domain-continuity-review",
+    "operation_id": "reviewPennsylvaniaVendorDomainContinuity",
+    "service_name": "PA Vendor Domain Continuity Review",
+    "summary": "Review Pennsylvania vendor domain continuity",
+    "description": "Resolve a supplied Pennsylvania company name to one unique strong Department of State legal entity, verify the supplied domain through authoritative RDAP, require legal-name/domain alignment, require days until expiration at/above minExpirationDays, and require days since the authoritative lastChanged event at/above minStableDays. Returns stable_domain or human_review. This is a continuity/timing workflow signal only and does not prove ownership, renewal, uninterrupted service, security, fraud risk, compromise, malicious activity, good standing, authority, or legal compliance.",
+    "resource_description": "Resolve a Pennsylvania vendor to a unique legal entity, verify legal-name/domain alignment through authoritative RDAP, require sufficient expiration runway, and require that the authoritative domain lastChanged event is old enough for automated continuation. Returns stable_domain or human_review. This is a continuity/timing workflow signal, not proof of ownership, safety, fraud risk, security, or legal compliance.",
+    "search_tags": [
+      "vendor-intake",
+      "domain-continuity",
+      "pennsylvania-business-registry",
+      "rdap",
+      "expiration"
+    ],
+    "openapi_tags": [
+      "Vendor Domain Continuity",
+      "Pennsylvania Business Registry",
+      "RDAP",
+      "Expiration",
+      "Last Changed",
+      "Human Review"
+    ],
+    "method": "GET",
+    "path": "/api/pa-vendor-domain-continuity-review",
+    "price_usdc": "0.006",
+    "amount_atomic_usdc": "6000",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "name": "domain",
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253,
+        "required": true
+      },
+      {
+        "name": "minExpirationDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 180,
+        "required": false
+      },
+      {
+        "name": "minStableDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 30,
+        "required": false
+      }
+    ],
+    "input_rule": null,
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "domain": "openai.com",
+      "minExpirationDays": 180,
+      "minStableDays": 30
+    },
+    "payment_example_query": {
+      "company": "OpenAI OpCo",
+      "domain": "openai.com",
+      "minExpirationDays": "180",
+      "minStableDays": "30"
+    },
+    "payment_example_output": {
+      "decision": "stable_domain",
+      "daysUntilExpiration": 840,
+      "daysSinceLastChanged": 715,
+      "paid": true
+    },
+    "decisions": [
+      "stable_domain",
+      "human_review"
+    ]
+  },
+  "pa-entity-type-policy": {
+    "id": "pa-entity-type-policy",
+    "operation_id": "checkPennsylvaniaEntityTypePolicy",
+    "service_name": "PA Entity Type Policy",
+    "summary": "Check a Pennsylvania entity type against caller policy",
+    "description": "Resolve a Pennsylvania business name to one strong registry entity, normalize its Department of State registration type to llc, corporation, limited_partnership, llp, professional_corporation, or other, and compare it with caller-supplied allowedKinds. Returns policy_match, policy_mismatch, company_not_found, or human_review. The result only evaluates the supplied policy and is not legal advice or proof of good standing, ownership, authority, tax treatment, liability protection, fraud risk, sanctions status, creditworthiness, or regulatory compliance.",
+    "resource_description": "Resolve a Pennsylvania business entity, normalize its public registration type to a stable policy kind, and compare that kind with a caller-supplied allowed set. Returns policy_match, policy_mismatch, company_not_found, or human_review. It is a caller-defined workflow policy check, not legal advice or proof of good standing, ownership, authority, tax treatment, liability protection, fraud risk, sanctions status, creditworthiness, or regulatory compliance.",
+    "search_tags": [
+      "pennsylvania-business-registry",
+      "entity-type",
+      "procurement-policy",
+      "vendor-policy",
+      "human-review"
+    ],
+    "openapi_tags": [
+      "Pennsylvania Business Registry",
+      "Entity Type",
+      "Procurement Policy"
+    ],
+    "method": "GET",
+    "path": "/api/pa-entity-type-policy",
+    "price_usdc": "0.002",
+    "amount_atomic_usdc": "2000",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "name": "allowedKinds",
+        "type": "string",
+        "required": true
+      }
+    ],
+    "input_rule": null,
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "allowedKinds": "llc,corporation"
+    },
+    "payment_example_output": {
+      "decision": "policy_match",
+      "registrationKind": "llc",
+      "paid": true
+    },
+    "decisions": [
+      "policy_match",
+      "policy_mismatch",
+      "company_not_found",
+      "human_review"
+    ]
+  },
+  "pa-registered-county-policy": {
+    "id": "pa-registered-county-policy",
+    "operation_id": "checkPennsylvaniaRegisteredCountyPolicy",
+    "service_name": "PA Registered County Policy",
+    "summary": "Check a Pennsylvania registered county against caller policy",
+    "description": "Resolve a Pennsylvania business name to one strong registry entity and compare its source-published registered county with caller-supplied allowedCounties. Returns policy_match, policy_mismatch, company_not_found, or human_review. The result evaluates only the supplied registered-county policy and does not prove physical operations, headquarters, service area, residency, local ownership, tax situs, good standing, authority, or legal compliance.",
+    "resource_description": "Resolve a Pennsylvania business to one strong registry entity and compare its source-published registered county with a caller-supplied Pennsylvania county allowlist. Returns policy_match, policy_mismatch, company_not_found, or human_review. This is a caller-defined workflow policy check only; it does not prove physical operations, headquarters location, service area, residency, local ownership, tax situs, good standing, authority, or legal compliance.",
+    "search_tags": [
+      "pennsylvania-business-registry",
+      "registered-county",
+      "local-vendor-policy",
+      "procurement-policy",
+      "human-review"
+    ],
+    "openapi_tags": [
+      "Pennsylvania Business Registry",
+      "Registered County",
+      "Local Vendor Policy"
+    ],
+    "method": "GET",
+    "path": "/api/pa-registered-county-policy",
+    "price_usdc": "0.002",
+    "amount_atomic_usdc": "2000",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "name": "allowedCounties",
+        "type": "string",
+        "required": true
+      }
+    ],
+    "input_rule": null,
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "allowedCounties": "Dauphin,Schuylkill"
+    },
+    "payment_example_output": {
+      "decision": "policy_match",
+      "registeredCounty": "Dauphin",
+      "paid": true
+    },
+    "decisions": [
+      "policy_match",
+      "policy_mismatch",
+      "company_not_found",
+      "human_review"
+    ]
   }
 });
 
