@@ -1282,6 +1282,140 @@ const PRODUCTS=Object.freeze({
       "company_not_found",
       "human_review"
     ]
+  },
+  "pa-local-vendor-policy-gate": {
+    "id": "pa-local-vendor-policy-gate",
+    "operation_id": "checkPennsylvaniaLocalVendorPolicy",
+    "service_name": "PA Local Vendor Policy Gate",
+    "summary": "Check a Pennsylvania vendor against local procurement policy",
+    "description": "Resolve a Pennsylvania business name once and evaluate its normalized entity type, source-published registered county, and formation age against caller-supplied policy rules. Returns proceed, human_review, or company_not_found. Proceed means only that the configured caller policy checks passed and is not legal/compliance approval or proof of good standing, ownership, authority, local operations, tax situs, fraud risk, sanctions status, or creditworthiness.",
+    "resource_description": "Evaluate a prospective Pennsylvania vendor against caller-defined entity-type, registered-county, and minimum-formation-age rules using one Pennsylvania Department of State registry lookup. Returns proceed, human_review, or company_not_found. Proceed means only that the configured caller policy checks passed; it is not legal/compliance approval or proof of good standing, ownership, authority, local operations, tax situs, fraud risk, sanctions status, or creditworthiness.",
+    "search_tags": [
+      "pennsylvania-business-registry",
+      "local-vendor-policy",
+      "procurement-policy",
+      "entity-type",
+      "registered-county"
+    ],
+    "openapi_tags": [
+      "Pennsylvania Business Registry",
+      "Local Vendor Policy",
+      "Procurement Policy"
+    ],
+    "method": "GET",
+    "path": "/api/pa-local-vendor-policy-gate",
+    "price_usdc": "0.004",
+    "amount_atomic_usdc": "4000",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "name": "allowedKinds",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "allowedCounties",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "minAgeDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 36500,
+        "default": 365,
+        "required": false
+      }
+    ],
+    "input_rule": null,
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "allowedKinds": "llc,corporation",
+      "allowedCounties": "Dauphin,Schuylkill",
+      "minAgeDays": 30
+    },
+    "payment_example_output": {
+      "decision": "proceed",
+      "reasonCodes": [],
+      "paid": true
+    },
+    "decisions": [
+      "proceed",
+      "human_review",
+      "company_not_found"
+    ]
+  },
+  "pa-vendor-distance-gate": {
+    "id": "pa-vendor-distance-gate",
+    "operation_id": "checkPennsylvaniaVendorDistance",
+    "service_name": "PA Vendor Distance Gate",
+    "summary": "Check a Pennsylvania vendor registered-address distance",
+    "description": "Resolve a Pennsylvania vendor to one strong registry entity, geocode the caller's origin address and the source-published registry address using U.S. Census Geocoding Services, and compare straight-line great-circle distance with maxDistanceMiles. Returns within_radius, outside_radius, company_not_found, or human_review. Distance is not driving distance or travel time, and the result does not prove local ownership, service area, residency, physical control, tax situs, good standing, authority, or legal compliance.",
+    "resource_description": "Resolve a Pennsylvania vendor registry entity, geocode a caller-supplied origin address and the source-published registered address with the U.S. Census geocoder, and compare straight-line coordinate distance with a caller-selected radius. Returns within_radius, outside_radius, company_not_found, or human_review. It is a geographic policy signal, not driving distance, travel time, local ownership, service area, residency, tax situs, good standing, authority, or legal/compliance approval.",
+    "search_tags": [
+      "pennsylvania-business-registry",
+      "census-geocoder",
+      "vendor-distance",
+      "local-procurement",
+      "geographic-policy"
+    ],
+    "openapi_tags": [
+      "Pennsylvania Business Registry",
+      "Census Geocoder",
+      "Vendor Distance",
+      "Local Procurement"
+    ],
+    "method": "GET",
+    "path": "/api/pa-vendor-distance-gate",
+    "price_usdc": "0.004",
+    "amount_atomic_usdc": "4000",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "name": "originAddress",
+        "type": "string",
+        "minLength": 6,
+        "maxLength": 240,
+        "required": true
+      },
+      {
+        "name": "maxDistanceMiles",
+        "type": "number",
+        "minimum": 0.1,
+        "maximum": 1000,
+        "required": true
+      }
+    ],
+    "input_rule": null,
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "originAddress": "600 North Second Street, Suite 401, Harrisburg, PA 17101",
+      "maxDistanceMiles": 25
+    },
+    "payment_example_output": {
+      "decision": "within_radius",
+      "distanceMiles": 0,
+      "maxDistanceMiles": 25,
+      "paid": true
+    },
+    "decisions": [
+      "within_radius",
+      "outside_radius",
+      "company_not_found",
+      "human_review"
+    ]
   }
 });
 

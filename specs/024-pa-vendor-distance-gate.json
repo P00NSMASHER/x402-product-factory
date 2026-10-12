@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "number": "024",
+  "id": "pa-vendor-distance-gate",
+  "discovery": {
+    "operation_id": "checkPennsylvaniaVendorDistance",
+    "service_name": "PA Vendor Distance Gate",
+    "summary": "Check a Pennsylvania vendor registered-address distance",
+    "description": "Resolve a Pennsylvania vendor to one strong registry entity, geocode the caller's origin address and the source-published registry address using U.S. Census Geocoding Services, and compare straight-line great-circle distance with maxDistanceMiles. Returns within_radius, outside_radius, company_not_found, or human_review. Distance is not driving distance or travel time, and the result does not prove local ownership, service area, residency, physical control, tax situs, good standing, authority, or legal compliance.",
+    "resource_description": "Resolve a Pennsylvania vendor registry entity, geocode a caller-supplied origin address and the source-published registered address with the U.S. Census geocoder, and compare straight-line coordinate distance with a caller-selected radius. Returns within_radius, outside_radius, company_not_found, or human_review. It is a geographic policy signal, not driving distance, travel time, local ownership, service area, residency, tax situs, good standing, authority, or legal/compliance approval.",
+    "search_tags": [
+      "pennsylvania-business-registry",
+      "census-geocoder",
+      "vendor-distance",
+      "local-procurement",
+      "geographic-policy"
+    ],
+    "openapi_tags": [
+      "Pennsylvania Business Registry",
+      "Census Geocoder",
+      "Vendor Distance",
+      "Local Procurement"
+    ]
+  },
+  "buyer": {
+    "task": "Resolve a Pennsylvania business to one strong registry entity, geocode a caller-supplied origin address and the source-published registry address, and compare straight-line Census-coordinate distance with a caller-supplied radius.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure only independent, verified external settled purchases and repeat demand; do not count test fixtures, discovery probes, or HTTP 200 responses as sales."
+    }
+  },
+  "api": {
+    "method": "GET",
+    "path": "/api/pa-vendor-distance-gate",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "name": "originAddress",
+        "type": "string",
+        "minLength": 6,
+        "maxLength": 240,
+        "required": true
+      },
+      {
+        "name": "maxDistanceMiles",
+        "type": "number",
+        "minimum": 0.1,
+        "maximum": 1000,
+        "required": true
+      }
+    ],
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "originAddress": "600 North Second Street, Suite 401, Harrisburg, PA 17101",
+      "maxDistanceMiles": 25
+    },
+    "payment_example_output": {
+      "decision": "within_radius",
+      "distanceMiles": 0,
+      "maxDistanceMiles": 25,
+      "paid": true
+    },
+    "outputs": {
+      "decisions": [
+        "within_radius",
+        "outside_radius",
+        "company_not_found",
+        "human_review"
+      ],
+      "fields": [
+        "decision",
+        "reasonCodes",
+        "reasonCode",
+        "distanceMiles",
+        "maxDistanceMiles",
+        "originMatchedAddress",
+        "registryMatchedAddress",
+        "matchedEntity",
+        "checkedAt",
+        "input",
+        "sourceFailures",
+        "evidence",
+        "chargeable",
+        "paid",
+        "price"
+      ]
+    },
+    "input_rule": null
+  },
+  "sources": [
+    {
+      "id": "pa_registry",
+      "adapter": "createPaRegistryAdapter",
+      "authority": "Pennsylvania Department of State via data.pa.gov",
+      "refresh_policy": "live lookup on each paid request",
+      "cache_policy": "none",
+      "freshness_limit_seconds": null
+    },
+    {
+      "id": "census_address",
+      "adapter": "createCensusAddressAdapter",
+      "authority": "U.S. Census Bureau Geocoding Services",
+      "refresh_policy": "live comparison on each paid request after strong registry match",
+      "cache_policy": "none",
+      "freshness_limit_seconds": null
+    }
+  ],
+  "decision": {
+    "implementation": "products/pa-vendor-distance-gate/decision.js",
+    "parameters": {
+      "maxDistanceMiles": {
+        "minimum": 0.1,
+        "maximum": 1000
+      },
+      "measure": "straight-line great-circle Census-coordinate miles; never driving mileage"
+    },
+    "rules": [
+      "Require unique strong PA registry entity and source-published registered address.",
+      "Geocode both caller origin and registry address using U.S. Census Geocoding Services; unavailable or uncertain evidence requires human_review.",
+      "Evaluate straight-line coordinate distance versus caller maxDistanceMiles; not a driving distance or geographic eligibility certification.",
+      "distance is straight-line great-circle distance between Census geocoder coordinates, not driving distance or travel time",
+      "the registry address is source-published public registration data and does not prove current operations or physical control",
+      "within_radius is only a caller-defined geographic policy result and does not prove local ownership, service area, residency, tax situs, good standing, authority, or legal compliance"
+    ]
+  },
+  "failure_behavior": {
+    "invalid_input": "HTTP 400; do not settle payment.",
+    "required_source_failure": "HTTP 502, chargeable=false; do not settle payment.",
+    "payment_unresolved": "HTTP 503; retry same payment authorization.",
+    "automatic_reject": false
+  },
+  "economics": {
+    "price_usdc": "0.004",
+    "paid_settlement_cost_usd": "0.002310",
+    "configured_direct_source_fee_usd": "0.000000",
+    "incremental_hosting_cost_usd": null,
+    "post_allowance_margin_floor_pct": 42.2,
+    "target_contribution_margin_pct": 70,
+    "meets_target_before_unknown_costs": false
+  },
+  "launch": {
+    "current_status": "live-source-verified-staging",
+    "release_gate": "scripts/validate-product-024.js",
+    "criteria": [
+      "Run existing product release gate and deterministic source-contract tests at the same candidate revision.",
+      "Independently reverify provider sources and seller-specific payment/hosting costs before approval to release.",
+      "Commercial promotion requires externally verified buyers, full unit economics and human security/integration review."
+    ]
+  },
+  "implementation": {
+    "handler_template": "standard-x402-get-v1",
+    "service_module": "products/pa-vendor-distance-gate/service.js",
+    "input_validator_export": "validateVendorDistanceInput"
+  }
+}

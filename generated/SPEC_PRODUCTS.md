@@ -817,3 +817,85 @@ Resolve a Pennsylvania business to one strong registry entity and compare its so
 - Independently verify authoritative-source availability, payment identity, and current facilitator fee/allowance terms.
 - Commercial release remains blocked until true hosting/source/refund economics and independently verified customer demand are established.
 
+## 023 pa-local-vendor-policy-gate
+
+Evaluate a prospective Pennsylvania vendor against caller-defined entity-type, registered-county, and minimum-formation-age rules using one public registry lookup.
+
+- Endpoint: `GET /api/pa-local-vendor-policy-gate`
+- Price: **$0.004000 USDC**
+- Decisions: `proceed`, `human_review`, `company_not_found`
+- Sources: Pennsylvania Department of State via data.pa.gov
+- Purchase frequency: **unmeasured**
+- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **42.2%**
+
+### Inputs
+
+- `company` (string; required, minLength=2, maxLength=120)
+- `allowedKinds` (string; required)
+- `allowedCounties` (string; required)
+- `minAgeDays` (integer; optional, default=365, min=1, max=36500)
+
+### Decision rules
+
+- Resolve a unique strong PA business registry identity before checking caller policy.
+- Evaluate caller allowed entity kinds, allowed registered counties and minimum formation age.
+- A proceed decision is an automated workflow trigger only and is not proof of compliance, local operations, or vendor trust.
+- proceed means only that configured caller policy checks passed
+- it is not legal/compliance approval or proof of good standing, ownership, authority, local operations, tax situs, fraud risk, sanctions status, or creditworthiness
+
+### Failure behavior
+
+- Invalid input: HTTP 400; do not settle payment.
+- Required source failure: HTTP 502, chargeable=false; do not settle payment.
+- Payment unresolved: HTTP 503; retry same payment authorization.
+- Automatic reject: **false**
+
+### Launch gate
+
+- Status: `live-source-verified-staging`
+- Release gate: `scripts/validate-product-023.js`
+- Run existing product release gate and deterministic source-contract tests at the same candidate revision.
+- Independently reverify provider sources and seller-specific payment/hosting costs before approval to release.
+- Commercial promotion requires externally verified buyers, full unit economics and human security/integration review.
+
+## 024 pa-vendor-distance-gate
+
+Resolve a Pennsylvania business to one strong registry entity, geocode a caller-supplied origin address and the source-published registry address, and compare straight-line Census-coordinate distance with a caller-supplied radius.
+
+- Endpoint: `GET /api/pa-vendor-distance-gate`
+- Price: **$0.004000 USDC**
+- Decisions: `within_radius`, `outside_radius`, `company_not_found`, `human_review`
+- Sources: Pennsylvania Department of State via data.pa.gov; U.S. Census Bureau Geocoding Services
+- Purchase frequency: **unmeasured**
+- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **42.2%**
+
+### Inputs
+
+- `company` (string; required, minLength=2, maxLength=120)
+- `originAddress` (string; required, minLength=6, maxLength=240)
+- `maxDistanceMiles` (number; required, min=0.1, max=1000)
+
+### Decision rules
+
+- Require unique strong PA registry entity and source-published registered address.
+- Geocode both caller origin and registry address using U.S. Census Geocoding Services; unavailable or uncertain evidence requires human_review.
+- Evaluate straight-line coordinate distance versus caller maxDistanceMiles; not a driving distance or geographic eligibility certification.
+- distance is straight-line great-circle distance between Census geocoder coordinates, not driving distance or travel time
+- the registry address is source-published public registration data and does not prove current operations or physical control
+- within_radius is only a caller-defined geographic policy result and does not prove local ownership, service area, residency, tax situs, good standing, authority, or legal compliance
+
+### Failure behavior
+
+- Invalid input: HTTP 400; do not settle payment.
+- Required source failure: HTTP 502, chargeable=false; do not settle payment.
+- Payment unresolved: HTTP 503; retry same payment authorization.
+- Automatic reject: **false**
+
+### Launch gate
+
+- Status: `live-source-verified-staging`
+- Release gate: `scripts/validate-product-024.js`
+- Run existing product release gate and deterministic source-contract tests at the same candidate revision.
+- Independently reverify provider sources and seller-specific payment/hosting costs before approval to release.
+- Commercial promotion requires externally verified buyers, full unit economics and human security/integration review.
+

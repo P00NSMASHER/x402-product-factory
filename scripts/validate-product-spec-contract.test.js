@@ -15,8 +15,8 @@ const rejected=(specs,match,options={filenames})=>{
   );
 };
 
-test("canonical 003-022 specification set passes before generation",()=>{
-  assert.strictEqual(validateSpecSet(clone(),{filenames}).length,20);
+test("canonical 003-024 specification set passes before generation",()=>{
+  assert.strictEqual(validateSpecSet(clone(),{filenames}).length,22);
 });
 
 test("filename and product identity drift fail closed",()=>{
@@ -171,5 +171,24 @@ test("018-022 reject fabricated economics and invalid composite examples",()=>{
   ];
   for(const [change,pattern] of mutations){
     const s=clone();change(s);rejected(s,pattern);
+  }
+});
+
+
+test("023-024 refuse forged policy, impossible radius, and unsupported sales claims",()=>{
+  const forNumber=(items,n)=>items.find(item=>item.number===n);
+  const mutations=[
+    [items=>{forNumber(items,"023").api.example_query.allowedKinds="";},/required example input cannot be blank/],
+    [items=>{forNumber(items,"023").api.example_query.allowedCounties="  ";},/required example input cannot be blank/],
+    [items=>{forNumber(items,"023").api.example_query.minAgeDays=36501;},/example violates numeric input constraint/],
+    [items=>{forNumber(items,"024").api.example_query.maxDistanceMiles=0;},/example violates numeric input constraint/],
+    [items=>{forNumber(items,"024").api.inputs[2].minimum=1001;},/inverted numeric bounds/],
+    [items=>{forNumber(items,"024").api.payment_example_output.decision="approved";},/invalid payment output example/],
+    [items=>{forNumber(items,"023").api.payment_example_output.reasonCodes=[null];},/invalid payment output example/],
+    [items=>{forNumber(items,"024").economics.post_allowance_margin_floor_pct=70;},/post-allowance margin floor mismatch/],
+    [items=>{forNumber(items,"023").buyer.expected_purchase_frequency.status="measured";},/purchase frequency cannot claim verified demand/]
+  ];
+  for(const [mutate,pattern] of mutations){
+    const items=clone();mutate(items);rejected(items,pattern);
   }
 });

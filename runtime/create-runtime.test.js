@@ -19,17 +19,16 @@ function adapters(){
   };
 }
 
-test("runtime uses generated service and paid-handler modules for spec-backed products with hand-written fallback",()=>{
-  for(const id of Object.keys(SPEC_SERVICE_MODULES)){
+test("runtime uses spec-generated modules for all 22 staging products",()=>{
+  const eligible=managedProducts();
+  assert.equal(eligible.length,22);
+  assert.deepEqual(Object.keys(SPEC_SERVICE_MODULES),eligible.map(p=>p.id));
+  for(const {id} of eligible){
     assert.strictEqual(serviceModule(id),SPEC_SERVICE_MODULES[id],id+" service source");
     assert.equal(paidHandlerModule(id)?.source,"spec-generated",id+" handler source");
   }
-  assert.ok(serviceModule("pa-local-vendor-policy-gate"),"unspecced product service fallback");
-  assert.notEqual(
-    paidHandlerModule("pa-local-vendor-policy-gate")?.source,
-    "spec-generated",
-    "unspecced product must keep hand-written handler fallback"
-  );
+  assert.equal(serviceModule("unknown-product-025"),null);
+  assert.equal(paidHandlerModule("unknown-product-025"),null);
 });
 
 test("runtime wires exactly every modular staging product",()=>{

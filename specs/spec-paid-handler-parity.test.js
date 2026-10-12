@@ -26,7 +26,9 @@ const PRODUCTS=[
   require("./019-pa-vendor-maturity-review.json"),
   require("./020-pa-vendor-domain-continuity-review.json"),
   require("./021-pa-entity-type-policy.json"),
-  require("./022-pa-registered-county-policy.json")
+  require("./022-pa-registered-county-policy.json"),
+  require("./023-pa-local-vendor-policy-gate.json"),
+  require("./024-pa-vendor-distance-gate.json")
 ];
 
 const PUBLIC_BASE="https://candidate.example";
@@ -184,7 +186,7 @@ async function runVariant({product,generated,scenario}){
   return {result,calls:state.calls,networkCalls:network.calls};
 }
 
-test("generated paid handlers preserve hand-written protocol behavior for Products 003-022",async()=>{
+test("generated paid handlers preserve hand-written protocol behavior for Products 003-024",async()=>{
   const scenarios=[
     "unpaid",
     "malformed-payment",

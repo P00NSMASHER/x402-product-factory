@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "number": "023",
+  "id": "pa-local-vendor-policy-gate",
+  "discovery": {
+    "operation_id": "checkPennsylvaniaLocalVendorPolicy",
+    "service_name": "PA Local Vendor Policy Gate",
+    "summary": "Check a Pennsylvania vendor against local procurement policy",
+    "description": "Resolve a Pennsylvania business name once and evaluate its normalized entity type, source-published registered county, and formation age against caller-supplied policy rules. Returns proceed, human_review, or company_not_found. Proceed means only that the configured caller policy checks passed and is not legal/compliance approval or proof of good standing, ownership, authority, local operations, tax situs, fraud risk, sanctions status, or creditworthiness.",
+    "resource_description": "Evaluate a prospective Pennsylvania vendor against caller-defined entity-type, registered-county, and minimum-formation-age rules using one Pennsylvania Department of State registry lookup. Returns proceed, human_review, or company_not_found. Proceed means only that the configured caller policy checks passed; it is not legal/compliance approval or proof of good standing, ownership, authority, local operations, tax situs, fraud risk, sanctions status, or creditworthiness.",
+    "search_tags": [
+      "pennsylvania-business-registry",
+      "local-vendor-policy",
+      "procurement-policy",
+      "entity-type",
+      "registered-county"
+    ],
+    "openapi_tags": [
+      "Pennsylvania Business Registry",
+      "Local Vendor Policy",
+      "Procurement Policy"
+    ]
+  },
+  "buyer": {
+    "task": "Evaluate a prospective Pennsylvania vendor against caller-defined entity-type, registered-county, and minimum-formation-age rules using one public registry lookup.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure only independent, verified external settled purchases and repeat demand; do not count test fixtures, discovery probes, or HTTP 200 responses as sales."
+    }
+  },
+  "api": {
+    "method": "GET",
+    "path": "/api/pa-local-vendor-policy-gate",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "name": "allowedKinds",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "allowedCounties",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "minAgeDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 36500,
+        "default": 365,
+        "required": false
+      }
+    ],
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "allowedKinds": "llc,corporation",
+      "allowedCounties": "Dauphin,Schuylkill",
+      "minAgeDays": 30
+    },
+    "payment_example_output": {
+      "decision": "proceed",
+      "reasonCodes": [],
+      "paid": true
+    },
+    "outputs": {
+      "decisions": [
+        "proceed",
+        "human_review",
+        "company_not_found"
+      ],
+      "fields": [
+        "decision",
+        "reasonCodes",
+        "checks",
+        "matchedEntity",
+        "policy",
+        "checkedAt",
+        "input",
+        "sourceFailures",
+        "evidence",
+        "chargeable",
+        "paid",
+        "price"
+      ]
+    },
+    "input_rule": null
+  },
+  "sources": [
+    {
+      "id": "pa_registry",
+      "adapter": "createPaRegistryAdapter",
+      "authority": "Pennsylvania Department of State via data.pa.gov",
+      "refresh_policy": "live lookup on each paid request",
+      "cache_policy": "none",
+      "freshness_limit_seconds": null
+    }
+  ],
+  "decision": {
+    "implementation": "products/pa-local-vendor-policy-gate/decision.js",
+    "parameters": {
+      "allowedKinds": "comma-separated set of normalized PA entity kinds",
+      "allowedCounties": "comma-separated PA counties",
+      "minAgeDays": {
+        "default": 365,
+        "minimum": 1,
+        "maximum": 36500
+      }
+    },
+    "rules": [
+      "Resolve a unique strong PA business registry identity before checking caller policy.",
+      "Evaluate caller allowed entity kinds, allowed registered counties and minimum formation age.",
+      "A proceed decision is an automated workflow trigger only and is not proof of compliance, local operations, or vendor trust.",
+      "proceed means only that configured caller policy checks passed",
+      "it is not legal/compliance approval or proof of good standing, ownership, authority, local operations, tax situs, fraud risk, sanctions status, or creditworthiness"
+    ]
+  },
+  "failure_behavior": {
+    "invalid_input": "HTTP 400; do not settle payment.",
+    "required_source_failure": "HTTP 502, chargeable=false; do not settle payment.",
+    "payment_unresolved": "HTTP 503; retry same payment authorization.",
+    "automatic_reject": false
+  },
+  "economics": {
+    "price_usdc": "0.004",
+    "paid_settlement_cost_usd": "0.002310",
+    "configured_direct_source_fee_usd": "0.000000",
+    "incremental_hosting_cost_usd": null,
+    "post_allowance_margin_floor_pct": 42.2,
+    "target_contribution_margin_pct": 70,
+    "meets_target_before_unknown_costs": false
+  },
+  "launch": {
+    "current_status": "live-source-verified-staging",
+    "release_gate": "scripts/validate-product-023.js",
+    "criteria": [
+      "Run existing product release gate and deterministic source-contract tests at the same candidate revision.",
+      "Independently reverify provider sources and seller-specific payment/hosting costs before approval to release.",
+      "Commercial promotion requires externally verified buyers, full unit economics and human security/integration review."
+    ]
+  },
+  "implementation": {
+    "handler_template": "standard-x402-get-v1",
+    "service_module": "products/pa-local-vendor-policy-gate/service.js",
+    "input_validator_export": "validateLocalVendorPolicyInput"
+  }
+}

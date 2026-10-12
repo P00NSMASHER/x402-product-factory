@@ -24,7 +24,9 @@ const SERVICE_MODULES=Object.freeze({
   "pa-vendor-maturity-review":require("../products/pa-vendor-maturity-review/service"),
   "pa-vendor-domain-continuity-review":require("../products/pa-vendor-domain-continuity-review/service"),
   "pa-entity-type-policy":require("../products/pa-entity-type-policy/service"),
-  "pa-registered-county-policy":require("../products/pa-registered-county-policy/service")
+  "pa-registered-county-policy":require("../products/pa-registered-county-policy/service"),
+  "pa-local-vendor-policy-gate":require("../products/pa-local-vendor-policy-gate/service"),
+  "pa-vendor-distance-gate":require("../products/pa-vendor-distance-gate/service")
 });
 
 const VALIDATORS=Object.freeze({
@@ -47,7 +49,9 @@ const VALIDATORS=Object.freeze({
   "pa-vendor-maturity-review":SERVICE_MODULES["pa-vendor-maturity-review"]["validateVendorMaturityInput"],
   "pa-vendor-domain-continuity-review":SERVICE_MODULES["pa-vendor-domain-continuity-review"]["validateVendorDomainContinuityInput"],
   "pa-entity-type-policy":SERVICE_MODULES["pa-entity-type-policy"]["validateEntityTypePolicyInput"],
-  "pa-registered-county-policy":SERVICE_MODULES["pa-registered-county-policy"]["validateRegisteredCountyPolicyInput"]
+  "pa-registered-county-policy":SERVICE_MODULES["pa-registered-county-policy"]["validateRegisteredCountyPolicyInput"],
+  "pa-local-vendor-policy-gate":SERVICE_MODULES["pa-local-vendor-policy-gate"]["validateLocalVendorPolicyInput"],
+  "pa-vendor-distance-gate":SERVICE_MODULES["pa-vendor-distance-gate"]["validateVendorDistanceInput"]
 });
 
 function moduleFor(productId){
@@ -88,7 +92,9 @@ const PAID_HANDLER_MODULES=Object.freeze({
   "pa-vendor-maturity-review":moduleFor("pa-vendor-maturity-review"),
   "pa-vendor-domain-continuity-review":moduleFor("pa-vendor-domain-continuity-review"),
   "pa-entity-type-policy":moduleFor("pa-entity-type-policy"),
-  "pa-registered-county-policy":moduleFor("pa-registered-county-policy")
+  "pa-registered-county-policy":moduleFor("pa-registered-county-policy"),
+  "pa-local-vendor-policy-gate":moduleFor("pa-local-vendor-policy-gate"),
+  "pa-vendor-distance-gate":moduleFor("pa-vendor-distance-gate")
 });
 
 module.exports={SERVICE_MODULES,VALIDATORS,moduleFor,PAID_HANDLER_MODULES};
