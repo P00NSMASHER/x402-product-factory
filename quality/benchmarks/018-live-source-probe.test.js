@@ -2,7 +2,7 @@
 const test=require("node:test");
 const assert=require("node:assert/strict");
 const {
-  authorityFor,makeReadOnlyTransport,probe,shortSummary,
+  authorityFor,allowedOfacPublisherRedirect,makeReadOnlyTransport,probe,shortSummary,
   FIXTURE,MAX_REQUESTS
 }=require("./018-live-source-probe");
 const {PA_SOURCE}=require("../../packages/sources/live-pa-identity");
@@ -159,4 +159,117 @@ test("private upstream transport errors are normalized to fixed, non-revealing s
   for(const s of Object.values(result.source_reports)){
     assert.equal(s.error_code,"SOURCE_ADAPTER_FAILURE");
   }
+});
+
+
+const OFAC_SOURCE="https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/";
+const PUBLIC_BUCKET="wc2h-sls-prod-public-published.s3.us-gov-west-1.amazonaws.com";
+const TEST_UUID="11111111-1111-4111-8111-111111111111";
+function signedPublicPublisherLocation(file,override={}){
+  const u=new URL(
+    "https://"+PUBLIC_BUCKET+"/Published/"+TEST_UUID+
+    "/2026-10-08/"+TEST_UUID+"/"+file
+  );
+  const fields={
+    "X-Amz-Expires":"3600",
+    "X-Amz-Security-Token":"ONLY_A_PUBLIC_SYNTHETIC_FIXTURE",
+    "X-Amz-Algorithm":"AWS4-HMAC-SHA256",
+    "X-Amz-Credential":"MOCKTEST/20261012/us-gov-west-1/s3/aws4_request",
+    "X-Amz-Date":"20261012T160000Z",
+    "X-Amz-SignedHeaders":"host",
+    "X-Amz-Signature":"a".repeat(64),
+    ...override
+  };
+  for(const [k,v] of Object.entries(fields)){
+    if(v!==null)u.searchParams.set(k,v);
+  }
+  return u.toString();
+}
+function publisherRedirectResponse(file){
+  const location=signedPublicPublisherLocation(file);
+  return {
+    status:302,ok:false,
+    headers:{get(key){return key==="location"?location:null}},
+    async text(){return "";}
+  };
+}
+test("verified official government-cloud signed redirect is accepted for the exact originating CSV only",async()=>{
+  const rawCalls=[];
+  const rawFetch=async url=>{
+    const u=new URL(String(url));
+    rawCalls.push(u.hostname);
+    if(u.hostname==="sanctionslistservice.ofac.treas.gov"){
+      return publisherRedirectResponse(u.pathname.split("/").at(-1));
+    }
+    assert.equal(u.hostname,PUBLIC_BUCKET);
+    return makeResponse(u.pathname.endsWith("/SDN.CSV")?ofacCsv:"");
+  };
+  const transport=makeReadOnlyTransport(rawFetch);
+  for(const filename of ["SDN.CSV","ALT.CSV"]){
+    const source=OFAC_SOURCE+filename;
+    const signed=signedPublicPublisherLocation(filename);
+    assert.equal(allowedOfacPublisherRedirect(source,signed),signed);
+    assert.throws(()=>authorityFor(signed),/SOURCE_HOST_POLICY_BLOCKED/);
+    const response=await transport.checkedFetch(source,{headers:{accept:"text/csv,*/*"}});
+    assert.equal(response.status,200);
+    assert.equal(await response.text(),filename==="SDN.CSV"?ofacCsv:"");
+  }
+  assert.deepEqual(rawCalls,[
+    "sanctionslistservice.ofac.treas.gov",PUBLIC_BUCKET,
+    "sanctionslistservice.ofac.treas.gov",PUBLIC_BUCKET
+  ]);
+  assert.equal(transport.counter.total,4);
+  assert.equal(transport.counter.ofac_sdn,4);
+});
+test("signed URLs are refused if host, file, signature, TTL or token is unexpected",()=>{
+  const official=OFAC_SOURCE+"SDN.CSV";
+  const target=signedPublicPublisherLocation("SDN.CSV");
+  const tamper=[
+    target.replace(PUBLIC_BUCKET,"attacker.example"),
+    signedPublicPublisherLocation("ALT.CSV"),
+    signedPublicPublisherLocation("SDN.CSV",{"X-Amz-Signature":"bad"}),
+    signedPublicPublisherLocation("SDN.CSV",{"X-Amz-Expires":"9999"}),
+    signedPublicPublisherLocation("SDN.CSV",{"X-Amz-Security-Token":null}),
+    signedPublicPublisherLocation("SDN.CSV",{"Unapproved-Extra-Query":"value"})
+  ];
+  for(const u of tamper){
+    assert.throws(()=>allowedOfacPublisherRedirect(official,u),
+      /SOURCE_REDIRECT_REFUSED/);
+  }
+  assert.throws(()=>allowedOfacPublisherRedirect(
+    "https://data.iana.org/rdap/dns.json",target),/SOURCE_REDIRECT_REFUSED/);
+});
+test("full real-adapter mock pipeline passes with signed publisher redirects and logs no signed tokens",async()=>{
+  let total=0;
+  const fakeFetch=async url=>{
+    total++;
+    const u=new URL(String(url));
+    if(u.hostname==="data.pa.gov"){
+      return makeResponse(JSON.stringify([publicPaRow]));
+    }
+    if(u.hostname==="sanctionslistservice.ofac.treas.gov"){
+      return publisherRedirectResponse(u.pathname.split("/").at(-1));
+    }
+    if(u.hostname===PUBLIC_BUCKET){
+      return makeResponse(u.pathname.endsWith("/SDN.CSV")?ofacCsv:"");
+    }
+    if(u.hostname==="data.iana.org"){
+      return makeResponse(JSON.stringify(IANA));
+    }
+    if(u.hostname==="rdap.verisign.com"){
+      return makeResponse(JSON.stringify(RDAP));
+    }
+    throw new Error("Unexpected external host in injected official publisher case");
+  };
+  const r=await probe({fetchImpl:fakeFetch,clock});
+  assert.equal(r.source_compatibility_passed,true);
+  assert.equal(total,8);
+  assert.equal(r.checked_get_requests,8);
+  assert.equal(r.source_reports.ofac_sdn.request_count,4);
+  const summary=JSON.stringify(shortSummary(r));
+  for(const secret of ["X-Amz","ONLY_A_PUBLIC_SYNTHETIC_FIXTURE",PUBLIC_BUCKET,
+    "PUBLIC-TEST-123",FIXTURE.public_company]){
+    assert.equal(summary.includes(secret),false,secret+" must not appear in the public summary");
+  }
+  assert.equal(r.release_gate,"HOLD_PENDING_REAL_PAYMENT_BUYER_AND_COST_AUDIT");
 });

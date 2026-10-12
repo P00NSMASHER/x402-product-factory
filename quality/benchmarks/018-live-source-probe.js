@@ -73,6 +73,46 @@ function authorityFor(rawUrl){
   }
   throw gate("SOURCE_HOST_POLICY_BLOCKED");
 }
+
+// The official OFAC publication endpoint redirects to a fixed public AWS
+// GovCloud bucket using a short-lived presigned HTTPS URL. Never follow an
+// untrusted or arbitrary redirect or print the resulting signed URL.
+const OFAC_PUBLIC_BUCKET="wc2h-sls-prod-public-published.s3.us-gov-west-1.amazonaws.com";
+const SIGNED_QUERY_FIELDS=new Set([
+  "X-Amz-Expires","X-Amz-Security-Token","response-content-disposition",
+  "response-content-type","X-Amz-Algorithm","X-Amz-Credential",
+  "X-Amz-Date","X-Amz-SignedHeaders","X-Amz-Signature"
+]);
+function allowedOfacPublisherRedirect(sourceUrl,location){
+  if(authorityFor(sourceUrl)!=="ofac_sdn")throw gate("SOURCE_REDIRECT_REFUSED");
+  let u;
+  try{u=new URL(location)}catch{throw gate("SOURCE_REDIRECT_REFUSED")}
+  const filename=new URL(sourceUrl).pathname.split("/").at(-1);
+  const path=/^\/Published\/[a-f0-9-]{36}\/\d{4}-\d{2}-\d{2}\/[a-f0-9-]{36}\/(SDN|ALT)\.CSV$/i;
+  if(u.protocol!=="https:"||u.hostname!==OFAC_PUBLIC_BUCKET||
+     u.username||u.password||u.port||u.hash||
+     !path.test(u.pathname)||u.pathname.split("/").at(-1)!==filename){
+    throw gate("SOURCE_REDIRECT_REFUSED");
+  }
+  const keys=[...u.searchParams.keys()];
+  if(keys.length<7||keys.length>SIGNED_QUERY_FIELDS.size||
+     new Set(keys).size!==keys.length||keys.some(k=>!SIGNED_QUERY_FIELDS.has(k))||
+     u.searchParams.get("X-Amz-Algorithm")!=="AWS4-HMAC-SHA256"||
+     u.searchParams.get("X-Amz-SignedHeaders")!=="host"||
+     !/^[a-f0-9]{64}$/i.test(u.searchParams.get("X-Amz-Signature")||"")||
+     !/^\d{8}T\d{6}Z$/.test(u.searchParams.get("X-Amz-Date")||"")||
+     !/^\S+\/\d{8}\/us-gov-west-1\/s3\/aws4_request$/.test(
+       u.searchParams.get("X-Amz-Credential")||"")||
+     !u.searchParams.get("X-Amz-Security-Token")){
+    throw gate("SOURCE_REDIRECT_REFUSED");
+  }
+  const ttl=u.searchParams.get("X-Amz-Expires");
+  if(!/^\d{1,4}$/.test(ttl||"")||Number(ttl)<1||Number(ttl)>3600){
+    throw gate("SOURCE_REDIRECT_REFUSED");
+  }
+  return u.toString();
+}
+
 function sanitizedError(error){
   return typeof error?.code==="string"&&safeErrors.has(error.code)
     ?error.code:"SOURCE_ADAPTER_FAILURE";
@@ -108,8 +148,31 @@ function makeReadOnlyTransport(rawFetch){
     if(!res||typeof res.status!=="number"||typeof res.text!=="function"){
       throw gate("SOURCE_CONTRACT_INVALID");
     }
-    // Redirects could bypass an approved host and leak source-query data.
-    if(res.status>=300&&res.status<400)throw gate("SOURCE_REDIRECT_REFUSED");
+    // Allow ONE government publisher redirect, only to the same CSV in
+    // the named public GovCloud bucket with a valid-shaped AWS signed URL.
+    if(res.status>=300&&res.status<400){
+      if(authority!=="ofac_sdn"||
+         ![301,302,303,307,308].includes(res.status)){
+        throw gate("SOURCE_REDIRECT_REFUSED");
+      }
+      const target=allowedOfacPublisherRedirect(
+        rawUrl,res.headers?.get?.("location")
+      );
+      if(++counter.total>MAX_REQUESTS)throw gate("SOURCE_READ_ONLY_POLICY_BLOCKED");
+      counter[authority]++;
+      try{
+        res=await rawFetch(target,{
+          method:"GET",credentials:"omit",redirect:"manual",
+          headers:options.headers||{},signal:options.signal
+        });
+      }catch(error){
+        throw gate(error?.name==="AbortError"?"SOURCE_TIMEOUT":sanitizedError(error));
+      }
+      if(!res||typeof res.status!=="number"||typeof res.text!=="function"){
+        throw gate("SOURCE_CONTRACT_INVALID");
+      }
+      if(res.status>=300&&res.status<400)throw gate("SOURCE_REDIRECT_REFUSED");
+    }
     const lenHeader=res.headers?.get?.("content-length");
     if(lenHeader&&Number(lenHeader)>MAX_BODY_BYTES)throw gate("SOURCE_BODY_LIMIT");
     transportMetadata[authority]={
@@ -333,5 +396,5 @@ if(require.main===module){
   });
 }
 module.exports={FIXTURE,MAX_REQUESTS,MAX_BODY_BYTES,VALID_HTTP_ENDPOINTS,
-  authorityFor,sanitizedError,makeReadOnlyTransport,collectPa,collectOfac,
+  authorityFor,allowedOfacPublisherRedirect,sanitizedError,makeReadOnlyTransport,collectPa,collectOfac,
   collectRdap,probe,shortSummary};
