@@ -188,3 +188,38 @@ test("clock anomalies and lost immutable guards fail closed",()=>{
   const bad=clone(r);bad.release_approval_granted=true;
   assert.throws(()=>monitor.enforce(bad),/SOURCE_DRIFT_GATE/);
 });
+
+
+test("recovered previously failed source becomes a notice, not fabricated history of healthy evidence",()=>{
+  const old=monitor.snapshot(observation("2026-10-11T16:00:00.000Z"));
+  old.sources.ofac_sdn.status="HOLD_SOURCE_COMPATIBILITY";
+  old.sources.ofac_sdn.sanitized_error_code="SOURCE_ADAPTER_FAILURE";
+  old.sources.ofac_sdn.fixed_public_fixture_semantics=null;
+  const now=monitor.snapshot(observation());
+  const report=monitor.compare(now,old);
+  assert.equal(report.status,"NO_BLOCKING_DRIFT");
+  assert.equal(report.drift_alert_count,0);
+  assert.ok(report.events.some(x=>x.code==="SOURCE_RECOVERED"&&
+    x.source==="ofac_sdn"&&x.severity==="NOTICE"));
+  assert.equal(report.baseline_comparison_performed,true);
+});
+test("forged green report cannot conceal real blocking drift or tamper with alert annotations",()=>{
+  const prior=monitor.snapshot(observation("2026-10-11T16:00:00.000Z"));
+  const failed=observation();
+  failed.source_reports.ofac_sdn=sourceReport(
+    "HOLD_SOURCE_COMPATIBILITY",null,4,null,"SOURCE_HTTP_ERROR"
+  );
+  const report=monitor.compare(monitor.snapshot(failed),prior);
+  assert.equal(report.status,"HOLD_DRIFT_OR_SOURCE_FAILURE");
+  assert.equal(monitor.enforce(report),false);
+  for(const modify of [
+    x=>{x.status="NO_BLOCKING_DRIFT";},
+    x=>{x.drift_alert_count=0;},
+    x=>{x.events[0].code="INJECTED::error::private_data";},
+    x=>{x.events[0].source="private_customer";},
+    x=>{x.release_gate="PRODUCTION_APPROVED";}
+  ]){
+    const mutated=clone(report);modify(mutated);
+    assert.throws(()=>monitor.enforce(mutated),/SOURCE_DRIFT_GATE/);
+  }
+});
