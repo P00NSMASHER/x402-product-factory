@@ -39,7 +39,7 @@ test("source-contract replay catches contradictory unique-registry status",async
   assert.deepEqual(x.calls,{registry:1,ofac:1,rdap:1});
   assert.equal(x.actual.decision,"proceed"); // factual baseline finding; not approved.
   assert.equal(x.proposal.decision,"human_review");
-  assert.ok(x.proposal.reasonCodes.includes("PA_REGISTRY_CARDINALITY_INCONSISTENT"));
+  assert.ok(x.proposal.reasonCodes.includes("PA_REGISTRY_STRONG_MATCH_INCONSISTENT"));
 });
 test("adapter-consistent two ranked PA candidates with one strong match remain valid",async()=>{
  const f=simulatedAdapters({registry:{available:true,strongMatch:true,ambiguous:false,candidateCount:2,
