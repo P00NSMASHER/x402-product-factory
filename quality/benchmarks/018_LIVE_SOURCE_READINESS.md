@@ -29,6 +29,12 @@ The first command runs deterministic **mock-only tests**. The second contacts th
 
 The separate GitHub Actions workflow `Factory 018 public source compatibility` is triggered by relevant PRs. It requires **only `contents:read`** and contains no payment secrets. The existing canonical factory CI remains a deterministic synthetic/offline release-gate suite.
 
+## Redacted source drift monitoring
+
+[Source drift monitor](018_SOURCE_DRIFT_MONITOR.md) compares fixed-public-source status and freshness against a prior *redacted-only* same-branch GitHub Actions artifact. Source failures, provider timestamp rollback/staleness and changed public-fixture semantics require review. Expected updates are informational.
+
+The proposed workflow has a daily 13:17 UTC schedule **only after it is merged into the default branch**. Draft PR and manual workflow runs can test it now, but the schedule is not yet active. No customer names or payments are sent; provider Last-Modified remains unverified metadata.
+
 ## Release restrictions
 
 **Even if all sources are compatible:** release status remains `HOLD_PENDING_REAL_PAYMENT_BUYER_AND_COST_AUDIT`. This does not authorize paid test transactions or production deployment. Independent source provenance, legal/sanctions-claim scope, seller payment settlement/refund reconciliation, current provider/hosting costs, and real buyer evidence must be reviewed separately. This PR remains draft, and Product 025+ remains locked.

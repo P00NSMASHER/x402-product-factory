@@ -94,6 +94,12 @@ A separate [GitHub Actions source smoke](../../.github/workflows/factory-018-liv
 
 Run `node --test quality/benchmarks/018-live-source-probe.test.js` for deterministic injected-source regression checks. Use `node quality/benchmarks/018-live-source-probe.js --probe-live` only in an authorized network environment; this command performs bounded **public GETs only**, never any payment or external buyer operation. A passing source smoke still leaves real payment reconciliation, customer demand and current costs unverified.
 
+### Source drift watch (default-branch schedule pending review)
+
+[Product 018 drift watch](018_SOURCE_DRIFT_MONITOR.md) adds a fixed-source comparison engine and a proposed daily GitHub Actions trigger. It persists strictly sanitized source status, bounded test counts and provider-reported Last-Modified metadata—not names, address evidence, raw records or signed URLs. A failed watch alerts through GitHub's normal failed-workflow status; it never approves a release.
+
+Run `node --test quality/benchmarks/018-source-drift.test.js` without network. Schedule activation requires a separately reviewed merge.
+
 ### Test and release barriers
 
 The unchanged Factory product CI continues to run every existing staging release gate and all discovered tests, plus deterministic `--check` gates for these artifacts. Tests include tampered artifacts, unauthorized Product 025+ assertions, partial/private evidence input, inconsistent price arithmetic, duplicate trial entries, and fake approvals.
