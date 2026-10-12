@@ -14,7 +14,7 @@ test("service aligns domain against resolved legal name",async()=>{
   let rdapInput=null;
   const service=createPaVendorNewDomainService({
     registry:{async lookup(){return{
-      available:true,strongMatch:true,ambiguous:false,candidateCount:1,
+      available:true,strongMatch:true,ambiguous:false,candidateCount:1,strongCandidateCount:1,identityComplete:true,matchScore:0,
       entity:{businessName:"Openai Opco, Llc",filingNumber:"0014879623"}
     };}},
     rdap:{async lookup(input){rdapInput=input;return{
@@ -61,7 +61,7 @@ test("registry outage is non-chargeable and skips RDAP",async()=>{
 test("RDAP outage after legal-entity resolution is non-chargeable",async()=>{
   const service=createPaVendorNewDomainService({
     registry:{async lookup(){return{
-      available:true,strongMatch:true,ambiguous:false,candidateCount:1,
+      available:true,strongMatch:true,ambiguous:false,candidateCount:1,strongCandidateCount:1,identityComplete:true,matchScore:0,
       entity:{businessName:"Openai Opco, Llc"}
     };}},
     rdap:{async lookup(){const e=new Error("timeout");e.code="SOURCE_HTTP_ERROR";throw e;}}

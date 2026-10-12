@@ -1,6 +1,9 @@
 "use strict";
 
 const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
+const {safeSourceErrorCode,markFailure,registryProblem,
+  ofacProblem,rdapProblem,completedOrFailedDecision
+}=require("../../packages/sources/composite-evidence-guard");
 const {domainNameAligned}=require("../pa-vendor-identity-match/service");
 const {assessPaVendorNewDomain}=require("./decision");
 
@@ -64,6 +67,7 @@ function createPaVendorNewDomainService({registry,rdap,now=()=>new Date().toISOS
   return {async check(input){
     const normalized=validatePaVendorNewDomainInput(input);
     const sourceFailures=[];
+    const mark=(source,detail)=>markFailure(sourceFailures,source,detail);
 
     let registryEvidence;
     try{
@@ -72,14 +76,18 @@ function createPaVendorNewDomainService({registry,rdap,now=()=>new Date().toISOS
         await registry.lookup({company:normalized.company})
       );
     }catch(error){
-      const detail=error?.code||error?.message||"lookup failed";
-      sourceFailures.push({source:"pa_registry",detail});
+      const detail=safeSourceErrorCode(error);
+      mark("pa_registry",detail);
       registryEvidence=sourceUnavailable("pa_registry",detail);
     }
+
+    const registryIssue=registryProblem(registryEvidence);
+    if(registryIssue)mark("pa_registry",registryIssue);
 
     let rdapEvidence=null;
     const legalName=
       registryEvidence?.available===true&&
+      !sourceFailures.some(e=>e.source==="pa_registry")&&
       registryEvidence?.strongMatch===true&&
       registryEvidence?.ambiguous!==true&&
       typeof registryEvidence?.entity?.businessName==="string"
@@ -101,16 +109,25 @@ function createPaVendorNewDomainService({registry,rdap,now=()=>new Date().toISOS
           alignedAgainstLegalName:legalName
         };
       }catch(error){
-        const detail=error?.code||error?.message||"lookup failed";
-        sourceFailures.push({source:"rdap",detail});
+        const detail=safeSourceErrorCode(error);
+        mark("rdap",detail);
         rdapEvidence=sourceUnavailable("rdap",detail);
       }
     }
 
-    const result=assessPaVendorNewDomain(
+    const checkedAt=now();
+    if(legalName){
+      const issue=rdapProblem(rdapEvidence,{
+        profile:"registration_age",
+        now:checkedAt,requestedDomain:normalized.domain
+      });
+      if(issue)mark("rdap",issue);
+    }
+    const assessed=assessPaVendorNewDomain(
       {registry:registryEvidence,rdap:rdapEvidence},
-      {minDomainAgeDays:normalized.minDomainAgeDays,now:now()}
+      {minDomainAgeDays:normalized.minDomainAgeDays,now:checkedAt}
     );
+    const result=completedOrFailedDecision(assessed,sourceFailures);
 
     return {
       ...result,

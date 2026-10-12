@@ -1,6 +1,9 @@
 "use strict";
 
 const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
+const {safeSourceErrorCode,markFailure,registryProblem,
+  ofacProblem,rdapProblem,completedOrFailedDecision
+}=require("../../packages/sources/composite-evidence-guard");
 const {assessPaEntityOfacReview}=require("./decision");
 
 function validatePaEntityOfacInput(input){
@@ -33,6 +36,7 @@ function createPaEntityOfacReviewService({registry,ofac,now=()=>new Date().toISO
   return {async check(input){
     const normalized=validatePaEntityOfacInput(input);
     const sourceFailures=[];
+    const mark=(source,detail)=>markFailure(sourceFailures,source,detail);
     let registryEvidence;
 
     try{
@@ -41,14 +45,18 @@ function createPaEntityOfacReviewService({registry,ofac,now=()=>new Date().toISO
         await registry.lookup({company:normalized.company})
       );
     }catch(error){
-      const detail=error?.code||error?.message||"lookup failed";
-      sourceFailures.push({source:"pa_registry",detail});
+      const detail=safeSourceErrorCode(error);
+      mark("pa_registry",detail);
       registryEvidence=sourceUnavailable("pa_registry",detail);
     }
+
+    const registryIssue=registryProblem(registryEvidence);
+    if(registryIssue)mark("pa_registry",registryIssue);
 
     let ofacEvidence=null;
     const legalName=
       registryEvidence?.available===true&&
+      !sourceFailures.some(e=>e.source==="pa_registry")&&
       registryEvidence?.strongMatch===true&&
       registryEvidence?.ambiguous!==true&&
       typeof registryEvidence?.entity?.businessName==="string"
@@ -66,16 +74,24 @@ function createPaEntityOfacReviewService({registry,ofac,now=()=>new Date().toISO
           })
         );
       }catch(error){
-        const detail=error?.code||error?.message||"lookup failed";
-        sourceFailures.push({source:"ofac_sdn",detail});
+        const detail=safeSourceErrorCode(error);
+        mark("ofac_sdn",detail);
         ofacEvidence=sourceUnavailable("ofac_sdn",detail);
       }
     }
 
-    const result=assessPaEntityOfacReview(
+    const checkedAt=now();
+    if(legalName){
+      const issue=ofacProblem(ofacEvidence,{
+        legalName,minScore:normalized.minScore
+      });
+      if(issue)mark("ofac_sdn",issue);
+    }
+    const assessed=assessPaEntityOfacReview(
       {registry:registryEvidence,ofac:ofacEvidence},
-      {minScore:normalized.minScore,checkedAt:now()}
+      {minScore:normalized.minScore,checkedAt}
     );
+    const result=completedOrFailedDecision(assessed,sourceFailures);
 
     return {
       ...result,
