@@ -70,6 +70,10 @@ node --test quality/benchmarks/018-source-contract-v2.test.js quality/benchmarks
 
 The generated report and the benchmark suite are gated in CI. The existing product/source/payment/runtime implementations remain unchanged. Before integrating a candidate fix, independently validate the now code-audited registry/OFAC contract semantics against real source data and held-out examples, review legal/identity claim boundaries, use additional blind held-out adversarial cases, and obtain explicit product/security approval. The Product 025+ freeze and commercial-economics HOLD remain intact.
 
+### Staging service integration — settlement-safe evidence gate
+
+[Product 018 evidence gate](../../products/pa-vendor-counterparty-review/EVIDENCE_GATE.md) applies the source-contract checks to the actual staging service, without changing authoritative data adapters or the core decision helper. Failed required source contracts are non-chargeable, with both generated and handwritten paid handlers prevented from settling the payment. Completed valid human-review findings remain eligible for the existing paid result. **Not merged or deployed.** Independent source and payment reviews remain mandatory.
+
 ### Test and release barriers
 
 The unchanged Factory product CI continues to run every existing staging release gate and all discovered tests, plus deterministic `--check` gates for these artifacts. Tests include tampered artifacts, unauthorized Product 025+ assertions, partial/private evidence input, inconsistent price arithmetic, duplicate trial entries, and fake approvals.
