@@ -25,7 +25,7 @@ test("real baseline is evaluated directly and never upgraded silently",()=>{
   assert.equal(assessCounterpartyReview(ambiguous,{now:oracle.NOW}).decision,"proceed");
   const candidate=assessHardenedCounterparty(ambiguous,{now:oracle.NOW});
   assert.equal(candidate.decision,"human_review");
-  assert.ok(candidate.reasonCodes.includes("PA_REGISTRY_CARDINALITY_INCONSISTENT"));
+  assert.ok(candidate.reasonCodes.includes("PA_REGISTRY_STRONG_MATCH_INCONSISTENT"));
 });
 test("multiple ranked PA search results with exactly one strong match remain eligible",()=>{
   for(const count of [2,3]){
