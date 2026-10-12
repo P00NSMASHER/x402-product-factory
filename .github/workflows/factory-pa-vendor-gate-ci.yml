@@ -55,6 +55,7 @@ jobs:
           node quality/product-quality-lab.js --check
           node quality/opportunity-lab.js --check
           node quality/adversarial-contracts.js --check
+          node quality/prototypes/018-counterparty-brief.js --check
 
       - name: Validate product registry
         run: node scripts/validate-registry.js

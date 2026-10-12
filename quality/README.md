@@ -20,10 +20,13 @@ From the repository root:
 node quality/product-quality-lab.js --check
 node quality/opportunity-lab.js --check
 node quality/adversarial-contracts.js --check
+node quality/prototypes/018-counterparty-brief.js --check
 node --test quality/product-quality-lab.test.js quality/opportunity-lab.test.js quality/adversarial-contracts.test.js
 ```
 
 For a consciously revised spec or experiment, regenerate deterministic reports using the corresponding `--write` argument, inspect the diff, run CI, and request review. CI fails closed on stale reports, missing registered products, inaccurate fee arithmetic, unreviewed commercial assertions, spoofed evidence, invalid buyer-value proposals, and successful/charged hostile requests.
+
+4. **Concrete product-improvement prototype:** [Product 018 reviewer brief](generated/018_REVIEWER_BRIEF_PROTOTYPE.md) converts bounded existing reason codes and source-check status into a conservative human review action. Eight synthetic golden cases cover ambiguous registry, OFAC candidate, RDAP failure, mismatched/recent domain, and inconsistent \`proceed\`. It cannot claim buyer benefit or change the live handler, and refuses to echo raw source/customer/payment data.
 
 ## How an improved product graduates
 

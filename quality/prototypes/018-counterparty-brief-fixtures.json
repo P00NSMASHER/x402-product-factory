@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "fixture_type": "synthetic_product_018_reviewer_triage_cases",
+  "cases": [
+    {
+      "id": "clean_multi_source_checks",
+      "input": {
+        "decision": "proceed",
+        "reasonCodes": [],
+        "checks": {
+          "registry": {
+            "status": "pass"
+          },
+          "ofac": {
+            "status": "pass"
+          },
+          "domain": {
+            "status": "pass"
+          }
+        },
+        "sourceFailures": [],
+        "chargeable": true
+      },
+      "expected_review_decision": "proceed",
+      "expected_next_action": "CONTINUE_STANDARD_DUE_DILIGENCE"
+    },
+    {
+      "id": "ofac_candidate_requires_review",
+      "input": {
+        "decision": "human_review",
+        "reasonCodes": [
+          "OFAC_CANDIDATE_REQUIRES_REVIEW"
+        ],
+        "checks": {
+          "registry": {
+            "status": "pass"
+          },
+          "ofac": {
+            "status": "review"
+          },
+          "domain": {
+            "status": "pass"
+          }
+        },
+        "sourceFailures": [],
+        "chargeable": true
+      },
+      "expected_review_decision": "human_review",
+      "expected_next_action": "ESCALATE_NAME_SCREENING"
+    },
+    {
+      "id": "registry_match_ambiguous",
+      "input": {
+        "decision": "human_review",
+        "reasonCodes": [
+          "PA_REGISTRY_MATCH_AMBIGUOUS"
+        ],
+        "checks": {
+          "registry": {
+            "status": "review"
+          },
+          "ofac": {
+            "status": "unknown"
+          },
+          "domain": {
+            "status": "unknown"
+          }
+        },
+        "sourceFailures": [],
+        "chargeable": true
+      },
+      "expected_review_decision": "human_review",
+      "expected_next_action": "VERIFY_LEGAL_ENTITY"
+    },
+    {
+      "id": "registered_domain_recent",
+      "input": {
+        "decision": "human_review",
+        "reasonCodes": [
+          "DOMAIN_RECENT_REGISTRATION"
+        ],
+        "checks": {
+          "registry": {
+            "status": "pass"
+          },
+          "ofac": {
+            "status": "pass"
+          },
+          "domain": {
+            "status": "review"
+          }
+        },
+        "sourceFailures": [],
+        "chargeable": true
+      },
+      "expected_review_decision": "human_review",
+      "expected_next_action": "VERIFY_DOMAIN_EVIDENCE"
+    },
+    {
+      "id": "domain_alignment_mismatch",
+      "input": {
+        "decision": "human_review",
+        "reasonCodes": [
+          "DOMAIN_LEGAL_NAME_MISMATCH"
+        ],
+        "checks": {
+          "registry": {
+            "status": "pass"
+          },
+          "ofac": {
+            "status": "pass"
+          },
+          "domain": {
+            "status": "review"
+          }
+        },
+        "sourceFailures": [],
+        "chargeable": true
+      },
+      "expected_review_decision": "human_review",
+      "expected_next_action": "VERIFY_DOMAIN_EVIDENCE"
+    },
+    {
+      "id": "rdap_source_unavailable",
+      "input": {
+        "decision": "human_review",
+        "reasonCodes": [
+          "RDAP_EVIDENCE_UNAVAILABLE"
+        ],
+        "checks": {
+          "registry": {
+            "status": "pass"
+          },
+          "ofac": {
+            "status": "pass"
+          },
+          "domain": {
+            "status": "review"
+          }
+        },
+        "sourceFailures": [
+          {
+            "source": "rdap",
+            "detail": "synthetic_source_down"
+          }
+        ],
+        "chargeable": false
+      },
+      "expected_review_decision": "human_review",
+      "expected_next_action": "REVIEW_SOURCE_FAILURE"
+    },
+    {
+      "id": "false_proceed_on_candidate",
+      "input": {
+        "decision": "proceed",
+        "reasonCodes": [
+          "OFAC_CANDIDATE_REQUIRES_REVIEW"
+        ],
+        "checks": {
+          "registry": {
+            "status": "pass"
+          },
+          "ofac": {
+            "status": "review"
+          },
+          "domain": {
+            "status": "pass"
+          }
+        },
+        "sourceFailures": [],
+        "chargeable": true
+      },
+      "expected_review_decision": "human_review",
+      "expected_next_action": "ESCALATE_NAME_SCREENING"
+    },
+    {
+      "id": "unexpected_missing_source_checks",
+      "input": {
+        "decision": "proceed",
+        "reasonCodes": [],
+        "checks": {
+          "registry": {
+            "status": "pass"
+          }
+        },
+        "sourceFailures": [],
+        "chargeable": true
+      },
+      "expected_review_decision": "human_review",
+      "expected_next_action": "MANUAL_REVIEW_UNCLASSIFIED"
+    }
+  ]
+}
