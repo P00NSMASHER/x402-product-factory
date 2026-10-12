@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "document_type": "PRIVATE_COST_RECONCILIATION_INTAKE_NOT_VERIFIED_BY_REPOSITORY",
+  "product_id": "pa-vendor-counterparty-review",
+  "period_start": null,
+  "period_end": null,
+  "externally_settled_purchase_count": null,
+  "gross_before_refunds_usdc": null,
+  "total_facilitator_and_chain_fees_usd": null,
+  "total_source_api_fees_usd": null,
+  "incremental_hosting_cost_usd": null,
+  "total_retry_refund_support_cost_usd": null,
+  "gross_refunds_usdc": null,
+  "matched_settlement_trace_count": null,
+  "independent_facilitator_receipt_sha256": null,
+  "independent_source_invoice_sha256": null,
+  "independent_hosting_invoice_sha256": null,
+  "independent_buyer_reconciliation_sha256": null
+}

@@ -1,0 +1,761 @@
+{
+  "schema_version": 1,
+  "report_type": "HYPOTHETICAL_COST_SENSITIVITY_NOT_VERIFIED_UNIT_ECONOMICS",
+  "product_count": 22,
+  "positive_historical_target_headroom_count": 1,
+  "historical_assumed_settlement_fee_from_specs_only": true,
+  "verified_current_facilitator_fee_schedule": false,
+  "verified_independent_buyer_demand": false,
+  "production_or_pricing_authorizations": 0,
+  "product_025_unlocked": false,
+  "products": [
+    {
+      "product_number": "003",
+      "product_id": "pa-vendor-identity-match",
+      "registered_price_usdc": "0.005",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": 53.8,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.000810",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": 53.8,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": 43.8,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": 33.8,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "004",
+      "product_id": "pa-business-address-match",
+      "registered_price_usdc": "0.003",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": 23,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.001410",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": 23,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": 6.3,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": -10.3,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "005",
+      "product_id": "pa-business-domain-match",
+      "registered_price_usdc": "0.003",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": 23,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.001410",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": 23,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": 6.3,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": -10.3,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "006",
+      "product_id": "sec-filing-freshness",
+      "registered_price_usdc": "0.005",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": 53.8,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.000810",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": 53.8,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": 43.8,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": 33.8,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "007",
+      "product_id": "domain-registration-age",
+      "registered_price_usdc": "0.002",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": -15.5,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.001710",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": -15.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": -40.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": -65.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "008",
+      "product_id": "treasury-average-rate-threshold",
+      "registered_price_usdc": "0.003",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": 23,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.001410",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": 23,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": 6.3,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": -10.3,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "009",
+      "product_id": "ofac-name-review-gate",
+      "registered_price_usdc": "0.003",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": 23,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.001410",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": 23,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": 6.3,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": -10.3,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "010",
+      "product_id": "pa-business-formation-age",
+      "registered_price_usdc": "0.002",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": -15.5,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.001710",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": -15.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": -40.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": -65.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "011",
+      "product_id": "domain-expiration-horizon",
+      "registered_price_usdc": "0.002",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": -15.5,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.001710",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": -15.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": -40.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": -65.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "012",
+      "product_id": "domain-last-changed-recency",
+      "registered_price_usdc": "0.002",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": -15.5,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.001710",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": -15.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": -40.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": -65.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "013",
+      "product_id": "sec-company-identity-match",
+      "registered_price_usdc": "0.003",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": 23,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.001410",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": 23,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": 6.3,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": -10.3,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "014",
+      "product_id": "treasury-average-rate-trend",
+      "registered_price_usdc": "0.003",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": 23,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.001410",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": 23,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": 6.3,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": -10.3,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "015",
+      "product_id": "treasury-average-rate-spread",
+      "registered_price_usdc": "0.003",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": 23,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.001410",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": 23,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": 6.3,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": -10.3,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "016",
+      "product_id": "pa-entity-ofac-review",
+      "registered_price_usdc": "0.005",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": 53.8,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.000810",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": 53.8,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": 43.8,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": 33.8,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "017",
+      "product_id": "pa-vendor-new-domain-review",
+      "registered_price_usdc": "0.005",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": 53.8,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.000810",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": 53.8,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": 43.8,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": 33.8,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "018",
+      "product_id": "pa-vendor-counterparty-review",
+      "registered_price_usdc": "0.010",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": 76.9,
+      "signed_incremental_cost_headroom_at_target_usd": "0.000690",
+      "headroom_is_nonnegative": true,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": 76.9,
+          "meets_fee_only_target_if_this_were_total_extra_cost": true
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": 71.9,
+          "meets_fee_only_target_if_this_were_total_extra_cost": true
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": 66.9,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "019",
+      "product_id": "pa-vendor-maturity-review",
+      "registered_price_usdc": "0.007",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": 67,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.000210",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": 67,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": 59.8,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": 52.7,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "020",
+      "product_id": "pa-vendor-domain-continuity-review",
+      "registered_price_usdc": "0.006",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": 61.5,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.000510",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": 61.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": 53.1,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": 44.8,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "021",
+      "product_id": "pa-entity-type-policy",
+      "registered_price_usdc": "0.002",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": -15.5,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.001710",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": -15.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": -40.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": -65.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "022",
+      "product_id": "pa-registered-county-policy",
+      "registered_price_usdc": "0.002",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": -15.5,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.001710",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": -15.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": -40.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": -65.5,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "023",
+      "product_id": "pa-local-vendor-policy-gate",
+      "registered_price_usdc": "0.004",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": 42.2,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.001110",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": 42.2,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": 29.7,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": 17.2,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    },
+    {
+      "product_number": "024",
+      "product_id": "pa-vendor-distance-gate",
+      "registered_price_usdc": "0.004",
+      "historical_paid_settlement_assumption_usd": "0.002310",
+      "configured_direct_source_fee_usd": "0.000000",
+      "target_margin_pct": 70,
+      "fee_only_margin_pct": 42.2,
+      "signed_incremental_cost_headroom_at_target_usd": "-0.001110",
+      "headroom_is_nonnegative": false,
+      "hypothetical_price_floor_at_target_on_three_decimal_usdc_grid": "0.008",
+      "hypothetical_extra_cost_scenarios": [
+        {
+          "hypothetical_additional_cost_usd": "0.000000",
+          "hypothetical_margin_pct": 42.2,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.000500",
+          "hypothetical_margin_pct": 29.7,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        },
+        {
+          "hypothetical_additional_cost_usd": "0.001000",
+          "hypothetical_margin_pct": 17.2,
+          "meets_fee_only_target_if_this_were_total_extra_cost": false
+        }
+      ],
+      "measured_actual_incremental_cost_per_purchase": null,
+      "measured_actual_contribution_margin_pct": null,
+      "historical_fee_assumption_verified_for_current_seller": false,
+      "commercial_price_change_authorized": false,
+      "product_025_unlock_evidence": false
+    }
+  ]
+}

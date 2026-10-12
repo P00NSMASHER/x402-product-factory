@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "product_id": "pa-vendor-counterparty-review",
+  "input_status": "TEMPLATE_ONLY_ALL_REAL_COST_FIELDS_UNMEASURED",
+  "required_evidence_fields_missing": [
+    "period_start",
+    "period_end",
+    "externally_settled_purchase_count",
+    "gross_before_refunds_usdc",
+    "total_facilitator_and_chain_fees_usd",
+    "total_source_api_fees_usd",
+    "incremental_hosting_cost_usd",
+    "total_retry_refund_support_cost_usd",
+    "gross_refunds_usdc",
+    "matched_settlement_trace_count",
+    "independent_facilitator_receipt_sha256",
+    "independent_source_invoice_sha256",
+    "independent_hosting_invoice_sha256",
+    "independent_buyer_reconciliation_sha256"
+  ],
+  "measured_settlements": null,
+  "observed_average_revenue_usdc": null,
+  "operator_supplied_arithmetic_margin_pct": null,
+  "real_external_invoices_authenticated": false,
+  "independently_verified_external_buyers": false,
+  "independent_financial_audit_complete": false,
+  "commercialization_authorized": false,
+  "release_gate": "HOLD_UNVERIFIED_OPERATING_COSTS_AND_BUYER_EVIDENCE",
+  "product_025_unlock_evidence": false
+}
