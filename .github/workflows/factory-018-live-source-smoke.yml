@@ -1,0 +1,31 @@
+name: Factory 018 public source compatibility
+
+on:
+  pull_request:
+    paths:
+      - 'quality/benchmarks/018-live-source-probe.js'
+      - 'quality/benchmarks/018-live-source-probe.test.js'
+      - '.github/workflows/factory-018-live-source-smoke.yml'
+      - 'products/pa-vendor-counterparty-review/evidence-contract.js'
+      - 'packages/sources/live-pa-identity.js'
+      - 'packages/sources/ofac-name-screen.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: factory-018-source-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  read-only-compatibility:
+    name: Public source GET-only compatibility (not release approval)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Run adapter policy and mock regressions
+        run: node --test quality/benchmarks/018-live-source-probe.test.js
+      - name: Probe fixed public PA, OFAC and RDAP sources without payments
+        run: node quality/benchmarks/018-live-source-probe.js --probe-live
