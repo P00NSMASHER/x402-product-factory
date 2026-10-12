@@ -16,7 +16,12 @@ const PRODUCTS=[
   require("./009-ofac-name-review-gate.json"),
   require("./010-pa-business-formation-age.json"),
   require("./011-domain-expiration-horizon.json"),
-  require("./012-domain-last-changed-recency.json")
+  require("./012-domain-last-changed-recency.json"),
+  require("./013-sec-company-identity-match.json"),
+  require("./014-treasury-average-rate-trend.json"),
+  require("./015-treasury-average-rate-spread.json"),
+  require("./016-pa-entity-ofac-review.json"),
+  require("./017-pa-vendor-new-domain-review.json")
 ];
 
 const PUBLIC_BASE="https://candidate.example";
@@ -174,7 +179,7 @@ async function runVariant({product,generated,scenario}){
   return {result,calls:state.calls,networkCalls:network.calls};
 }
 
-test("generated paid handlers preserve hand-written protocol behavior for Products 003-012",async()=>{
+test("generated paid handlers preserve hand-written protocol behavior for Products 003-017",async()=>{
   const scenarios=[
     "unpaid",
     "malformed-payment",

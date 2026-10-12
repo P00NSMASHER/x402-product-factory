@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "number": "017",
+  "id": "pa-vendor-new-domain-review",
+  "discovery": {
+    "operation_id": "reviewPennsylvaniaVendorDomainAge",
+    "service_name": "PA Vendor New-Domain Review",
+    "summary": "Resolve a PA vendor and review a newly registered domain",
+    "description": "Resolve a supplied Pennsylvania company name to one unique strong Department of State legal-entity match, check whether the supplied domain plausibly aligns with that resolved legal name, and compare its authoritative RDAP registration age against a caller threshold. Returns established_domain_match, recent_domain_review, domain_mismatch, unregistered_domain, company_not_found, or human_review. Recent registration is a review signal, not proof of fraud, and domain-name alignment does not prove ownership or control.",
+    "resource_description": "Resolve a Pennsylvania vendor to a unique legal entity, confirm the supplied registered domain plausibly aligns with that resolved legal name, and flag recently registered domains for human review. Returns established_domain_match, recent_domain_review, domain_mismatch, unregistered_domain, company_not_found, or human_review. Domain alignment and age are review signals only and do not prove ownership, safety, or fraud.",
+    "search_tags": [
+      "pennsylvania-business-registry",
+      "vendor-identity",
+      "domain-age",
+      "rdap",
+      "new-domain"
+    ],
+    "openapi_tags": [
+      "Pennsylvania Business Registry",
+      "Vendor Identity",
+      "Domain Age",
+      "RDAP",
+      "Human Review"
+    ]
+  },
+  "buyer": {
+    "task": "Resolve a prospective Pennsylvania vendor to a unique legal entity, verify the supplied domain plausibly aligns with that resolved legal name, and flag recently registered domains for human review.",
+    "expected_purchase_frequency": {
+      "status": "unmeasured",
+      "value": null,
+      "unit": null,
+      "measurement_plan": "Measure only independent external settled buyers and repeat demand; never count test responses, discovery visits, or synthetic transactions as sales."
+    }
+  },
+  "api": {
+    "method": "GET",
+    "path": "/api/pa-vendor-new-domain-review",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "name": "domain",
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253,
+        "required": true
+      },
+      {
+        "name": "minDomainAgeDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 90,
+        "required": false
+      }
+    ],
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "domain": "openai.com",
+      "minDomainAgeDays": 90
+    },
+    "payment_example_query": {
+      "company": "OpenAI OpCo",
+      "domain": "openai.com",
+      "minDomainAgeDays": "90"
+    },
+    "payment_example_output": {
+      "decision": "established_domain_match",
+      "resolvedLegalName": "Openai Opco, Llc",
+      "registrationDate": "2007-01-19",
+      "paid": true
+    },
+    "outputs": {
+      "decisions": [
+        "established_domain_match",
+        "recent_domain_review",
+        "domain_mismatch",
+        "unregistered_domain",
+        "company_not_found",
+        "human_review"
+      ],
+      "fields": [
+        "decision",
+        "reasonCodes",
+        "matchedEntity",
+        "resolvedLegalName",
+        "domain",
+        "registrationDate",
+        "domainAgeDays",
+        "minDomainAgeDays",
+        "cutoffDate",
+        "limitations",
+        "checkedAt",
+        "input",
+        "sourceFailures",
+        "evidence",
+        "chargeable",
+        "paid",
+        "price"
+      ]
+    },
+    "input_rule": null
+  },
+  "sources": [
+    {
+      "id": "pa_registry",
+      "adapter": "createPaRegistryAdapter",
+      "authority": "Pennsylvania Department of State via data.pa.gov",
+      "refresh_policy": "Live unique strong legal-entity resolution on paid request",
+      "cache_policy": "none",
+      "freshness_limit_seconds": null
+    },
+    {
+      "id": "rdap",
+      "adapter": "createRdapAdapter",
+      "authority": "IANA DNS bootstrap and authoritative registry RDAP",
+      "refresh_policy": "Authoritative registered-domain and registration-date lookup after unique entity resolution",
+      "cache_policy": "IANA bootstrap in-memory; authoritative domain not cached",
+      "freshness_limit_seconds": null
+    }
+  ],
+  "decision": {
+    "implementation": "products/pa-vendor-new-domain-review/decision.js",
+    "parameters": {
+      "minDomainAgeDays": {
+        "default": 90,
+        "minimum": 1,
+        "maximum": 3650
+      }
+    },
+    "rules": [
+      "Resolve a unique strong Pennsylvania legal entity before checking authoritative RDAP.",
+      "Domain-name alignment uses the resolved legal name and is not ownership verification.",
+      "Classify domain registration age at UTC-day granularity; recent registration is a review flag, never fraud proof.",
+      "domain-name alignment is a deterministic heuristic and does not prove domain ownership or control",
+      "recent registration is a review signal, not proof of fraud",
+      "an established domain is not proof that a vendor is safe or trustworthy",
+      "a Pennsylvania registry match does not prove good standing, ownership, or authority to contract"
+    ]
+  },
+  "failure_behavior": {
+    "invalid_input": "HTTP 400; payment is not settled.",
+    "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+    "payment_unresolved": "HTTP 503; retry the same authorization.",
+    "automatic_reject": false
+  },
+  "economics": {
+    "price_usdc": "0.005",
+    "paid_settlement_cost_usd": "0.002310",
+    "configured_direct_source_fee_usd": "0.000000",
+    "incremental_hosting_cost_usd": null,
+    "post_allowance_margin_floor_pct": 53.8,
+    "target_contribution_margin_pct": 70,
+    "meets_target_before_unknown_costs": false
+  },
+  "launch": {
+    "current_status": "live-source-verified-staging",
+    "release_gate": "scripts/validate-product-017.js",
+    "criteria": [
+      "Exact-head existing product release gates and deterministic/source checks must pass.",
+      "Authority-dependent live smokes and required production credentials (including SEC_USER_AGENT) must pass before any approved deployment.",
+      "Complete unit economics and genuine independent external-buyer evidence are unavailable; do not authorize commercial release."
+    ]
+  },
+  "implementation": {
+    "handler_template": "standard-x402-get-v1",
+    "service_module": "products/pa-vendor-new-domain-review/service.js",
+    "input_validator_export": "validatePaVendorNewDomainInput"
+  }
+}

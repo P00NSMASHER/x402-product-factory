@@ -15,8 +15,8 @@ const rejected=(specs,match,options={filenames})=>{
   );
 };
 
-test("canonical 003-012 specification set passes before generation",()=>{
-  assert.strictEqual(validateSpecSet(clone(),{filenames}).length,10);
+test("canonical 003-017 specification set passes before generation",()=>{
+  assert.strictEqual(validateSpecSet(clone(),{filenames}).length,15);
 });
 
 test("filename and product identity drift fail closed",()=>{
@@ -132,5 +132,23 @@ test("new enum and payment example corruption fails before generation",()=>{
   ];
   for(const [mutate,pattern] of mutations){
     const s=clone();mutate(s);rejected(s,pattern);
+  }
+});
+
+
+test("013-017 forbid conflicting identifier examples and untrusted payment responses",()=>{
+  const mutations=[
+    [s=>{s[10].api.example_query.cik="320193";},/exactly-one input example or rule invalid/],
+    [s=>{s[10].api.input_rule="Provide exactly one of ticker or cik.";},/exactly-one input example or rule invalid/],
+    [s=>{s[10].api.openapi_parameter_examples.cik="not-a-cik";},/OpenAPI parameter example violates string input constraint/],
+    [s=>{s[10].api.openapi_parameter_examples.company="Another";},/OpenAPI parameter example must match request example/],
+    [s=>{s[10].api.openapi_parameter_examples.unsafe="x";},/undeclared OpenAPI parameter example/],
+    [s=>{s[10].api.payment_example_output.reasonCodes=[null];},/invalid payment output example/],
+    [s=>{s[10].api.payment_example_output.reasonCodes=["NORMAL","<UNSAFE>"];},/invalid payment output example/],
+    [s=>{s[14].api.payment_example_query.minDomainAgeDays="9999";},/payment example differs/],
+    [s=>{s[13].economics.incremental_hosting_cost_usd="0.000000";},/hosting cost must remain unknown/]
+  ];
+  for(const [mutate,matcher] of mutations){
+    const specs=clone();mutate(specs);rejected(specs,matcher);
   }
 });

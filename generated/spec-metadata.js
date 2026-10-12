@@ -594,6 +594,339 @@ const PRODUCTS=Object.freeze({
       "unregistered",
       "human_review"
     ]
+  },
+  "sec-company-identity-match": {
+    "id": "sec-company-identity-match",
+    "operation_id": "matchSecPublicCompanyIdentity",
+    "service_name": "SEC Public Company Identity Match",
+    "summary": "Match an expected public-company name to SEC ticker/CIK identity",
+    "description": "Resolve exactly one SEC ticker or CIK and compare the supplied expected company name with the authoritative SEC EDGAR company name after conservative corporate-suffix normalization. Returns match, human_review, or company_not_found. A match is an SEC identity-consistency result only; it is not investment advice and does not establish good standing, ownership, authority, fraud/sanctions/credit status, or legal compliance.",
+    "resource_description": "Check whether an expected public-company name matches the authoritative SEC EDGAR company identity resolved from exactly one ticker or CIK. Returns match, human_review, or company_not_found. It is not investment advice and does not establish good standing, ownership, authority, fraud/sanctions/credit status, or legal compliance.",
+    "search_tags": [
+      "sec",
+      "edgar",
+      "company-identity",
+      "ticker",
+      "cik"
+    ],
+    "openapi_tags": [
+      "SEC",
+      "EDGAR",
+      "Company Identity"
+    ],
+    "method": "GET",
+    "path": "/api/sec-company-identity-match",
+    "price_usdc": "0.003",
+    "amount_atomic_usdc": "3000",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 160,
+        "required": true
+      },
+      {
+        "name": "ticker",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 12,
+        "required": "exactly_one_of_ticker_or_cik"
+      },
+      {
+        "name": "cik",
+        "type": "string",
+        "pattern": "^\\d{1,10}$",
+        "required": "exactly_one_of_ticker_or_cik"
+      }
+    ],
+    "input_rule": "Provide company plus exactly one of ticker or cik.",
+    "example_query": {
+      "company": "Apple",
+      "ticker": "AAPL"
+    },
+    "openapi_parameter_examples": {
+      "cik": "320193"
+    },
+    "payment_example_output": {
+      "decision": "match",
+      "reasonCodes": [],
+      "paid": true
+    },
+    "decisions": [
+      "match",
+      "human_review",
+      "company_not_found"
+    ]
+  },
+  "treasury-average-rate-trend": {
+    "id": "treasury-average-rate-trend",
+    "operation_id": "getTreasuryAverageRateTrend",
+    "service_name": "Treasury Average Rate Trend",
+    "summary": "Compare latest Treasury average rate with prior month",
+    "description": "Select one official U.S. Treasury Fiscal Data monthly average-interest-rate category, compare the latest observation with the prior month, and return rising, falling, unchanged, or human_review using a caller minimum change in basis points. This is a two-point monthly direction signal using averages on outstanding Treasury debt, not a long-term trend determination, live market yield, forecast, monetary-policy prediction, or investment recommendation.",
+    "resource_description": "Compare the latest official monthly average interest rate for one U.S. Treasury security category with the prior month and return rising, falling, unchanged, or human_review. This is not a forecast, live market yield, monetary-policy prediction, or investment recommendation.",
+    "search_tags": [
+      "treasury",
+      "interest-rates",
+      "trend",
+      "macro",
+      "government-data"
+    ],
+    "openapi_tags": [
+      "Treasury",
+      "Interest Rates",
+      "Trend",
+      "Macro"
+    ],
+    "method": "GET",
+    "path": "/api/treasury-average-rate-trend",
+    "price_usdc": "0.003",
+    "amount_atomic_usdc": "3000",
+    "inputs": [
+      {
+        "name": "security",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 100,
+        "required": true
+      },
+      {
+        "name": "minChangeBps",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 1,
+        "required": false
+      }
+    ],
+    "input_rule": null,
+    "example_query": {
+      "security": "Total Marketable",
+      "minChangeBps": 1
+    },
+    "payment_example_output": {
+      "decision": "falling",
+      "changeBps": -5,
+      "paid": true
+    },
+    "decisions": [
+      "rising",
+      "falling",
+      "unchanged",
+      "human_review"
+    ]
+  },
+  "treasury-average-rate-spread": {
+    "id": "treasury-average-rate-spread",
+    "operation_id": "compareTreasuryAverageRateSpread",
+    "service_name": "Treasury Average Rate Spread",
+    "summary": "Compare two Treasury average-rate categories",
+    "description": "Compare the latest official monthly weighted-average interest rates for two Treasury security categories using the same Fiscal Data record date. Returns left_higher, right_higher, within_tolerance, or human_review. spreadBps is left minus right in basis points. This is not a live market yield spread, yield-curve trading signal, forecast, or investment recommendation.",
+    "resource_description": "Compare the latest official monthly weighted-average interest rates for two U.S. Treasury security categories from the same Fiscal Data record date. Returns left_higher, right_higher, within_tolerance, or human_review. This is not a live market yield spread, forecast, or investment recommendation.",
+    "search_tags": [
+      "treasury",
+      "interest-rates",
+      "rate-spread",
+      "macro",
+      "government-data"
+    ],
+    "openapi_tags": [
+      "Treasury",
+      "Interest Rates",
+      "Rate Spread",
+      "Macro"
+    ],
+    "method": "GET",
+    "path": "/api/treasury-average-rate-spread",
+    "price_usdc": "0.003",
+    "amount_atomic_usdc": "3000",
+    "inputs": [
+      {
+        "name": "leftSecurity",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 100,
+        "required": true
+      },
+      {
+        "name": "rightSecurity",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 100,
+        "required": true
+      },
+      {
+        "name": "toleranceBps",
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1000,
+        "default": 2,
+        "required": false
+      }
+    ],
+    "input_rule": null,
+    "example_query": {
+      "leftSecurity": "Treasury Bills",
+      "rightSecurity": "Treasury Notes",
+      "toleranceBps": 2
+    },
+    "payment_example_query": {
+      "leftSecurity": "Treasury Bills",
+      "rightSecurity": "Treasury Notes",
+      "toleranceBps": "2"
+    },
+    "payment_example_output": {
+      "decision": "left_higher",
+      "spreadBps": 66.7,
+      "toleranceBps": 2,
+      "paid": true
+    },
+    "decisions": [
+      "left_higher",
+      "right_higher",
+      "within_tolerance",
+      "human_review"
+    ]
+  },
+  "pa-entity-ofac-review": {
+    "id": "pa-entity-ofac-review",
+    "operation_id": "reviewPennsylvaniaEntityOfacName",
+    "service_name": "PA Entity OFAC Review Gate",
+    "summary": "Resolve a PA legal entity and screen its legal name against OFAC",
+    "description": "Resolve a supplied Pennsylvania company name to one unique strong Department of State legal-entity match, then screen the resolved legal name against current OFAC SDN primary-name and alias data. Returns candidate_found, no_candidate, company_not_found, or human_review. This is first-pass candidate-name screening only: a candidate is not a legal sanctions determination, no_candidate is not sanctions clearance, and OFAC 50 Percent Rule ownership analysis is not included.",
+    "resource_description": "Resolve a Pennsylvania company to a unique legal entity and screen the resolved legal name against the current U.S. Treasury OFAC SDN primary-name and alias data. Returns candidate_found, no_candidate, company_not_found, or human_review. Candidate-name screening is not a legal sanctions determination; no_candidate is not sanctions clearance and OFAC 50 Percent Rule ownership analysis is not included.",
+    "search_tags": [
+      "pennsylvania-business-registry",
+      "OFAC",
+      "SDN",
+      "legal-entity",
+      "sanctions-screening"
+    ],
+    "openapi_tags": [
+      "Pennsylvania Business Registry",
+      "OFAC",
+      "SDN",
+      "Vendor Identity",
+      "Human Review"
+    ],
+    "method": "GET",
+    "path": "/api/pa-entity-ofac-review",
+    "price_usdc": "0.005",
+    "amount_atomic_usdc": "5000",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "name": "minScore",
+        "type": "integer",
+        "minimum": 70,
+        "maximum": 100,
+        "default": 90,
+        "required": false
+      }
+    ],
+    "input_rule": null,
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "minScore": 90
+    },
+    "payment_example_query": {
+      "company": "OpenAI OpCo",
+      "minScore": "90"
+    },
+    "payment_example_output": {
+      "decision": "no_candidate",
+      "screenedName": "Openai Opco, Llc",
+      "candidateCount": 0,
+      "paid": true
+    },
+    "decisions": [
+      "candidate_found",
+      "no_candidate",
+      "company_not_found",
+      "human_review"
+    ]
+  },
+  "pa-vendor-new-domain-review": {
+    "id": "pa-vendor-new-domain-review",
+    "operation_id": "reviewPennsylvaniaVendorDomainAge",
+    "service_name": "PA Vendor New-Domain Review",
+    "summary": "Resolve a PA vendor and review a newly registered domain",
+    "description": "Resolve a supplied Pennsylvania company name to one unique strong Department of State legal-entity match, check whether the supplied domain plausibly aligns with that resolved legal name, and compare its authoritative RDAP registration age against a caller threshold. Returns established_domain_match, recent_domain_review, domain_mismatch, unregistered_domain, company_not_found, or human_review. Recent registration is a review signal, not proof of fraud, and domain-name alignment does not prove ownership or control.",
+    "resource_description": "Resolve a Pennsylvania vendor to a unique legal entity, confirm the supplied registered domain plausibly aligns with that resolved legal name, and flag recently registered domains for human review. Returns established_domain_match, recent_domain_review, domain_mismatch, unregistered_domain, company_not_found, or human_review. Domain alignment and age are review signals only and do not prove ownership, safety, or fraud.",
+    "search_tags": [
+      "pennsylvania-business-registry",
+      "vendor-identity",
+      "domain-age",
+      "rdap",
+      "new-domain"
+    ],
+    "openapi_tags": [
+      "Pennsylvania Business Registry",
+      "Vendor Identity",
+      "Domain Age",
+      "RDAP",
+      "Human Review"
+    ],
+    "method": "GET",
+    "path": "/api/pa-vendor-new-domain-review",
+    "price_usdc": "0.005",
+    "amount_atomic_usdc": "5000",
+    "inputs": [
+      {
+        "name": "company",
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 120,
+        "required": true
+      },
+      {
+        "name": "domain",
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 253,
+        "required": true
+      },
+      {
+        "name": "minDomainAgeDays",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 3650,
+        "default": 90,
+        "required": false
+      }
+    ],
+    "input_rule": null,
+    "example_query": {
+      "company": "OpenAI OpCo",
+      "domain": "openai.com",
+      "minDomainAgeDays": 90
+    },
+    "payment_example_query": {
+      "company": "OpenAI OpCo",
+      "domain": "openai.com",
+      "minDomainAgeDays": "90"
+    },
+    "payment_example_output": {
+      "decision": "established_domain_match",
+      "resolvedLegalName": "Openai Opco, Llc",
+      "registrationDate": "2007-01-19",
+      "paid": true
+    },
+    "decisions": [
+      "established_domain_match",
+      "recent_domain_review",
+      "domain_mismatch",
+      "unregistered_domain",
+      "company_not_found",
+      "human_review"
+    ]
   }
 });
 
@@ -648,7 +981,7 @@ function openApiPath(id){
     summary:item.summary,
     description:item.description,
     tags:item.openapi_tags,
-    parameters:item.inputs.map(input=>openApiParameter(input,item.example_query)),
+    parameters:item.inputs.map(input=>openApiParameter(input,{...item.example_query,...(item.openapi_parameter_examples||{})})),
     "x-payment-info":{price:{mode:"fixed",currency:"USD",amount:fixedSix(item.price_usdc)},protocols:[{x402:{}}],network:PAYMENT.network,payTo:PAYMENT.payTo},
     responses:{
       200:{description:"Completed paid product decision."},

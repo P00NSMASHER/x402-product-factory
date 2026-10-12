@@ -131,6 +131,24 @@ function validateInputExamples(api,number){
     }else if(input.required===true){
       invalid("required example input missing for "+number+": "+input.name);
     }
+    if(Object.hasOwn(api.openapi_parameter_examples||{},input.name)){
+      const value=api.openapi_parameter_examples[input.name];
+      checkValue(value,"OpenAPI parameter example");
+      if(Object.hasOwn(api.example_query,input.name)){
+        must(api.example_query[input.name]===value,
+          "OpenAPI parameter example must match request example for "+number);
+      }
+    }
+  }
+  if(api.openapi_parameter_examples!==undefined){
+    const examples=api.openapi_parameter_examples;
+    must(examples&&typeof examples==="object"&&!Array.isArray(examples) &&
+      Object.keys(examples).length>0,
+      "invalid OpenAPI parameter examples for "+number);
+    const declared=new Set(api.inputs.map(input=>input.name));
+    for(const name of Object.keys(examples)){
+      must(declared.has(name),"undeclared OpenAPI parameter example for "+number);
+    }
   }
   if(api.payment_example_query!==undefined){
     const payment=api.payment_example_query;
@@ -177,13 +195,17 @@ function validateInputExamples(api,number){
     must(output&&typeof output==="object"&&!Array.isArray(output)&&
       output.paid===true&&api.outputs.decisions.includes(output.decision)&&
       Object.keys(output).every(k=>api.outputs.fields.includes(k))&&
-      Object.values(output).every(v=>["string","boolean","number"].includes(typeof v)&&
-        (typeof v!=="number"||Number.isFinite(v))),
+      Object.entries(output).every(([k,v])=>
+        (["string","boolean","number"].includes(typeof v)&&
+          (typeof v!=="number"||Number.isFinite(v)))||
+        (k==="reasonCodes"&&Array.isArray(v)&&v.length<=8&&
+          v.every(code=>typeof code==="string"&&/^[A-Z0-9_]{1,80}$/.test(code)))),
       "invalid payment output example for "+number);
   }
   if(grouped.length){
     must(grouped.sort().join(",")==="cik,ticker"&&
-      api.input_rule==="Provide exactly one of ticker or cik."&&
+      (api.input_rule==="Provide exactly one of ticker or cik." ||
+        (number==="013"&&api.input_rule==="Provide company plus exactly one of ticker or cik."))&&
       Number(Object.hasOwn(api.example_query,"ticker"))+
       Number(Object.hasOwn(api.example_query,"cik"))===1,
       "exactly-one input example or rule invalid for "+number);

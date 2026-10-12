@@ -429,6 +429,226 @@
         "current_status": "live-source-verified-staging",
         "release_gate": "scripts/validate-product-012.js"
       }
+    },
+    {
+      "number": "013",
+      "id": "sec-company-identity-match",
+      "buyer_task": "Check whether a supplied expected company name matches the authoritative SEC EDGAR company identity resolved from exactly one ticker or CIK.",
+      "operation_id": "matchSecPublicCompanyIdentity",
+      "service_name": "SEC Public Company Identity Match",
+      "search_tags": [
+        "sec",
+        "edgar",
+        "company-identity",
+        "ticker",
+        "cik"
+      ],
+      "method": "GET",
+      "path": "/api/sec-company-identity-match",
+      "price_usdc": "0.003",
+      "decisions": [
+        "match",
+        "human_review",
+        "company_not_found"
+      ],
+      "source_ids": [
+        "sec_edgar"
+      ],
+      "decision_implementation": "products/sec-company-identity-match/decision.js",
+      "decision_parameters": {
+        "companyNameMatch": "conservative corporate suffix normalization"
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; payment is not settled.",
+        "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+        "payment_unresolved": "HTTP 503; retry the same authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "source-contract-verified-staging",
+        "release_gate": "scripts/validate-product-013.js"
+      }
+    },
+    {
+      "number": "014",
+      "id": "treasury-average-rate-trend",
+      "buyer_task": "Compare the latest official monthly average interest rate for one Treasury security description with the prior month's rate and return a bounded directional signal.",
+      "operation_id": "getTreasuryAverageRateTrend",
+      "service_name": "Treasury Average Rate Trend",
+      "search_tags": [
+        "treasury",
+        "interest-rates",
+        "trend",
+        "macro",
+        "government-data"
+      ],
+      "method": "GET",
+      "path": "/api/treasury-average-rate-trend",
+      "price_usdc": "0.003",
+      "decisions": [
+        "rising",
+        "falling",
+        "unchanged",
+        "human_review"
+      ],
+      "source_ids": [
+        "treasury_fiscal_data"
+      ],
+      "decision_implementation": "products/treasury-average-rate-trend/decision.js",
+      "decision_parameters": {
+        "minChangeBps": {
+          "default": 1,
+          "minimum": 1,
+          "maximum": 1000
+        }
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; payment is not settled.",
+        "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+        "payment_unresolved": "HTTP 503; retry the same authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-014.js"
+      }
+    },
+    {
+      "number": "015",
+      "id": "treasury-average-rate-spread",
+      "buyer_task": "Compare the latest official monthly weighted-average interest rates for two U.S. Treasury security categories from the same record date and classify their spread.",
+      "operation_id": "compareTreasuryAverageRateSpread",
+      "service_name": "Treasury Average Rate Spread",
+      "search_tags": [
+        "treasury",
+        "interest-rates",
+        "rate-spread",
+        "macro",
+        "government-data"
+      ],
+      "method": "GET",
+      "path": "/api/treasury-average-rate-spread",
+      "price_usdc": "0.003",
+      "decisions": [
+        "left_higher",
+        "right_higher",
+        "within_tolerance",
+        "human_review"
+      ],
+      "source_ids": [
+        "treasury_fiscal_data"
+      ],
+      "decision_implementation": "products/treasury-average-rate-spread/decision.js",
+      "decision_parameters": {
+        "toleranceBps": {
+          "default": 2,
+          "minimum": 0,
+          "maximum": 1000
+        }
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; payment is not settled.",
+        "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+        "payment_unresolved": "HTTP 503; retry the same authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-015.js"
+      }
+    },
+    {
+      "number": "016",
+      "id": "pa-entity-ofac-review",
+      "buyer_task": "Resolve a prospective Pennsylvania company to a unique legal entity, then run deterministic current OFAC SDN primary-name and alias screening against the resolved legal name.",
+      "operation_id": "reviewPennsylvaniaEntityOfacName",
+      "service_name": "PA Entity OFAC Review Gate",
+      "search_tags": [
+        "pennsylvania-business-registry",
+        "OFAC",
+        "SDN",
+        "legal-entity",
+        "sanctions-screening"
+      ],
+      "method": "GET",
+      "path": "/api/pa-entity-ofac-review",
+      "price_usdc": "0.005",
+      "decisions": [
+        "candidate_found",
+        "no_candidate",
+        "company_not_found",
+        "human_review"
+      ],
+      "source_ids": [
+        "pa_registry",
+        "ofac_sdn"
+      ],
+      "decision_implementation": "products/pa-entity-ofac-review/decision.js",
+      "decision_parameters": {
+        "minScore": {
+          "default": 90,
+          "minimum": 70,
+          "maximum": 100
+        },
+        "ofacCandidateLimit": 3
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; payment is not settled.",
+        "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+        "payment_unresolved": "HTTP 503; retry the same authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-016.js"
+      }
+    },
+    {
+      "number": "017",
+      "id": "pa-vendor-new-domain-review",
+      "buyer_task": "Resolve a prospective Pennsylvania vendor to a unique legal entity, verify the supplied domain plausibly aligns with that resolved legal name, and flag recently registered domains for human review.",
+      "operation_id": "reviewPennsylvaniaVendorDomainAge",
+      "service_name": "PA Vendor New-Domain Review",
+      "search_tags": [
+        "pennsylvania-business-registry",
+        "vendor-identity",
+        "domain-age",
+        "rdap",
+        "new-domain"
+      ],
+      "method": "GET",
+      "path": "/api/pa-vendor-new-domain-review",
+      "price_usdc": "0.005",
+      "decisions": [
+        "established_domain_match",
+        "recent_domain_review",
+        "domain_mismatch",
+        "unregistered_domain",
+        "company_not_found",
+        "human_review"
+      ],
+      "source_ids": [
+        "pa_registry",
+        "rdap"
+      ],
+      "decision_implementation": "products/pa-vendor-new-domain-review/decision.js",
+      "decision_parameters": {
+        "minDomainAgeDays": {
+          "default": 90,
+          "minimum": 1,
+          "maximum": 3650
+        }
+      },
+      "failure_behavior": {
+        "invalid_input": "HTTP 400; payment is not settled.",
+        "required_source_failure": "HTTP 502 with chargeable=false; payment is not settled.",
+        "payment_unresolved": "HTTP 503; retry the same authorization.",
+        "automatic_reject": false
+      },
+      "launch": {
+        "current_status": "live-source-verified-staging",
+        "release_gate": "scripts/validate-product-017.js"
+      }
     }
   ]
 }

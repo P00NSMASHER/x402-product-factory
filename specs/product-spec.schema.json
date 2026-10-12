@@ -144,6 +144,9 @@
         },
         "payment_example_output": {
           "type": "object"
+        },
+        "openapi_parameter_examples": {
+          "type": "object"
         }
       }
     },

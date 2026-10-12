@@ -14,7 +14,12 @@ const SERVICE_MODULES=Object.freeze({
   "ofac-name-review-gate":require("../products/ofac-name-review-gate/service"),
   "pa-business-formation-age":require("../products/pa-business-formation-age/service"),
   "domain-expiration-horizon":require("../products/domain-expiration-horizon/service"),
-  "domain-last-changed-recency":require("../products/domain-last-changed-recency/service")
+  "domain-last-changed-recency":require("../products/domain-last-changed-recency/service"),
+  "sec-company-identity-match":require("../products/sec-company-identity-match/service"),
+  "treasury-average-rate-trend":require("../products/treasury-average-rate-trend/service"),
+  "treasury-average-rate-spread":require("../products/treasury-average-rate-spread/service"),
+  "pa-entity-ofac-review":require("../products/pa-entity-ofac-review/service"),
+  "pa-vendor-new-domain-review":require("../products/pa-vendor-new-domain-review/service")
 });
 
 const VALIDATORS=Object.freeze({
@@ -27,7 +32,12 @@ const VALIDATORS=Object.freeze({
   "ofac-name-review-gate":SERVICE_MODULES["ofac-name-review-gate"]["validateOfacInput"],
   "pa-business-formation-age":SERVICE_MODULES["pa-business-formation-age"]["validateFormationAgeInput"],
   "domain-expiration-horizon":SERVICE_MODULES["domain-expiration-horizon"]["validateExpirationInput"],
-  "domain-last-changed-recency":SERVICE_MODULES["domain-last-changed-recency"]["validateRecencyInput"]
+  "domain-last-changed-recency":SERVICE_MODULES["domain-last-changed-recency"]["validateRecencyInput"],
+  "sec-company-identity-match":SERVICE_MODULES["sec-company-identity-match"]["validateSecCompanyIdentityInput"],
+  "treasury-average-rate-trend":SERVICE_MODULES["treasury-average-rate-trend"]["validateTreasuryTrendInput"],
+  "treasury-average-rate-spread":SERVICE_MODULES["treasury-average-rate-spread"]["validateTreasuryRateSpreadInput"],
+  "pa-entity-ofac-review":SERVICE_MODULES["pa-entity-ofac-review"]["validatePaEntityOfacInput"],
+  "pa-vendor-new-domain-review":SERVICE_MODULES["pa-vendor-new-domain-review"]["validatePaVendorNewDomainInput"]
 });
 
 function moduleFor(productId){
@@ -58,7 +68,12 @@ const PAID_HANDLER_MODULES=Object.freeze({
   "ofac-name-review-gate":moduleFor("ofac-name-review-gate"),
   "pa-business-formation-age":moduleFor("pa-business-formation-age"),
   "domain-expiration-horizon":moduleFor("domain-expiration-horizon"),
-  "domain-last-changed-recency":moduleFor("domain-last-changed-recency")
+  "domain-last-changed-recency":moduleFor("domain-last-changed-recency"),
+  "sec-company-identity-match":moduleFor("sec-company-identity-match"),
+  "treasury-average-rate-trend":moduleFor("treasury-average-rate-trend"),
+  "treasury-average-rate-spread":moduleFor("treasury-average-rate-spread"),
+  "pa-entity-ofac-review":moduleFor("pa-entity-ofac-review"),
+  "pa-vendor-new-domain-review":moduleFor("pa-vendor-new-domain-review")
 });
 
 module.exports={SERVICE_MODULES,VALIDATORS,moduleFor,PAID_HANDLER_MODULES};

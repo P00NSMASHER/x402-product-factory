@@ -401,3 +401,208 @@ Determine whether an authoritative RDAP last-changed event falls within a caller
 - Measure non-credit-gated production hosting, failures, refunds and source costs.
 - Block commercial release until real margin and external demand are independently evidenced.
 
+## 013 sec-company-identity-match
+
+Check whether a supplied expected company name matches the authoritative SEC EDGAR company identity resolved from exactly one ticker or CIK.
+
+- Endpoint: `GET /api/sec-company-identity-match`
+- Price: **$0.003000 USDC**
+- Decisions: `match`, `human_review`, `company_not_found`
+- Sources: U.S. Securities and Exchange Commission EDGAR
+- Purchase frequency: **unmeasured**
+- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **23.0%**
+
+### Inputs
+
+- `company` (string; required, minLength=2, maxLength=160)
+- `ticker` (string; exactly_one_of_ticker_or_cik, minLength=1, maxLength=12)
+- `cik` (string; exactly_one_of_ticker_or_cik)
+
+### Decision rules
+
+- Require an expected company name plus exactly one ticker or CIK, never both.
+- Compare conservatively normalized expected name with the authoritative SEC-resolved company name.
+- Never interpret an SEC identity match as legal status, beneficial ownership, fraud clearance or investment advice.
+- match is only an SEC identity-consistency result
+- it does not establish investment quality, current good standing, ownership, authority, fraud risk, sanctions status, creditworthiness, or legal compliance
+- company_not_found means the queried identifier did not resolve in the checked SEC public data; it is not proof that the business does not exist
+
+### Failure behavior
+
+- Invalid input: HTTP 400; payment is not settled.
+- Required source failure: HTTP 502 with chargeable=false; payment is not settled.
+- Payment unresolved: HTTP 503; retry the same authorization.
+- Automatic reject: **false**
+
+### Launch gate
+
+- Status: `source-contract-verified-staging`
+- Release gate: `scripts/validate-product-013.js`
+- Exact-head existing product release gates and deterministic/source checks must pass.
+- Authority-dependent live smokes and required production credentials (including SEC_USER_AGENT) must pass before any approved deployment.
+- Complete unit economics and genuine independent external-buyer evidence are unavailable; do not authorize commercial release.
+
+## 014 treasury-average-rate-trend
+
+Compare the latest official monthly average interest rate for one Treasury security description with the prior month's rate and return a bounded directional signal.
+
+- Endpoint: `GET /api/treasury-average-rate-trend`
+- Price: **$0.003000 USDC**
+- Decisions: `rising`, `falling`, `unchanged`, `human_review`
+- Sources: U.S. Treasury Fiscal Data monthly Average Interest Rates on U.S. Treasury Securities
+- Purchase frequency: **unmeasured**
+- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **23.0%**
+
+### Inputs
+
+- `security` (string; required, minLength=2, maxLength=100)
+- `minChangeBps` (integer; optional, default=1, min=1, max=1000)
+
+### Decision rules
+
+- Require the latest and prior monthly Treasury observations for exactly one unambiguous category.
+- Compute rate change in basis points and return rising, falling or unchanged relative to minChangeBps.
+- Do not describe a two-month comparison as a long-term trend or forecast.
+- the result is a mechanical comparison of official monthly average-interest-rate records
+- it is not an interest-rate forecast, investment advice, monetary-policy prediction, or recommendation
+- a two-month directional comparison is not a long-term trend determination
+
+### Failure behavior
+
+- Invalid input: HTTP 400; payment is not settled.
+- Required source failure: HTTP 502 with chargeable=false; payment is not settled.
+- Payment unresolved: HTTP 503; retry the same authorization.
+- Automatic reject: **false**
+
+### Launch gate
+
+- Status: `live-source-verified-staging`
+- Release gate: `scripts/validate-product-014.js`
+- Exact-head existing product release gates and deterministic/source checks must pass.
+- Authority-dependent live smokes and required production credentials (including SEC_USER_AGENT) must pass before any approved deployment.
+- Complete unit economics and genuine independent external-buyer evidence are unavailable; do not authorize commercial release.
+
+## 015 treasury-average-rate-spread
+
+Compare the latest official monthly weighted-average interest rates for two U.S. Treasury security categories from the same record date and classify their spread.
+
+- Endpoint: `GET /api/treasury-average-rate-spread`
+- Price: **$0.003000 USDC**
+- Decisions: `left_higher`, `right_higher`, `within_tolerance`, `human_review`
+- Sources: U.S. Treasury Fiscal Data monthly Average Interest Rates on U.S. Treasury Securities
+- Purchase frequency: **unmeasured**
+- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **23.0%**
+
+### Inputs
+
+- `leftSecurity` (string; required, minLength=2, maxLength=100)
+- `rightSecurity` (string; required, minLength=2, maxLength=100)
+- `toleranceBps` (number; optional, default=2, min=0, max=1000)
+
+### Decision rules
+
+- Require distinct security descriptions and two valid Treasury rate observations for the same record date.
+- Compute left-minus-right spread in basis points and apply inclusive tolerance.
+- A monthly average spread is not a live yield spread or trading signal.
+- the source values are monthly weighted-average rates on outstanding Treasury securities
+- the spread is not a live market yield spread
+- the result is not a forecast, curve-trading signal, or investment recommendation
+
+### Failure behavior
+
+- Invalid input: HTTP 400; payment is not settled.
+- Required source failure: HTTP 502 with chargeable=false; payment is not settled.
+- Payment unresolved: HTTP 503; retry the same authorization.
+- Automatic reject: **false**
+
+### Launch gate
+
+- Status: `live-source-verified-staging`
+- Release gate: `scripts/validate-product-015.js`
+- Exact-head existing product release gates and deterministic/source checks must pass.
+- Authority-dependent live smokes and required production credentials (including SEC_USER_AGENT) must pass before any approved deployment.
+- Complete unit economics and genuine independent external-buyer evidence are unavailable; do not authorize commercial release.
+
+## 016 pa-entity-ofac-review
+
+Resolve a prospective Pennsylvania company to a unique legal entity, then run deterministic current OFAC SDN primary-name and alias screening against the resolved legal name.
+
+- Endpoint: `GET /api/pa-entity-ofac-review`
+- Price: **$0.005000 USDC**
+- Decisions: `candidate_found`, `no_candidate`, `company_not_found`, `human_review`
+- Sources: Pennsylvania Department of State via data.pa.gov; U.S. Treasury OFAC SDN names and aliases
+- Purchase frequency: **unmeasured**
+- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **53.8%**
+
+### Inputs
+
+- `company` (string; required, minLength=2, maxLength=120)
+- `minScore` (integer; optional, default=90, min=70, max=100)
+
+### Decision rules
+
+- Resolve a unique strong Pennsylvania legal entity before screening the legal name, not the raw submitted name.
+- Use deterministic current OFAC name/alias candidates at caller-selected minScore.
+- A candidate is for review; no_candidate is not sanctions clearance or 50 Percent Rule ownership analysis.
+- candidate-name screening only; a candidate is not a legal sanctions determination
+- no_candidate is not sanctions clearance
+- OFAC 50 Percent Rule ownership analysis is not included
+- a Pennsylvania registry match does not prove good standing, ownership, or authority to contract
+
+### Failure behavior
+
+- Invalid input: HTTP 400; payment is not settled.
+- Required source failure: HTTP 502 with chargeable=false; payment is not settled.
+- Payment unresolved: HTTP 503; retry the same authorization.
+- Automatic reject: **false**
+
+### Launch gate
+
+- Status: `live-source-verified-staging`
+- Release gate: `scripts/validate-product-016.js`
+- Exact-head existing product release gates and deterministic/source checks must pass.
+- Authority-dependent live smokes and required production credentials (including SEC_USER_AGENT) must pass before any approved deployment.
+- Complete unit economics and genuine independent external-buyer evidence are unavailable; do not authorize commercial release.
+
+## 017 pa-vendor-new-domain-review
+
+Resolve a prospective Pennsylvania vendor to a unique legal entity, verify the supplied domain plausibly aligns with that resolved legal name, and flag recently registered domains for human review.
+
+- Endpoint: `GET /api/pa-vendor-new-domain-review`
+- Price: **$0.005000 USDC**
+- Decisions: `established_domain_match`, `recent_domain_review`, `domain_mismatch`, `unregistered_domain`, `company_not_found`, `human_review`
+- Sources: Pennsylvania Department of State via data.pa.gov; IANA DNS bootstrap and authoritative registry RDAP
+- Purchase frequency: **unmeasured**
+- Post-allowance margin floor before unknown hosting/failure/refund/maintenance costs: **53.8%**
+
+### Inputs
+
+- `company` (string; required, minLength=2, maxLength=120)
+- `domain` (string; required, minLength=3, maxLength=253)
+- `minDomainAgeDays` (integer; optional, default=90, min=1, max=3650)
+
+### Decision rules
+
+- Resolve a unique strong Pennsylvania legal entity before checking authoritative RDAP.
+- Domain-name alignment uses the resolved legal name and is not ownership verification.
+- Classify domain registration age at UTC-day granularity; recent registration is a review flag, never fraud proof.
+- domain-name alignment is a deterministic heuristic and does not prove domain ownership or control
+- recent registration is a review signal, not proof of fraud
+- an established domain is not proof that a vendor is safe or trustworthy
+- a Pennsylvania registry match does not prove good standing, ownership, or authority to contract
+
+### Failure behavior
+
+- Invalid input: HTTP 400; payment is not settled.
+- Required source failure: HTTP 502 with chargeable=false; payment is not settled.
+- Payment unresolved: HTTP 503; retry the same authorization.
+- Automatic reject: **false**
+
+### Launch gate
+
+- Status: `live-source-verified-staging`
+- Release gate: `scripts/validate-product-017.js`
+- Exact-head existing product release gates and deterministic/source checks must pass.
+- Authority-dependent live smokes and required production credentials (including SEC_USER_AGENT) must pass before any approved deployment.
+- Complete unit economics and genuine independent external-buyer evidence are unavailable; do not authorize commercial release.
+

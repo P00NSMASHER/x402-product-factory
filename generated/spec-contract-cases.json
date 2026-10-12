@@ -1460,6 +1460,753 @@
         "domain": "openai.com",
         "maxAgeDays": 90
       }
+    },
+    {
+      "id": "sec-company-identity-match:unpaid",
+      "kind": "payment_required",
+      "method": "GET",
+      "path": "/api/sec-company-identity-match",
+      "expected_status": 402,
+      "assertions": [
+        "PAYMENT-REQUIRED header present",
+        "x402 price matches spec",
+        "no source work required"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "Apple",
+        "ticker": "AAPL"
+      }
+    },
+    {
+      "id": "sec-company-identity-match:invalid-input",
+      "kind": "invalid_input",
+      "method": "GET",
+      "path": "/api/sec-company-identity-match",
+      "expected_status": 400,
+      "assertions": [
+        "payment is not settled"
+      ],
+      "price_usdc": "0.003",
+      "query": {}
+    },
+    {
+      "id": "sec-company-identity-match:malformed-payment",
+      "kind": "malformed_payment",
+      "method": "GET",
+      "path": "/api/sec-company-identity-match",
+      "expected_status": 402,
+      "assertions": [
+        "invalid payment returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "Apple",
+        "ticker": "AAPL"
+      }
+    },
+    {
+      "id": "sec-company-identity-match:verification-terminal",
+      "kind": "verification_terminal",
+      "method": "GET",
+      "path": "/api/sec-company-identity-match",
+      "expected_status": 402,
+      "assertions": [
+        "terminal verification returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "Apple",
+        "ticker": "AAPL"
+      }
+    },
+    {
+      "id": "sec-company-identity-match:required-source-failure",
+      "kind": "required_source_failure",
+      "method": "GET",
+      "path": "/api/sec-company-identity-match",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "Apple",
+        "ticker": "AAPL"
+      }
+    },
+    {
+      "id": "sec-company-identity-match:source-exception",
+      "kind": "source_exception",
+      "method": "GET",
+      "path": "/api/sec-company-identity-match",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "Apple",
+        "ticker": "AAPL"
+      }
+    },
+    {
+      "id": "sec-company-identity-match:payment-unresolved",
+      "kind": "payment_unresolved",
+      "method": "GET",
+      "path": "/api/sec-company-identity-match",
+      "expected_status": 503,
+      "assertions": [
+        "retrySamePayment=true"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "Apple",
+        "ticker": "AAPL"
+      }
+    },
+    {
+      "id": "sec-company-identity-match:settlement-terminal",
+      "kind": "settlement_terminal",
+      "method": "GET",
+      "path": "/api/sec-company-identity-match",
+      "expected_status": 402,
+      "assertions": [
+        "terminal settlement returns fresh challenge"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "Apple",
+        "ticker": "AAPL"
+      }
+    },
+    {
+      "id": "sec-company-identity-match:success",
+      "kind": "paid_success",
+      "method": "GET",
+      "path": "/api/sec-company-identity-match",
+      "expected_status": 200,
+      "allowed_decisions": [
+        "match",
+        "human_review",
+        "company_not_found"
+      ],
+      "assertions": [
+        "PAYMENT-RESPONSE header present",
+        "x402-settled=true",
+        "price matches spec"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "company": "Apple",
+        "ticker": "AAPL"
+      }
+    },
+    {
+      "id": "treasury-average-rate-trend:unpaid",
+      "kind": "payment_required",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-trend",
+      "expected_status": 402,
+      "assertions": [
+        "PAYMENT-REQUIRED header present",
+        "x402 price matches spec",
+        "no source work required"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "security": "Total Marketable",
+        "minChangeBps": 1
+      }
+    },
+    {
+      "id": "treasury-average-rate-trend:invalid-input",
+      "kind": "invalid_input",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-trend",
+      "expected_status": 400,
+      "assertions": [
+        "payment is not settled"
+      ],
+      "price_usdc": "0.003",
+      "query": {}
+    },
+    {
+      "id": "treasury-average-rate-trend:malformed-payment",
+      "kind": "malformed_payment",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-trend",
+      "expected_status": 402,
+      "assertions": [
+        "invalid payment returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "security": "Total Marketable",
+        "minChangeBps": 1
+      }
+    },
+    {
+      "id": "treasury-average-rate-trend:verification-terminal",
+      "kind": "verification_terminal",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-trend",
+      "expected_status": 402,
+      "assertions": [
+        "terminal verification returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "security": "Total Marketable",
+        "minChangeBps": 1
+      }
+    },
+    {
+      "id": "treasury-average-rate-trend:required-source-failure",
+      "kind": "required_source_failure",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-trend",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "security": "Total Marketable",
+        "minChangeBps": 1
+      }
+    },
+    {
+      "id": "treasury-average-rate-trend:source-exception",
+      "kind": "source_exception",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-trend",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "security": "Total Marketable",
+        "minChangeBps": 1
+      }
+    },
+    {
+      "id": "treasury-average-rate-trend:payment-unresolved",
+      "kind": "payment_unresolved",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-trend",
+      "expected_status": 503,
+      "assertions": [
+        "retrySamePayment=true"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "security": "Total Marketable",
+        "minChangeBps": 1
+      }
+    },
+    {
+      "id": "treasury-average-rate-trend:settlement-terminal",
+      "kind": "settlement_terminal",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-trend",
+      "expected_status": 402,
+      "assertions": [
+        "terminal settlement returns fresh challenge"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "security": "Total Marketable",
+        "minChangeBps": 1
+      }
+    },
+    {
+      "id": "treasury-average-rate-trend:success",
+      "kind": "paid_success",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-trend",
+      "expected_status": 200,
+      "allowed_decisions": [
+        "rising",
+        "falling",
+        "unchanged",
+        "human_review"
+      ],
+      "assertions": [
+        "PAYMENT-RESPONSE header present",
+        "x402-settled=true",
+        "price matches spec"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "security": "Total Marketable",
+        "minChangeBps": 1
+      }
+    },
+    {
+      "id": "treasury-average-rate-spread:unpaid",
+      "kind": "payment_required",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-spread",
+      "expected_status": 402,
+      "assertions": [
+        "PAYMENT-REQUIRED header present",
+        "x402 price matches spec",
+        "no source work required"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "leftSecurity": "Treasury Bills",
+        "rightSecurity": "Treasury Notes",
+        "toleranceBps": 2
+      }
+    },
+    {
+      "id": "treasury-average-rate-spread:invalid-input",
+      "kind": "invalid_input",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-spread",
+      "expected_status": 400,
+      "assertions": [
+        "payment is not settled"
+      ],
+      "price_usdc": "0.003",
+      "query": {}
+    },
+    {
+      "id": "treasury-average-rate-spread:malformed-payment",
+      "kind": "malformed_payment",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-spread",
+      "expected_status": 402,
+      "assertions": [
+        "invalid payment returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "leftSecurity": "Treasury Bills",
+        "rightSecurity": "Treasury Notes",
+        "toleranceBps": 2
+      }
+    },
+    {
+      "id": "treasury-average-rate-spread:verification-terminal",
+      "kind": "verification_terminal",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-spread",
+      "expected_status": 402,
+      "assertions": [
+        "terminal verification returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "leftSecurity": "Treasury Bills",
+        "rightSecurity": "Treasury Notes",
+        "toleranceBps": 2
+      }
+    },
+    {
+      "id": "treasury-average-rate-spread:required-source-failure",
+      "kind": "required_source_failure",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-spread",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "leftSecurity": "Treasury Bills",
+        "rightSecurity": "Treasury Notes",
+        "toleranceBps": 2
+      }
+    },
+    {
+      "id": "treasury-average-rate-spread:source-exception",
+      "kind": "source_exception",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-spread",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "leftSecurity": "Treasury Bills",
+        "rightSecurity": "Treasury Notes",
+        "toleranceBps": 2
+      }
+    },
+    {
+      "id": "treasury-average-rate-spread:payment-unresolved",
+      "kind": "payment_unresolved",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-spread",
+      "expected_status": 503,
+      "assertions": [
+        "retrySamePayment=true"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "leftSecurity": "Treasury Bills",
+        "rightSecurity": "Treasury Notes",
+        "toleranceBps": 2
+      }
+    },
+    {
+      "id": "treasury-average-rate-spread:settlement-terminal",
+      "kind": "settlement_terminal",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-spread",
+      "expected_status": 402,
+      "assertions": [
+        "terminal settlement returns fresh challenge"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "leftSecurity": "Treasury Bills",
+        "rightSecurity": "Treasury Notes",
+        "toleranceBps": 2
+      }
+    },
+    {
+      "id": "treasury-average-rate-spread:success",
+      "kind": "paid_success",
+      "method": "GET",
+      "path": "/api/treasury-average-rate-spread",
+      "expected_status": 200,
+      "allowed_decisions": [
+        "left_higher",
+        "right_higher",
+        "within_tolerance",
+        "human_review"
+      ],
+      "assertions": [
+        "PAYMENT-RESPONSE header present",
+        "x402-settled=true",
+        "price matches spec"
+      ],
+      "price_usdc": "0.003",
+      "query": {
+        "leftSecurity": "Treasury Bills",
+        "rightSecurity": "Treasury Notes",
+        "toleranceBps": 2
+      }
+    },
+    {
+      "id": "pa-entity-ofac-review:unpaid",
+      "kind": "payment_required",
+      "method": "GET",
+      "path": "/api/pa-entity-ofac-review",
+      "expected_status": 402,
+      "assertions": [
+        "PAYMENT-REQUIRED header present",
+        "x402 price matches spec",
+        "no source work required"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "minScore": 90
+      }
+    },
+    {
+      "id": "pa-entity-ofac-review:invalid-input",
+      "kind": "invalid_input",
+      "method": "GET",
+      "path": "/api/pa-entity-ofac-review",
+      "expected_status": 400,
+      "assertions": [
+        "payment is not settled"
+      ],
+      "price_usdc": "0.005",
+      "query": {}
+    },
+    {
+      "id": "pa-entity-ofac-review:malformed-payment",
+      "kind": "malformed_payment",
+      "method": "GET",
+      "path": "/api/pa-entity-ofac-review",
+      "expected_status": 402,
+      "assertions": [
+        "invalid payment returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "minScore": 90
+      }
+    },
+    {
+      "id": "pa-entity-ofac-review:verification-terminal",
+      "kind": "verification_terminal",
+      "method": "GET",
+      "path": "/api/pa-entity-ofac-review",
+      "expected_status": 402,
+      "assertions": [
+        "terminal verification returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "minScore": 90
+      }
+    },
+    {
+      "id": "pa-entity-ofac-review:required-source-failure",
+      "kind": "required_source_failure",
+      "method": "GET",
+      "path": "/api/pa-entity-ofac-review",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "minScore": 90
+      }
+    },
+    {
+      "id": "pa-entity-ofac-review:source-exception",
+      "kind": "source_exception",
+      "method": "GET",
+      "path": "/api/pa-entity-ofac-review",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "minScore": 90
+      }
+    },
+    {
+      "id": "pa-entity-ofac-review:payment-unresolved",
+      "kind": "payment_unresolved",
+      "method": "GET",
+      "path": "/api/pa-entity-ofac-review",
+      "expected_status": 503,
+      "assertions": [
+        "retrySamePayment=true"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "minScore": 90
+      }
+    },
+    {
+      "id": "pa-entity-ofac-review:settlement-terminal",
+      "kind": "settlement_terminal",
+      "method": "GET",
+      "path": "/api/pa-entity-ofac-review",
+      "expected_status": 402,
+      "assertions": [
+        "terminal settlement returns fresh challenge"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "minScore": 90
+      }
+    },
+    {
+      "id": "pa-entity-ofac-review:success",
+      "kind": "paid_success",
+      "method": "GET",
+      "path": "/api/pa-entity-ofac-review",
+      "expected_status": 200,
+      "allowed_decisions": [
+        "candidate_found",
+        "no_candidate",
+        "company_not_found",
+        "human_review"
+      ],
+      "assertions": [
+        "PAYMENT-RESPONSE header present",
+        "x402-settled=true",
+        "price matches spec"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "minScore": 90
+      }
+    },
+    {
+      "id": "pa-vendor-new-domain-review:unpaid",
+      "kind": "payment_required",
+      "method": "GET",
+      "path": "/api/pa-vendor-new-domain-review",
+      "expected_status": 402,
+      "assertions": [
+        "PAYMENT-REQUIRED header present",
+        "x402 price matches spec",
+        "no source work required"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "domain": "openai.com",
+        "minDomainAgeDays": 90
+      }
+    },
+    {
+      "id": "pa-vendor-new-domain-review:invalid-input",
+      "kind": "invalid_input",
+      "method": "GET",
+      "path": "/api/pa-vendor-new-domain-review",
+      "expected_status": 400,
+      "assertions": [
+        "payment is not settled"
+      ],
+      "price_usdc": "0.005",
+      "query": {}
+    },
+    {
+      "id": "pa-vendor-new-domain-review:malformed-payment",
+      "kind": "malformed_payment",
+      "method": "GET",
+      "path": "/api/pa-vendor-new-domain-review",
+      "expected_status": 402,
+      "assertions": [
+        "invalid payment returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "domain": "openai.com",
+        "minDomainAgeDays": 90
+      }
+    },
+    {
+      "id": "pa-vendor-new-domain-review:verification-terminal",
+      "kind": "verification_terminal",
+      "method": "GET",
+      "path": "/api/pa-vendor-new-domain-review",
+      "expected_status": 402,
+      "assertions": [
+        "terminal verification returns fresh challenge",
+        "no source work required"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "domain": "openai.com",
+        "minDomainAgeDays": 90
+      }
+    },
+    {
+      "id": "pa-vendor-new-domain-review:required-source-failure",
+      "kind": "required_source_failure",
+      "method": "GET",
+      "path": "/api/pa-vendor-new-domain-review",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "domain": "openai.com",
+        "minDomainAgeDays": 90
+      }
+    },
+    {
+      "id": "pa-vendor-new-domain-review:source-exception",
+      "kind": "source_exception",
+      "method": "GET",
+      "path": "/api/pa-vendor-new-domain-review",
+      "expected_status": 502,
+      "assertions": [
+        "chargeable=false",
+        "payment is not settled"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "domain": "openai.com",
+        "minDomainAgeDays": 90
+      }
+    },
+    {
+      "id": "pa-vendor-new-domain-review:payment-unresolved",
+      "kind": "payment_unresolved",
+      "method": "GET",
+      "path": "/api/pa-vendor-new-domain-review",
+      "expected_status": 503,
+      "assertions": [
+        "retrySamePayment=true"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "domain": "openai.com",
+        "minDomainAgeDays": 90
+      }
+    },
+    {
+      "id": "pa-vendor-new-domain-review:settlement-terminal",
+      "kind": "settlement_terminal",
+      "method": "GET",
+      "path": "/api/pa-vendor-new-domain-review",
+      "expected_status": 402,
+      "assertions": [
+        "terminal settlement returns fresh challenge"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "domain": "openai.com",
+        "minDomainAgeDays": 90
+      }
+    },
+    {
+      "id": "pa-vendor-new-domain-review:success",
+      "kind": "paid_success",
+      "method": "GET",
+      "path": "/api/pa-vendor-new-domain-review",
+      "expected_status": 200,
+      "allowed_decisions": [
+        "established_domain_match",
+        "recent_domain_review",
+        "domain_mismatch",
+        "unregistered_domain",
+        "company_not_found",
+        "human_review"
+      ],
+      "assertions": [
+        "PAYMENT-RESPONSE header present",
+        "x402-settled=true",
+        "price matches spec"
+      ],
+      "price_usdc": "0.005",
+      "query": {
+        "company": "OpenAI OpCo",
+        "domain": "openai.com",
+        "minDomainAgeDays": 90
+      }
     }
   ]
 }
