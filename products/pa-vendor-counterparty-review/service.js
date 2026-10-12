@@ -3,6 +3,21 @@
 const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
 const {domainNameAligned}=require("../pa-vendor-identity-match/service");
 const {assessCounterpartyReview}=require("./decision");
+
+// Upstream exceptions can contain private source URLs, headers or query data.
+// Never echo the exception message or an arbitrary upstream error.code in a
+// caller-facing non-chargeable 502 payload.
+const SAFE_SOURCE_ERROR_CODES=new Set([
+  "SOURCE_TIMEOUT","SOURCE_HTTP_ERROR","SOURCE_CONTRACT_INVALID",
+  "SOURCE_UNAVAILABLE","INVALID_INPUT"
+]);
+function safeSourceErrorCode(error){
+  const candidate=error?.code;
+  return typeof candidate==="string"&&SAFE_SOURCE_ERROR_CODES.has(candidate)
+    ?candidate
+    :"SOURCE_ADAPTER_FAILURE";
+}
+
 const {registryContradictions,contradictoryEvidence}=require("./evidence-contract");
 
 function normalizeDomain(raw){
@@ -62,7 +77,7 @@ function createCounterpartyReviewService({registry,ofac,rdap,now=()=>new Date().
     try{
       registryEvidence=normalizedEvidence("pa_registry",await registry.lookup({company:normalized.company}));
     }catch(error){
-      const detail=error?.code||error?.message||"lookup failed";
+      const detail=safeSourceErrorCode(error);
       sourceFailures.push({source:"pa_registry",detail});
       registryEvidence=sourceUnavailable("pa_registry",detail);
     }
@@ -101,7 +116,7 @@ function createCounterpartyReviewService({registry,ofac,rdap,now=()=>new Date().
         ofacEvidence=normalizedEvidence("ofac_sdn",ofacResult.value);
       }else{
         const error=ofacResult.reason;
-        const detail=error?.code||error?.message||"lookup failed";
+        const detail=safeSourceErrorCode(error);
         sourceFailures.push({source:"ofac_sdn",detail});
         ofacEvidence=sourceUnavailable("ofac_sdn",detail);
       }
@@ -118,7 +133,7 @@ function createCounterpartyReviewService({registry,ofac,rdap,now=()=>new Date().
         };
       }else{
         const error=rdapResult.reason;
-        const detail=error?.code||error?.message||"lookup failed";
+        const detail=safeSourceErrorCode(error);
         sourceFailures.push({source:"rdap",detail});
         rdapEvidence=sourceUnavailable("rdap",detail);
       }
