@@ -1,0 +1,31 @@
+name: Factory release-chain integrity (read-only)
+
+on:
+  pull_request:
+    paths:
+      - 'quality/governance/**'
+      - '.github/workflows/factory-release-chain-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+
+concurrency:
+  group: factory-release-chain-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  read-only-upstream-release-integrity:
+    name: Check pinned draft PR ancestry and exact-head CI (not release approval)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Validate manifest and hostile release-chain scenarios
+        run: node --test quality/governance/release-chain.test.js
+      - name: Audit actual upstream draft PRs and GitHub check provenance (GET-only)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node quality/governance/release-chain.js --audit-live
