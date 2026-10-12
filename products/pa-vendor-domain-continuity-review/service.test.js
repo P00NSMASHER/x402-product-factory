@@ -4,7 +4,7 @@ const {createVendorDomainContinuityService}=require("./service");
 
 function good(){
   return {
-    registry:{async lookup({company}){return{available:true,strongMatch:true,ambiguous:false,candidateCount:1,entity:{businessName:company,filingNumber:"1",registrationType:"LLC",address1:"100 Market St",city:"Pottsville",state:"PA",zip:"17901"}};}},
+    registry:{async lookup({company}){return{available:true,strongMatch:true,ambiguous:false,candidateCount:1,strongCandidateCount:1,identityComplete:true,matchScore:0,entity:{businessName:company,filingNumber:"1",registrationType:"LLC",address1:"100 Market St",city:"Pottsville",state:"PA",zip:"17901"}};}},
     rdap:{async lookup({domain}){return{available:true,registered:true,domain,events:{expiration:"2029-01-19T00:00:00Z",lastChanged:"2024-10-17T00:00:00Z"}};}}
   };
 }

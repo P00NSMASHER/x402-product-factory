@@ -14,11 +14,11 @@ test("service screens resolved legal name rather than raw query",async()=>{
   let screened=null;
   const service=createPaEntityOfacReviewService({
     registry:{async lookup(){return{
-      available:true,strongMatch:true,ambiguous:false,candidateCount:1,
+      available:true,strongMatch:true,ambiguous:false,candidateCount:1,strongCandidateCount:1,identityComplete:true,matchScore:0,
       entity:{businessName:"Openai Opco, Llc",filingNumber:"0014879623"}
     };}},
     ofac:{async lookup(input){screened=input;return{
-      available:true,totalCandidatesAboveThreshold:0,candidates:[]
+      available:true,query:input.name,minScore:input.minScore,totalCandidatesAboveThreshold:0,candidates:[]
     };}},
     now:()=>"2026-10-02T14:00:00.000Z"
   });
@@ -57,7 +57,7 @@ test("registry transport failure is non-chargeable and skips OFAC",async()=>{
 test("OFAC transport failure is non-chargeable after successful registry resolution",async()=>{
   const service=createPaEntityOfacReviewService({
     registry:{async lookup(){return{
-      available:true,strongMatch:true,ambiguous:false,candidateCount:1,
+      available:true,strongMatch:true,ambiguous:false,candidateCount:1,strongCandidateCount:1,identityComplete:true,matchScore:0,
       entity:{businessName:"Openai Opco, Llc"}
     };}},
     ofac:{async lookup(){const e=new Error("timeout");e.code="SOURCE_HTTP_ERROR";throw e;}}

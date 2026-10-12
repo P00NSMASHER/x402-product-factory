@@ -100,6 +100,12 @@ Run `node --test quality/benchmarks/018-live-source-probe.test.js` for determini
 
 Run `node --test quality/benchmarks/018-source-drift.test.js` without network. Schedule activation requires a separately reviewed merge.
 
+### Composite Product 016–020 paid-source integrity (draft)
+
+[Composite source quality gate](COMPOSITE_SOURCE_SAFETY.md) reuses the **exact same audited** Pennsylvania registry/OFAC/RDAP evidence validator as Product 018 in the four related staging products **016, 017, 019 and 020**. It rejects transport-success-but-unavailable responses, source-contract contradictions and invalid/unknown required RDAP timestamps **before settlement**, and sanitizes unknown adapter error codes. Legitimate OFAC candidates, unregistered domains, recently established businesses and short domain expiration runways remain completed **chargeable** review findings. The Product 018 behavior is unchanged.
+
+Tests exercise service decision boundaries and both handwritten/generated x402 handlers with injected source and facilitator responses—never real source/payment requests. Their green status does not establish buyer demand, current unit economics or approval to deploy.
+
 ### Test and release barriers
 
 The unchanged Factory product CI continues to run every existing staging release gate and all discovered tests, plus deterministic `--check` gates for these artifacts. Tests include tampered artifacts, unauthorized Product 025+ assertions, partial/private evidence input, inconsistent price arithmetic, duplicate trial entries, and fake approvals.

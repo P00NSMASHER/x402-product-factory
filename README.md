@@ -12,6 +12,10 @@ The draft [Quality Lab](quality/README.md) adds **all-22-product scorecards**, f
 
 The lab is an **offline precommercial review layer**, not a new pricing, billing, auto-launch, or Product 025+ creation system. Improvements to products 007, 018 and 024 are hypotheses awaiting real buyer/ground-truth comparison, not modifications of live product decision logic.
 
+## Composite source-quality upgrade (draft)
+
+A shared [vendor evidence-integrity gate](quality/benchmarks/COMPOSITE_SOURCE_SAFETY.md) expands fail-closed settlement safety from Product 018 to Products 016, 017, 019 and 020. Invalid required source evidence becomes non-chargeable, while complete adverse evidence remains a paid review. The change is an unmerged, undeployed draft and does not modify prices, source adapters or customer records.
+
 ## Current portfolio
 
 | # | Product | Status | Route | Price |

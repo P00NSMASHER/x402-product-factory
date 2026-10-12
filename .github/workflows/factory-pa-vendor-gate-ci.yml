@@ -65,6 +65,9 @@ jobs:
       - name: Check Product 018 settlement-safe source gate
         run: node --test products/pa-vendor-counterparty-review/evidence-gate.test.js
 
+      - name: Check composite PA vendor source safety and x402 settlement
+        run: node --test quality/benchmarks/composite-016-020-evidence-gate.test.js
+
       - name: Validate product registry
         run: node scripts/validate-registry.js
 
