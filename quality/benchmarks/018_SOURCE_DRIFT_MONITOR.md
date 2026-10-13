@@ -18,7 +18,18 @@ Every run writes a **redacted current observation, assessment, and markdown run 
 
 Retained fields are limited to observation time, fixed source IDs, compatibility/error codes, public GET counts, provider-claimed Last-Modified where supplied, and bounded **fixed-public-fixture** booleans/counts. No raw government data, actual names, addresses, OFAC identities, signed URLs, payment payloads, source logs, invoices, account IDs or buyer records are retained.
 
-If an earlier artifact is absent or expired, status is `BOOTSTRAP_BASELINE_PENDING`; do not claim drift was assessed without a previous observation.
+A genuine first same-branch run with **zero previously completed runs** reports `BOOTSTRAP_BASELINE_PENDING`. If an older completed run is known but its artifact is missing, corrupt, expired, from another branch, outside its Actions run time window, or fails the strict snapshot schema, the monitor returns **HOLD** rather than incorrectly bootstrapping. A failed GitHub run-list query is also **HOLD**, never "first observation."
+
+## Historical integrity and recovery
+
+The additional [baseline continuity gate](018-baseline-continuity.js) reads only previous **same-branch completed** GitHub Actions metadata and redacted artifacts. It checks up to 12 candidates from a bounded 30-run API listing, validates exact prior snapshot schema and file size, binds the observation timestamp to its associated completed run, and compares that selected timestamp with the current drift report.
+
+- **VERIFIED_PREVIOUS:** The most recent completed run contains a valid, in-window redacted source observation. The comparison must use that exact prior timestamp.
+- **NO_PREVIOUS_COMPLETED_RUN:** Genuine first run with no preceding completed same-branch run; baseline pending is a notice, not historical proof.
+- **HOLD_PRIOR_ARTIFACT_GAP:** The immediately preceding run has no trustworthy observation. An older validated snapshot can be compared for context, but the workflow **still fails** rather than claiming uninterrupted monitoring.
+- **HOLD_RUN_LOOKUP_UNAVAILABLE:** GitHub run history cannot be verified, including mismatched branch/completion metadata; the monitor fails rather than fabricating a clean first run.
+
+The repository stores neither tokens nor previous API payloads. GitHub's read-only actions token is used only for run metadata and the bounded, redacted artifact, and an allowlisted history status is included in the new current-run artifact. Any future alarm is only a reason to investigate the fixed-public source monitor and **never** a license to change vendor decisions, initiate payments or deploy.
 
 ## Alert policy
 
@@ -40,6 +51,7 @@ A failing job reports fixed, allowlisted reasons through GitHub Actions annotati
 
 ```bash
 node --test quality/benchmarks/018-source-drift.test.js
+node --test quality/benchmarks/018-baseline-continuity.test.js
 node --test quality/benchmarks/018-live-source-probe.test.js
 ```
 

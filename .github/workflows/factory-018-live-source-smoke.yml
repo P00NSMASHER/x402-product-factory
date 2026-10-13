@@ -11,6 +11,8 @@ on:
       - 'quality/benchmarks/018-live-source-probe.test.js'
       - 'quality/benchmarks/018-source-drift.js'
       - 'quality/benchmarks/018-source-drift.test.js'
+      - 'quality/benchmarks/018-baseline-continuity.js'
+      - 'quality/benchmarks/018-baseline-continuity.test.js'
       - '.github/workflows/factory-018-live-source-smoke.yml'
       - 'products/pa-vendor-counterparty-review/evidence-contract.js'
       - 'packages/sources/live-pa-identity.js'
@@ -32,35 +34,16 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: Validate source access policy and redacted drift monitor
-        run: node --test quality/benchmarks/018-live-source-probe.test.js quality/benchmarks/018-source-drift.test.js
+      - name: Validate public source policy, drift and baseline-continuity recovery
+        run: node --test quality/benchmarks/018-live-source-probe.test.js quality/benchmarks/018-source-drift.test.js quality/benchmarks/018-baseline-continuity.test.js
 
-      - name: Load most recent same-branch redacted source snapshot
+      - name: Restore trusted preceding observation or mark history gap
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/factory018-prior"
-          prior_branch="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
-          if ! prior_id="$(gh api --method GET \
-            "/repos/$GITHUB_REPOSITORY/actions/workflows/factory-018-live-source-smoke.yml/runs" \
-            -f branch="$prior_branch" -f status=completed -f per_page=30 \
-            --jq '.workflow_runs | map(select(.id != (env.GITHUB_RUN_ID | tonumber))) | .[0].id // ""' 2>/dev/null)"; then
-            echo "::notice title=Source baseline::Prior artifact could not be queried; begin a new comparison baseline."
-            exit 0
-          fi
-          if [[ "$prior_id" =~ ^[0-9]+$ ]]; then
-            if gh run download "$prior_id" -R "$GITHUB_REPOSITORY" \
-              -n "factory-018-redacted-source-observation" \
-              -D "$RUNNER_TEMP/factory018-prior" >/dev/null 2>&1; then
-              echo "::notice title=Source baseline::Retrieved a prior same-branch redacted observation."
-            else
-              echo "::notice title=Source baseline::Prior run has no usable redacted artifact; bootstrap a new baseline."
-            fi
-          else
-            echo "::notice title=Source baseline::First scheduled or branch-specific redacted observation."
-          fi
+          node quality/benchmarks/018-baseline-continuity.js --restore "$RUNNER_TEMP/factory018-prior"
 
       - name: Observe fixed public sources and compare drift
         shell: bash
@@ -83,8 +66,13 @@ jobs:
             ${{ runner.temp }}/factory018-current/current.json
             ${{ runner.temp }}/factory018-current/report.json
             ${{ runner.temp }}/factory018-current/summary.md
+            ${{ runner.temp }}/factory018-prior/history.json
           retention-days: 35
           if-no-files-found: warn
 
       - name: Alert when source compatibility or meaningful drift requires review
         run: node quality/benchmarks/018-source-drift.js --enforce "$RUNNER_TEMP/factory018-current/report.json"
+
+      - name: Fail closed on missing or misbound redacted history
+        if: always()
+        run: node quality/benchmarks/018-baseline-continuity.js --verify "$RUNNER_TEMP/factory018-prior/history.json" "$RUNNER_TEMP/factory018-current/report.json"
