@@ -4,6 +4,7 @@ on:
     paths:
       - 'packages/application-factory/**'
       - 'scripts/**'
+      - 'quality/browser/manufactured-applications.cjs'
       - '.github/workflows/factory-manufacturing-ci.yml'
   workflow_dispatch:
 permissions:
@@ -20,12 +21,16 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - name: Preserve exact-source diagnostic snapshot
-        run: git archive --format=tar -o "$RUNNER_TEMP/factory-source.tar" HEAD
       - name: Full-stack manufacturing contracts
         run: node --test packages/application-factory/manufacturing/*.test.js
       - name: Assemble and independently exercise every default edition
         run: node scripts/manufacture-applications.js --output "$RUNNER_TEMP/manufactured-applications"
+      - name: Install isolated browser-test dependency
+        run: npm install --prefix "$RUNNER_TEMP/manufacturing-browser" --no-save --ignore-scripts playwright@1.64.0
+      - name: Install Chromium
+        run: '"$RUNNER_TEMP/manufacturing-browser/node_modules/.bin/playwright" install --with-deps chromium'
+      - name: Native browser acceptance against manufactured packages
+        run: NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/manufactured-applications.cjs "$RUNNER_TEMP/manufactured-applications"
       - uses: actions/upload-artifact@v4
         if: success()
         with:
@@ -33,10 +38,4 @@ jobs:
           path: ${{ runner.temp }}/manufactured-applications
           retention-days: 7
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: manufacturing-source-diagnostic
-          path: ${{ runner.temp }}/factory-source.tar
-          retention-days: 1
-          if-no-files-found: error
+          include-hidden-files: false
