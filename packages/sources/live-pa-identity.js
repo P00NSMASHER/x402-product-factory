@@ -443,6 +443,29 @@ function eventMap(events) {
   return out;
 }
 
+// RDAP source payloads are untrusted even after a 200 response. Do not
+// ascribe another domain object's events to the requested domain by echoing
+// the query into normalized evidence. 404 remains a separate negative result.
+function requireRdapDomainIdentity(data, requested) {
+  let provided = null;
+  if (
+    data && typeof data === "object" && !Array.isArray(data) &&
+    data.objectClassName === "domain" &&
+    typeof data.ldhName === "string"
+  ) {
+    try {
+      provided = normalizeDomain(data.ldhName);
+    } catch (_) {
+      // Malformed upstream LDH names are source errors, not buyer input errors.
+    }
+  }
+  if (provided !== requested) {
+    const error = new Error("rdap_source_contract_invalid");
+    error.code = "SOURCE_CONTRACT_INVALID";
+    throw error;
+  }
+}
+
 function createRdapAdapter({
   fetchImpl = fetch,
   timeoutMs = SOURCE_TIMEOUT_MS,
@@ -517,6 +540,7 @@ function createRdapAdapter({
       }
 
       const data = await response.json();
+      requireRdapDomainIdentity(data, requested);
       const registrarEntity = Array.isArray(data?.entities)
         ? data.entities.find(
             (entity) =>
