@@ -3,14 +3,16 @@
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const {validateRecipe}=require('../kernel');
 const {buildOffer,renderOffer}=require('../growth/offers');
+const {buildDiscoveryKit}=require('../growth/prospecting');
 const ROOT=path.resolve(__dirname,'../../..');
 const PREFIX='packages/application-factory/';
 const SOURCE_FILES=Object.freeze([
   PREFIX+'kernel.js',
   PREFIX+'growth/offers.js',
+  PREFIX+'growth/prospecting.js',PREFIX+'growth/campaign.js',
   ...['runtime.js','http.js','worker.js','browser-routes.js','browser-sessions.js','browser-transport.js',
     'browser-client.js','browser.html','browser.css','pilot.js','vault.js','vault-http.js','recovery.js','recovery-supervisor.js'].map(n=>PREFIX+'runtime/'+n),
-  'scripts/run-application-runtime.js','scripts/application-recovery.js','scripts/application-pilots.js'
+  'scripts/run-application-runtime.js','scripts/application-recovery.js','scripts/application-pilots.js','scripts/create-acquisition-kit.js'
 ]);
 const fail=code=>{throw new Error(code);};
 const hash=value=>crypto.createHash('sha256').update(value).digest('hex');
@@ -36,9 +38,12 @@ function compileApplication(input,{sourceRoot=ROOT}={}){
   const offer=buildOffer(recipe);
   files['growth/offer.json']=JSON.stringify(offer,null,2)+'\n';
   files['growth/index.html']=renderOffer(offer);
+  const qualification=buildDiscoveryKit(recipe);
+  files['growth/qualification.json']=JSON.stringify(qualification,null,2)+'\n';
+  files['growth/research-questions.md']='# DRAFT ONLY — '+recipe.title+' buyer discovery\n\nNot approved for outbound contact, purchase, or public signup. No buyer problem, company fit, customers, savings, price, or revenue are established.\n\n'+qualification.questions.map((question,i)=>`${i+1}. ${question}`).join('\n')+'\n\nComplete owner review of public evidence, sender identity, lawful practices and unsubscribe handling before outreach.\n';
   files['package.json']=JSON.stringify({name:'factory-'+recipe.id,version:'0.0.0',private:true,
     description:recipe.outcome,engines:{node:'>=22.13.0'},scripts:{start:'node scripts/run-application-runtime.js serve',
-      provision:'node scripts/run-application-runtime.js provision',sweep:'node scripts/run-application-runtime.js sweep',recovery:'node scripts/application-recovery.js',pilots:'node scripts/application-pilots.js'}},null,2)+'\n';
+      provision:'node scripts/run-application-runtime.js provision',sweep:'node scripts/run-application-runtime.js sweep',recovery:'node scripts/application-recovery.js',pilots:'node scripts/application-pilots.js',acquisition:'node scripts/create-acquisition-kit.js'}},null,2)+'\n';
   files['README.md']='# '+recipe.title+' — assembled local candidate\n\n'+recipe.outcome+
     '\n\nThis package contains its own browser interface, persistent SQLite service, internal automation, opt-in encrypted evidence and verified recovery tools. Use synthetic data only; this is not a commercial launch or production security certification.\n\n'+
     'Requires Node.js 22.13+. No npm install or network dependencies are needed. Create private state OUTSIDE this application directory:\n\n'+
@@ -48,10 +53,11 @@ function compileApplication(input,{sourceRoot=ROOT}={}){
     'Evidence storage is disabled unless FACTORY_VAULT_KEY_HEX supplies an operator-managed random 256-bit hex key. Recovery additionally requires FACTORY_BACKUP_KEY_HEX and FACTORY_BACKUP_DIR. Never save keys or customer state in this package. Backups are local; key loss is not recoverable by this package.\n\n'+
     'Draft pilot page: growth/index.html (concept only, no contact collection or checkout). This package does not include an authenticated buyer-proof ledger; use the operator-only Growth Lab in the source repository to track redacted evidence. Public signup, hosted TLS, malware scanning, key custody/rotation, off-site backup, billing, customer acquisition and independent privacy/security approval are outstanding. No email, SMS, payments, telemetry, or sales are enabled.\n';
   files['README.md']+='\nInvitation-only synthetic evaluation: run scripts/application-pilots.js issue with --state-dir, --recipe-id '+recipe.id+' and --output pointing to a NEW private JSON file inside the state directory. Use the local /app/pilots/'+recipe.id+' preview to enter the privately issued code. Evaluation observations do not establish customer demand or revenue.\n';
+  files['README.md']+='\nDraft buyer acquisition: growth/qualification.json and growth/research-questions.md. Run scripts/create-acquisition-kit.js with a PRIVATE operator-reviewed organization source file. Nothing sends messages, collects personal contacts, prices products or charges buyers.\n';
   const inventory=Object.fromEntries(Object.entries(files).sort(([a],[b])=>a<b?-1:a>b?1:0).map(([name,content])=>[name,hash(content)]));
   const manifest={schemaVersion:1,generator:'full-stack-local-v1',recipeId:recipe.id,family:recipe.family,
     mode:'local-candidate',releaseApproved:false,billingEnabled:false,externalDelivery:false,realCustomers:null,collectedRevenue:null,marketValidation:'unverified',marketProof:null,
-    capabilities:['buyer-offer-preview','browser-workspace','credential-scoped-api','persistent-workflow','headless-internal-automation','opt-in-encrypted-evidence','opt-in-verified-recovery'],files:inventory};
+    capabilities:['buyer-offer-preview','browser-workspace','credential-scoped-api','persistent-workflow','headless-internal-automation','opt-in-encrypted-evidence','opt-in-verified-recovery','draft-buyer-acquisition'],files:inventory};
   const digest=hash(JSON.stringify(manifest));files['manifest.json']=JSON.stringify({...manifest,digest},null,2)+'\n';
   return {id:recipe.id,digest,manifest:{...manifest,digest},files};
 }

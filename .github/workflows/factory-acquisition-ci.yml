@@ -1,0 +1,41 @@
+name: Factory acquisition research safety
+on:
+  pull_request:
+    paths:
+      - 'packages/application-factory/growth/**'
+      - 'packages/application-factory/manufacturing/**'
+      - 'scripts/create-acquisition-kit.js'
+      - '.github/workflows/factory-acquisition-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: factory-acquisition-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  acquisition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Test public-source validation, suppression and private campaign controls
+        run: |
+          node --test packages/application-factory/growth/prospecting.test.js packages/application-factory/growth/campaign.test.js packages/application-factory/growth/acquisition-cli.test.js packages/application-factory/growth/acquisition-manufacturing.test.js
+      - name: Manufacture and verify three applications with draft-only kits
+        run: |
+          node scripts/manufacture-applications.js --output "$RUNNER_TEMP/factory-acquisition-candidates"
+          node - "$RUNNER_TEMP/factory-acquisition-candidates" <<'NODE'
+          const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+          const root=process.argv[2];const report=JSON.parse(fs.readFileSync(path.join(root,'manufacturing-report.json'),'utf8'));
+          assert.equal(report.accepted,3);assert.equal(report.failed,0);assert.equal(report.collectedRevenue,null);
+          for(const item of report.results){
+            const pkg=path.join(root,item.artifact),data=JSON.parse(fs.readFileSync(path.join(pkg,'growth/qualification.json'),'utf8'));
+            assert.equal(data.recipeId,item.id);assert.equal(data.outreachEnabled,false);assert.equal(data.checkoutEnabled,false);
+            assert.equal(data.realCustomers,null);assert.equal(data.priceCents,null);
+            assert.match(fs.readFileSync(path.join(pkg,'growth/research-questions.md'),'utf8'),/DRAFT ONLY/);
+          }
+          console.log(JSON.stringify({verified:true,editions:report.accepted,customerCount:null,revenue:null,transmittedMessages:0,releaseApproved:false}));
+          NODE
