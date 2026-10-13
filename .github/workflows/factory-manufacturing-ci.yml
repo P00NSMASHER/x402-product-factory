@@ -45,7 +45,8 @@ jobs:
       - name: Native fleet dashboard desktop/mobile acceptance
         run: NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/autonomous-fleet.cjs
       - name: Native six quote-to-order journeys on desktop and mobile
-        run: NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/quote-applications.cjs "$RUNNER_TEMP/quote-to-order-apps"
+        run: |
+          FACTORY_QUOTE_BROWSER_ARTIFACT_DIR="$RUNNER_TEMP/quote-browser-screenshots" NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/quote-applications.cjs "$RUNNER_TEMP/quote-to-order-apps"
       - uses: actions/upload-artifact@v4
         if: success()
         with:
@@ -59,6 +60,14 @@ jobs:
         with:
           name: quote-to-order-manufactured-applications
           path: ${{ runner.temp }}/quote-to-order-apps
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: quote-to-order-native-browser-screenshots
+          path: ${{ runner.temp }}/quote-browser-screenshots
           retention-days: 7
           if-no-files-found: error
           include-hidden-files: false
