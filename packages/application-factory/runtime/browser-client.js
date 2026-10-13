@@ -110,8 +110,14 @@
         $('workspace-select').replaceChildren(...list.map(w=>{const o=node('option',w.id.replaceAll('-',' '));o.value=w.id;return o;}));
       }
       $('workspace-select').value=selected;const id=selected;
-      const [data,inbox]=await Promise.all([connection.read('/app/api/workspaces/'+id),connection.read('/app/api/workspaces/'+id+'/inbox')]);
-      if(generation!==viewEpoch||!active||selected!==id)return;workspace=data;showState(inbox);
+      const [data,inbox,attachments]=await Promise.all([
+        connection.read('/app/api/workspaces/'+id),
+        connection.read('/app/api/workspaces/'+id+'/inbox'),
+        connection.read('/app/api/workspaces/'+id+'/documents').catch(error=>{
+          if(error.status===404)return null;throw error;
+        })
+      ]);
+      if(generation!==viewEpoch||!active||selected!==id)return;workspace=data;workspace.attachments=attachments;showState(inbox);
     }catch(error){problem(error);}finally{if(generation===viewEpoch)refreshing=false;}
   }
   async function activate(){active=true;viewEpoch++;$('login-panel').hidden=true;$('workspace-panel').hidden=false;message('');message('',true);await refresh();}
