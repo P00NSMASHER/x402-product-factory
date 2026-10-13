@@ -196,7 +196,14 @@ function captureRecovery({ stateDir, backupDir, key, vaultKey, clock = Date.now,
   const createdAt = timeCheck(clock()), { state, backups, sourceId } = configPaths(stateDir, backupDir);
   const sources = ['runtime.sqlite'];
   regular(path.join(state, sources[0]), MAX_DB);
-  if (fs.existsSync(path.join(state, 'documents.sqlite'))) {
+  let hasVault = false;
+  try {
+    const entry = fs.lstatSync(path.join(state, 'documents.sqlite'));
+    if (!entry.isFile() || entry.isSymbolicLink()) fail('STATE_PATH_UNSAFE');
+    hasVault = true;
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  if (!hasVault && vaultKey !== undefined) fail('STATE_MISSING');
+  if (hasVault) {
     if (!Buffer.isBuffer(vaultKey) || vaultKey.length !== 32) fail('VAULT_KEY_REQUIRED');
     sources.push('documents.sqlite');
   }
