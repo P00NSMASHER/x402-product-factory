@@ -1,0 +1,34 @@
+name: Factory connected browser acceptance
+on:
+  pull_request:
+    paths:
+      - 'packages/application-factory/**'
+      - 'quality/browser/**'
+      - '.github/workflows/factory-browser-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: factory-browser-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install isolated browser-test dependency
+        run: npm install --prefix "$RUNNER_TEMP/factory-browser" --no-save --ignore-scripts playwright@1.64.0
+      - name: Install Chromium for native local-service acceptance
+        run: '"$RUNNER_TEMP/factory-browser/node_modules/.bin/playwright" install --with-deps chromium'
+      - name: Exercise all connected editions and restart recovery
+        run: NODE_PATH="$RUNNER_TEMP/factory-browser/node_modules" FACTORY_BROWSER_ARTIFACT_DIR="$RUNNER_TEMP/factory-browser-artifacts" node quality/browser/connected-workspaces.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: connected-workspace-evidence
+          path: ${{ runner.temp }}/factory-browser-artifacts
+          retention-days: 7
+          if-no-files-found: error

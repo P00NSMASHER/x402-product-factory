@@ -1,9 +1,10 @@
 "use strict";
 const http=require('node:http');
 const {startWorker}=require('./worker');
+const {createBrowserRoutes}=require('./browser-routes');
 const MAX_BODY=16384;
 const ERRORS=new Map([
-  ['UNAUTHORIZED',401],['FORBIDDEN',403],['NOT_FOUND',404],['BODY_TOO_LARGE',413],['CONTENT_TYPE_INVALID',415],
+  ['RATE_LIMIT',429],['SESSION_LIMIT',503],['UNAUTHORIZED',401],['FORBIDDEN',403],['NOT_FOUND',404],['BODY_TOO_LARGE',413],['CONTENT_TYPE_INVALID',415],
   ['WORKSPACE_CONFLICT',409],['IDEMPOTENCY_CONFLICT',409],['VERSION_CONFLICT',409],['CAPACITY_LIMIT',409],
   ...['BAD_REQUEST','COMMAND_INVALID','WORKSPACE_INVALID','IDEMPOTENCY_KEY_INVALID','VERSION_INVALID','RECORD_INVALID',
     'RECORD_UNKNOWN','RECORD_ARCHIVED','DOCUMENT_UNKNOWN','DOCUMENT_INVALID','EXPIRY_INVALID','EXPIRY_NOT_ALLOWED',
@@ -22,14 +23,17 @@ async function readBody(req){
 function createRuntimeServer({runtime,automation=true,pollMs=1000}={}){
   if(!runtime||typeof runtime.command!=='function'||typeof automation!=='boolean')throw new Error('SERVER_CONFIG_INVALID');
   let worker=null;
-  function send(res,status,body){
-    res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});
+  function send(res,status,body,headers={}){
+    res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff',...headers});
     res.end(JSON.stringify(body));
   }
+  const browser=createBrowserRoutes({runtime,readBody,send});
   const server=http.createServer({maxHeaderSize:8192},async(req,res)=>{
     try{
-      if(req.headers.origin!==undefined||req.headers.host!==`127.0.0.1:${server.address()?.port}`)reject('FORBIDDEN');
+      if(req.headers.host!==`127.0.0.1:${server.address()?.port}`)reject('FORBIDDEN');
       const url=req.url||'';if(url.length>240||url.includes('?')||url.includes('%')||!url.startsWith('/'))reject('BAD_REQUEST');
+      if(await browser.handle(req,res,`http://127.0.0.1:${server.address()?.port}`))return;
+      if(req.headers.origin!==undefined)reject('FORBIDDEN');
       if(req.method==='GET'&&url==='/health')return send(res,200,{status:'ok',mode:'local-development',releaseApproved:false});
       const auth=req.headers.authorization||'';if(!/^Bearer [A-Za-z0-9_-]{43}$/.test(auth))reject('UNAUTHORIZED');
       const token=auth.slice(7);runtime.workspaces(token); // Authenticate before parsing any mutation.
@@ -56,7 +60,7 @@ function createRuntimeServer({runtime,automation=true,pollMs=1000}={}){
       if(automation)worker=startWorker(runtime,{pollMs});return server.address();
     },
     workerStatus(){return worker?.status()||{running:false};},
-    async close(){worker?.stop();server.closeAllConnections();if(server.listening)await new Promise((resolve,rejectPromise)=>server.close(error=>error?rejectPromise(error):resolve()));}
+    async close(){browser.close();worker?.stop();server.closeAllConnections();if(server.listening)await new Promise((resolve,rejectPromise)=>server.close(error=>error?rejectPromise(error):resolve()));}
   });
 }
 module.exports={createRuntimeServer,MAX_BODY};
