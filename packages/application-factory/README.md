@@ -63,3 +63,7 @@ Repeated cycles are deduplicated within each record's configured interval.
    generated UI is not demand evidence; scale only on real observed outcomes.
 
 Full design: `docs/superpowers/specs/2026-10-13-application-factory.md`.
+
+## Complete runnable application manufacturing
+
+The browser-prototype compiler above remains available. For the integrated local server/browser/evidence/recovery stack, use `node scripts/manufacture-applications.js --output /absolute/private/output`. The resumable assembly line builds, verifies and executes each default edition before accepting its package. See `manufacturing/README.md` for operator commands, retry/quarantine behavior and the distinction between 100 configuration tests and actual full-service acceptance. This does not deploy the applications or authorize commercial release.

@@ -2,10 +2,12 @@
 // Copies only trusted factory implementation files; never crawls live state or arbitrary dependencies.
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const {validateRecipe}=require('../kernel');
+const {buildOffer,renderOffer}=require('../growth/offers');
 const ROOT=path.resolve(__dirname,'../../..');
 const PREFIX='packages/application-factory/';
 const SOURCE_FILES=Object.freeze([
   PREFIX+'kernel.js',
+  PREFIX+'growth/offers.js',
   ...['runtime.js','http.js','worker.js','browser-routes.js','browser-sessions.js','browser-transport.js',
     'browser-client.js','browser.html','browser.css','vault.js','vault-http.js','recovery.js','recovery-supervisor.js'].map(n=>PREFIX+'runtime/'+n),
   'scripts/run-application-runtime.js','scripts/application-recovery.js'
@@ -31,6 +33,9 @@ function sourceFiles(sourceRoot){
 function compileApplication(input,{sourceRoot=ROOT}={}){
   const recipe=validateRecipe(input),files=sourceFiles(sourceRoot);
   files[PREFIX+'recipes.json']=JSON.stringify([recipe],null,2)+'\n';
+  const offer=buildOffer(recipe);
+  files['growth/offer.json']=JSON.stringify(offer,null,2)+'\n';
+  files['growth/index.html']=renderOffer(offer);
   files['package.json']=JSON.stringify({name:'factory-'+recipe.id,version:'0.0.0',private:true,
     description:recipe.outcome,engines:{node:'>=22.13.0'},scripts:{start:'node scripts/run-application-runtime.js serve',
       provision:'node scripts/run-application-runtime.js provision',sweep:'node scripts/run-application-runtime.js sweep',recovery:'node scripts/application-recovery.js'}},null,2)+'\n';
@@ -41,11 +46,11 @@ function compileApplication(input,{sourceRoot=ROOT}={}){
     'node scripts/run-application-runtime.js serve --state-dir /absolute/private/state --port 8789\n```\n\n'+
     'Open the loopback service /app path, then use the privately issued workspace key. Do not expose the loopback HTTP service publicly. Closing the browser does not stop the running service; stopping the service stops its worker.\n\n'+
     'Evidence storage is disabled unless FACTORY_VAULT_KEY_HEX supplies an operator-managed random 256-bit hex key. Recovery additionally requires FACTORY_BACKUP_KEY_HEX and FACTORY_BACKUP_DIR. Never save keys or customer state in this package. Backups are local; key loss is not recoverable by this package.\n\n'+
-    'Public signup, hosted TLS, malware scanning, key custody/rotation, off-site backup, billing, customer acquisition and independent privacy/security approval are outstanding. No email, SMS, payments, telemetry, or sales are enabled.\n';
+    'Draft pilot page: growth/index.html (concept only, no contact collection or checkout). This package does not include an authenticated buyer-proof ledger; use the operator-only Growth Lab in the source repository to track redacted evidence. Public signup, hosted TLS, malware scanning, key custody/rotation, off-site backup, billing, customer acquisition and independent privacy/security approval are outstanding. No email, SMS, payments, telemetry, or sales are enabled.\n';
   const inventory=Object.fromEntries(Object.entries(files).sort(([a],[b])=>a<b?-1:a>b?1:0).map(([name,content])=>[name,hash(content)]));
   const manifest={schemaVersion:1,generator:'full-stack-local-v1',recipeId:recipe.id,family:recipe.family,
-    mode:'local-candidate',releaseApproved:false,billingEnabled:false,externalDelivery:false,realCustomers:null,collectedRevenue:null,
-    capabilities:['browser-workspace','credential-scoped-api','persistent-workflow','headless-internal-automation','opt-in-encrypted-evidence','opt-in-verified-recovery'],files:inventory};
+    mode:'local-candidate',releaseApproved:false,billingEnabled:false,externalDelivery:false,realCustomers:null,collectedRevenue:null,marketValidation:'unverified',marketProof:null,
+    capabilities:['buyer-offer-preview','browser-workspace','credential-scoped-api','persistent-workflow','headless-internal-automation','opt-in-encrypted-evidence','opt-in-verified-recovery'],files:inventory};
   const digest=hash(JSON.stringify(manifest));files['manifest.json']=JSON.stringify({...manifest,digest},null,2)+'\n';
   return {id:recipe.id,digest,manifest:{...manifest,digest},files};
 }

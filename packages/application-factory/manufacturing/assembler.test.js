@@ -12,7 +12,7 @@ function unit(t){
 test('compiles a deterministic complete app with exactly one selected workflow',t=>{
   unit(t);const a=A.compileApplication(recipes[0]),b=A.compileApplication(structuredClone(recipes[0]));
   assert.deepEqual(a,b);assert.match(a.digest,/^[0-9a-f]{64}$/);
-  for(const file of ['scripts/run-application-runtime.js','scripts/application-recovery.js','packages/application-factory/runtime/browser.html','packages/application-factory/runtime/runtime.js','packages/application-factory/runtime/vault.js','packages/application-factory/runtime/recovery.js','package.json','manifest.json'])assert.ok(a.files[file],file);
+  for(const file of ['scripts/run-application-runtime.js','scripts/application-recovery.js','packages/application-factory/runtime/browser.html','packages/application-factory/runtime/runtime.js','packages/application-factory/runtime/vault.js','packages/application-factory/runtime/recovery.js','package.json','manifest.json','growth/index.html','growth/offer.json'])assert.ok(a.files[file],file);
   assert.deepEqual(JSON.parse(a.files['packages/application-factory/recipes.json']),[recipes[0]]);
   assert.equal(a.manifest.releaseApproved,false);assert.equal(a.manifest.billingEnabled,false);assert.equal(a.manifest.externalDelivery,false);
 });
