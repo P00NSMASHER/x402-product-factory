@@ -51,3 +51,39 @@ test('bad schedules and unsafe output roots are rejected',t=>{
  subject.planRecovery({at:time(2),outputRoot:d,windowCycles}),/RECOVERY_CONFIG_INVALID/);
  assert.throws(()=>subject.planRecovery({at:time(2),outputRoot:'relative'}),/OUTPUT_UNSAFE/);
 });
+
+test('a fixture-only acceptance receipt is explicitly rechecked instead of counted completed',t=>{
+ const d=output(t);
+ runCycle({at:time(0),outputRoot:d,accept:standIn});
+ const p=subject.planRecovery({at:time(0),outputRoot:d,windowCycles:1});
+ assert.equal(p.selectedCycle,0);assert.equal(p.nextAction,'requires_real_acceptance');
+ assert.equal(p.skippedCompleted,0);
+});
+test('quarantine is not automatically retried across supervisor invocations',t=>{
+ const d=output(t);
+ runCycle({at:time(0),outputRoot:d,accept:()=>{throw Error('synthetic failure');}});
+ const p=subject.runRecovery({at:time(0),outputRoot:d,windowCycles:1});
+ assert.equal(p.selectedCycle,null);assert.equal(p.accepted,0);assert.equal(p.skippedQuarantined,1);
+ assert.equal(p.failed,0);assert.equal(p.releaseApproved,false);
+});
+test('malformed stored acceptance evidence cannot turn an old build into accepted work',t=>{
+ if(standIn===acceptance)return;
+ const d=output(t),r=runCycle({at:time(0),outputRoot:d});
+ assert.equal(r.accepted,1);
+ const artifact=r.artifacts[0].artifact;
+ fs.writeFileSync(path.join(d,'verification',artifact+'.json'),'{"passed":false}');
+ assert.throws(()=>subject.planRecovery({at:time(0),outputRoot:d,windowCycles:1}),/RECOVERY_RECEIPT_INVALID/);
+});
+test('stored accepted artifact checksum drift prevents automatic reuse',t=>{
+ if(standIn===acceptance)return;
+ const d=output(t),r=runCycle({at:time(0),outputRoot:d});
+ assert.equal(r.accepted,1);
+ fs.appendFileSync(path.join(d,r.artifacts[0].artifact,'README.md'),'\nchanged bytes');
+ assert.throws(()=>subject.planRecovery({at:time(0),outputRoot:d,windowCycles:1}),/RECOVERY_ARTIFACT_INVALID/);
+});
+test('existing exclusive recovery lock prevents overlapping supervisors',t=>{
+ const d=output(t),state=path.join(d,'autonomy');fs.mkdirSync(state,{mode:0o700});
+ const lock=path.join(state,'.supervisor.lock');fs.writeFileSync(lock,'in progress',{mode:0o600});
+ assert.throws(()=>subject.runRecovery({at:time(1),outputRoot:d,windowCycles:2}),/RECOVERY_BUSY/);
+ assert.equal(fs.readFileSync(lock,'utf8'),'in progress');
+});
