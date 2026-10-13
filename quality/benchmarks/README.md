@@ -98,7 +98,7 @@ Run `node --test quality/benchmarks/018-live-source-probe.test.js` for determini
 
 [Product 018 drift watch](018_SOURCE_DRIFT_MONITOR.md) adds a fixed-source comparison engine and a proposed daily GitHub Actions trigger. It persists strictly sanitized source status, bounded test counts and provider-reported Last-Modified metadata—not names, address evidence, raw records or signed URLs. A failed watch alerts through GitHub's normal failed-workflow status; it never approves a release.
 
-Run `node --test quality/benchmarks/018-source-drift.test.js` without network. Schedule activation requires a separately reviewed merge.
+Run `node --test quality/benchmarks/018-source-drift.test.js quality/benchmarks/018-baseline-continuity.test.js` without network. **Continuity fails closed** when the latest completed same-branch public-source workflow run has missing, corrupt or mis-scoped redacted evidence, even if an older artifact can be read; a run-lookup error cannot masquerade as a first-run bootstrap. Schedule activation still requires a separately reviewed default-branch merge.
 
 ### Composite Product 016–020 paid-source integrity (draft)
 
