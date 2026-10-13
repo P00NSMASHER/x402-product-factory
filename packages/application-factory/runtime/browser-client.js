@@ -45,7 +45,7 @@
   }
   function showDetail(){
     if(!workspace||!recordId)return;const row=workspace.records.find(r=>r.id===recordId);if(!row)return;
-    const key=[row.id,row.revision,row.status].join(':');if(key===detailKey)return;detailKey=key;
+    const key=[row.id,row.revision,row.status,...(workspace.attachments||[]).filter(a=>a.recordId===row.id).map(a=>a.id)].join(':');if(key===detailKey)return;detailKey=key;
     $('detail-title').textContent=row.name;const fragment=document.createDocumentFragment();
     for(const requirement of workspace.recipe.requirements){
       const doc=row.documents[requirement.id],form=node('form');form.append(node('h3',requirement.label));
@@ -60,6 +60,24 @@
       form.addEventListener('submit',async event=>{event.preventDefault();if(busy||connection.hasPending())return;
         await mutate({type:'receive',recordId:row.id,requirementId:requirement.id,...(requirement.renewable?{expiresOn:expiry.value}:{})});
       });fragment.append(form);
+      if(Array.isArray(workspace.attachments)){
+        const attached=workspace.attachments.filter(a=>a.recordId===row.id&&a.requirementId===requirement.id);
+        for(const item of attached){
+          const link=node('a','Download '+item.name);link.href='/app/api/workspaces/'+selected+'/documents/'+item.id;
+          link.download=item.name;link.rel='noopener';fragment.append(node('p','Saved encrypted evidence · '+item.size+' bytes','muted'),link);
+        }
+        if(!row.archived){
+          const uploadForm=node('form'),fileInput=node('input'),attach=node('button','Attach document');
+          fileInput.type='file';fileInput.accept='.pdf,.png,.jpg,.jpeg';
+          fileInput.setAttribute('aria-label','Select document for '+requirement.label);
+          attach.type='submit';attach.dataset.write='';
+          uploadForm.append(fileInput,attach);
+          uploadForm.addEventListener('submit',async event=>{event.preventDefault();const file=fileInput.files?.[0];
+            if(file)await uploadFile(row.id,requirement.id,file);
+          });
+          fragment.append(uploadForm);
+        }
+      }
     }
     $('documents').replaceChildren(fragment);$('archive-record').hidden=row.archived;writeControls();
   }
