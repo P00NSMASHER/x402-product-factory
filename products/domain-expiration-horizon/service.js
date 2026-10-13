@@ -1,6 +1,6 @@
 "use strict";
-const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
-const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
+const {trackRequiredEvidence,safeSourceErrorCode,requireAdapter,sourceUnavailable}=require("../../packages/sources/contracts");
+const {guardDomainEvidence}=require("../../packages/sources/domain-evidence-contract");
 const {validateDomainAgeInput}=require("../domain-registration-age/service");
 const {assessDomainExpiration}=require("./decision");
 
@@ -12,17 +12,17 @@ function validateExpirationInput(input){
   if(!Number.isSafeInteger(horizonDays)||horizonDays<1||horizonDays>3650){const e=new Error("horizonDays must be between 1 and 3650");e.code="INVALID_INPUT";throw e;}
   return{domain:base.domain,horizonDays};
 }
-
 function createDomainExpirationService({rdap,now=()=>new Date().toISOString()}){
   requireAdapter("rdap",rdap,"lookup");
   return{async check(input){
     const normalized=validateExpirationInput(input);
     const sourceFailures=[];
-  const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);
     let evidence;
-    try{evidence=recordEvidence("rdap",await rdap.lookup({domain:normalized.domain}));}
+    try{evidence=trackRequiredEvidence("rdap",await rdap.lookup({domain:normalized.domain}),sourceFailures);}
     catch(error){const detail=safeSourceErrorCode(error);sourceFailures.push({source:"rdap",detail});evidence=sourceUnavailable("rdap",detail);}
-    const result=assessDomainExpiration(evidence,{horizonDays:normalized.horizonDays,now:now()});
+    const observedAt=now();
+    evidence=guardDomainEvidence({evidence,profile:"expiration",domain:normalized.domain,now:observedAt,sourceFailures});
+    const result=assessDomainExpiration(evidence,{horizonDays:normalized.horizonDays,now:observedAt});
     return{...result,input:normalized,sourceFailures,chargeable:sourceFailures.length===0,evidence};
   }};
 }

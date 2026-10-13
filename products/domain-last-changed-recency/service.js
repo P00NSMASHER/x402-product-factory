@@ -1,6 +1,6 @@
 "use strict";
-const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
-const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
+const {trackRequiredEvidence,safeSourceErrorCode,requireAdapter,sourceUnavailable}=require("../../packages/sources/contracts");
+const {guardDomainEvidence}=require("../../packages/sources/domain-evidence-contract");
 const {validateDomainAgeInput}=require("../domain-registration-age/service");
 const {assessDomainLastChanged}=require("./decision");
 function validateRecencyInput(input){
@@ -16,11 +16,12 @@ function createDomainLastChangedService({rdap,now=()=>new Date().toISOString()})
   return{async check(input){
     const normalized=validateRecencyInput(input);
     const sourceFailures=[];
-  const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);
     let evidence;
-    try{evidence=recordEvidence("rdap",await rdap.lookup({domain:normalized.domain}));}
+    try{evidence=trackRequiredEvidence("rdap",await rdap.lookup({domain:normalized.domain}),sourceFailures);}
     catch(error){const detail=safeSourceErrorCode(error);sourceFailures.push({source:"rdap",detail});evidence=sourceUnavailable("rdap",detail);}
-    const result=assessDomainLastChanged(evidence,{maxAgeDays:normalized.maxAgeDays,now:now()});
+    const observedAt=now();
+    evidence=guardDomainEvidence({evidence,profile:"lastChanged",domain:normalized.domain,now:observedAt,sourceFailures});
+    const result=assessDomainLastChanged(evidence,{maxAgeDays:normalized.maxAgeDays,now:observedAt});
     return{...result,input:normalized,sourceFailures,chargeable:sourceFailures.length===0,evidence};
   }};
 }

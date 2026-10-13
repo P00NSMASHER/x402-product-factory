@@ -77,6 +77,9 @@ jobs:
       - name: Verify SEC and Treasury field-level x402 source validity
         run: node --test quality/benchmarks/sec-treasury-evidence-gate.test.js
 
+      - name: Verify standalone domain fields, UTC dates and nonchargeable corrupt evidence
+        run: node --test quality/benchmarks/domain-field-evidence-gate.test.js
+
       - name: Verify joined 22-product source quality and source-history continuity
         run: node --test quality/integration/source-safety-and-history.test.js
 
