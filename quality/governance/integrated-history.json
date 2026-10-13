@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "report_type": "PINNED_SIDE_BRANCH_SOURCE_HISTORY_INTEGRATION",
+  "repository": "P00NSMASHER/x402-product-factory",
+  "integration_target": {
+    "pr_number": 21,
+    "head_branch": "factory/ofac-refresh-failclosed-20261012",
+    "reviewed_head_sha": "0d9a9796cad369dfc3add73cd94ed91c88242ceb"
+  },
+  "source_history_branch": {
+    "pr_number": 18,
+    "head_branch": "factory/018-source-history-continuity-20261012",
+    "base_branch": "factory/018-public-source-drift-watch-20261012",
+    "base_sha": "fc7079ac215d699479162e868550f172798ecd24",
+    "reviewed_head_sha": "1a5059fa584a30ad6fd410c96cfeda5851394010",
+    "required_workflows": [
+      "Factory product CI",
+      "Factory 018 public source compatibility"
+    ]
+  },
+  "critical_files": [
+    {
+      "path": "quality/benchmarks/018-baseline-continuity.js",
+      "expected_git_blob_sha": "3cde199a1fae974d37d56ed9d96521be459e0f9b"
+    },
+    {
+      "path": "quality/benchmarks/018-baseline-continuity.test.js",
+      "expected_git_blob_sha": "db8cde85a29caf43de9bcbac490565da18296b7b"
+    },
+    {
+      "path": "quality/benchmarks/018-live-source-probe.js",
+      "expected_git_blob_sha": "95526a0d36acdbbe66aeb927feaa1fb19c52db45"
+    },
+    {
+      "path": "quality/benchmarks/018-live-source-probe.test.js",
+      "expected_git_blob_sha": "beef7d87a3d4c2e7ee27a01748a2f199553dab66"
+    }
+  ],
+  "schedule_default_branch_active": false,
+  "verified_external_customers": null,
+  "authenticated_real_payment": null,
+  "price_wallet_production_changes_authorized": false,
+  "product_025_unlocked": false
+}

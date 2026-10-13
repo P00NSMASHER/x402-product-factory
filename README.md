@@ -28,6 +28,10 @@ The lab is an **offline precommercial review layer**, not a new pricing, billing
 
 A shared [vendor evidence-integrity gate](quality/benchmarks/COMPOSITE_SOURCE_SAFETY.md) expands fail-closed settlement safety from Product 018 to Products 016, 017, 019 and 020. Invalid required source evidence becomes non-chargeable, while complete adverse evidence remains a paid review. The change is an unmerged, undeployed draft and does not modify prices, source adapters or customer records.
 
+## Integrated release graph integrity (draft)
+
+The draft [release graph gate](quality/governance/README.md) now checks all 14 stacked main PRs through Product 018 source-history + 22-product billing safety + OFAC bounded refresh, and independently verifies that PR #18's critical source-history files were preserved in the combined branch. This is **read-only technical provenance**, not release approval.
+
 ## Current portfolio
 
 | # | Product | Status | Route | Price |
