@@ -48,7 +48,17 @@ jobs:
         run: node scripts/validate-js-syntax.js
 
       - name: Run all discovered factory tests
-        run: node scripts/run-all-tests.js
+        run: |
+          # Preserve the test runner's failure status; only bound console output.
+          if node scripts/run-all-tests.js > /tmp/factory-tests.log 2>&1; then
+            grep -E '^=== TEST |testFiles|^.*(tests|pass|fail) [0-9]+$' /tmp/factory-tests.log | tail -n 100 || true
+            tail -n 5 /tmp/factory-tests.log
+          else
+            status=$?
+            grep -n -A 12 -B 1 -E '✖|not ok|Error:|error:|AssertionError' /tmp/factory-tests.log | tail -n 300 || true
+            tail -n 24 /tmp/factory-tests.log
+            exit "$status"
+          fi
 
       - name: Verify OFAC bounded-cache and settlement safety
         run: node --test packages/sources/ofac-cache-freshness.test.js packages/sources/ofac-cache-settlement.test.js
