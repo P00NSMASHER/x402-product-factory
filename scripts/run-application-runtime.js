@@ -3,6 +3,7 @@ const fs=require('node:fs'),path=require('node:path');
 const {openRuntime}=require('../packages/application-factory/runtime/runtime');
 const {createRuntimeServer}=require('../packages/application-factory/runtime/http');
 const {openVault}=require('../packages/application-factory/runtime/vault');
+const {recoveryFromEnvironment}=require('../packages/application-factory/runtime/recovery-supervisor');
 const recipes=require('../packages/application-factory/recipes.json');
 const ROOT=path.resolve(__dirname,'..');
 function outsideRepository(raw){
@@ -19,7 +20,7 @@ async function main(args=process.argv.slice(2)){
   if(mode!=='serve'&&flags['--port'])throw new Error('USAGE_INVALID');
   const dir=outsideRepository(flags['--state-dir']);
   const runtime=openRuntime({filename:path.join(dir,'runtime.sqlite'),recipes});
-  let vault;
+  let vault,recovery;
   try{
     if(mode==='serve'&&process.env.FACTORY_VAULT_KEY_HEX){
       const source=process.env.FACTORY_VAULT_KEY_HEX;
@@ -40,13 +41,15 @@ async function main(args=process.argv.slice(2)){
     }
     if(mode==='sweep'){console.log(JSON.stringify({...runtime.sweep(),externalMessagesSent:0,paymentsSent:0,releaseApproved:false}));runtime.close();return;}
     const rawPort=flags['--port']||'8789';if(!/^\d+$/.test(rawPort))throw new Error('PORT_INVALID');
+    recovery=recoveryFromEnvironment({stateDir:dir,onStatus:status=>console.log(JSON.stringify({kind:'recovery-status',...status,releaseApproved:false}))});
     const server=createRuntimeServer({runtime,vault});await server.listen({port:Number(rawPort)});
-    console.log(JSON.stringify({listening:'127.0.0.1',port:server.address().port,automation:'running',encryptedDocumentsEnabled:Boolean(vault),externalDelivery:false,releaseApproved:false}));
+    recovery?.start();
+    console.log(JSON.stringify({listening:'127.0.0.1',port:server.address().port,automation:'running',encryptedDocumentsEnabled:Boolean(vault),automaticRecoveryConfigured:Boolean(recovery),externalDelivery:false,releaseApproved:false}));
     let stopping=false;
-    async function stop(){if(stopping)return;stopping=true;await server.close();vault?.close();runtime.close();}
+    async function stop(){if(stopping)return;stopping=true;recovery?.stop();await server.close();vault?.close();runtime.close();}
     process.once('SIGINT',stop);process.once('SIGTERM',stop);
-    return {server,runtime};
-  }catch(error){vault?.close();runtime.close();throw error;}
+    return {server,runtime,recovery};
+  }catch(error){recovery?.stop();vault?.close();runtime.close();throw error;}
 }
 if(require.main===module)main().catch(()=>{console.error('Application runtime command failed; check private paths, credentials, configuration and local state.');process.exitCode=1;});
 module.exports={main,outsideRepository};
