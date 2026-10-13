@@ -1,0 +1,29 @@
+[
+  {
+    "version":1,"family":"quote-to-order","id":"print-estimate-desk","title":"Print Estimate Desk",
+    "buyer":"Commercial print shops quoting short-run orders","outcome":"Prepare itemized production quotes and hand approved print jobs to scheduling.",
+    "currency":"USD","validDays":14,"items":[
+      {"id":"print-pages","label":"Printed pages","unit":"page"},
+      {"id":"finishing","label":"Finishing labor","unit":"hour"},
+      {"id":"proof-setup","label":"Proof setup","unit":"job"}
+    ]
+  },
+  {
+    "version":1,"family":"quote-to-order","id":"equipment-rental-estimates","title":"Rental Estimate Desk",
+    "buyer":"Small equipment rental coordinators","outcome":"Prepare equipment-day quotes and hand accepted rentals to dispatch review.",
+    "currency":"USD","validDays":7,"items":[
+      {"id":"equipment-days","label":"Equipment use","unit":"day"},
+      {"id":"delivery-trips","label":"Delivery and return","unit":"trip"},
+      {"id":"setup-hours","label":"Equipment setup labor","unit":"hour"}
+    ]
+  },
+  {
+    "version":1,"family":"quote-to-order","id":"field-service-estimates","title":"Field Service Estimate Desk",
+    "buyer":"Field service companies quoting maintenance visits","outcome":"Estimate service labor and materials before controlled work-order handoff.",
+    "currency":"USD","validDays":21,"items":[
+      {"id":"technician-hours","label":"Technician time","unit":"hour"},
+      {"id":"materials","label":"Service materials","unit":"item"},
+      {"id":"mobilization","label":"On-site mobilization","unit":"visit"}
+    ]
+  }
+]

@@ -3,9 +3,11 @@ on:
   pull_request:
     paths:
       - 'packages/application-factory/autonomy/**'
+      - 'packages/application-factory/quote-family/**'
       - 'packages/application-factory/manufacturing/**'
       - 'packages/application-factory/recipes.json'
       - 'scripts/run-autonomous-factory.js'
+      - 'scripts/manufacture-quote-apps.js'
       - 'scripts/validate-autonomy-ideas.js'
       - 'scripts/restore-autonomous-checkpoint.js'
       - 'scripts/export-autonomous-fleet.js'
@@ -57,6 +59,10 @@ jobs:
         run: |
           node scripts/validate-autonomy-ideas.js --check
           node scripts/validate-autonomy-ideas.js --build-pending --output "$RUNNER_TEMP/autonomous-apps"
+      - name: Verify second SaaS family and independently manufacture three quote apps
+        run: |
+          node --test packages/application-factory/quote-family/*.test.js
+          node scripts/manufacture-quote-apps.js --output "$RUNNER_TEMP/quote-to-order-apps"
       - name: Export private verified fleet ledger
         run: |
           node scripts/export-autonomous-fleet.js --state-dir "$RUNNER_TEMP/autonomous-apps" --output-dir "$RUNNER_TEMP/autonomous-apps/portfolio" --lookback 24
@@ -66,6 +72,14 @@ jobs:
         with:
           name: autonomous-apps-${{ github.run_id }}
           path: ${{ runner.temp }}/autonomous-apps
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: quote-to-order-autonomy-${{ github.run_id }}
+          path: ${{ runner.temp }}/quote-to-order-apps
           retention-days: 7
           if-no-files-found: error
           include-hidden-files: false

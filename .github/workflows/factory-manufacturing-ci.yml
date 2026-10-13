@@ -7,6 +7,7 @@ on:
       - 'quality/browser/manufactured-applications.cjs'
       - 'quality/browser/sales-command-center.cjs'
       - 'quality/browser/autonomous-fleet.cjs'
+      - 'quality/browser/quote-applications.cjs'
       - '.github/workflows/factory-manufacturing-ci.yml'
   workflow_dispatch:
 permissions:
@@ -29,6 +30,8 @@ jobs:
         run: node --test packages/application-factory/manufacturing/*.test.js
       - name: Assemble and independently exercise every default edition
         run: node scripts/manufacture-applications.js --output "$RUNNER_TEMP/manufactured-applications"
+      - name: Manufacture three complete quote-to-order applications
+        run: node scripts/manufacture-quote-apps.js --output "$RUNNER_TEMP/quote-to-order-apps"
       - name: Install isolated browser-test dependency
         run: npm install --prefix "$RUNNER_TEMP/manufacturing-browser" --no-save --ignore-scripts playwright@1.64.0
       - name: Install Chromium
@@ -41,11 +44,30 @@ jobs:
         run: NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/sales-command-center.cjs
       - name: Native fleet dashboard desktop/mobile acceptance
         run: NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/autonomous-fleet.cjs
+      - name: Native six quote-to-order journeys on desktop and mobile
+        run: |
+          FACTORY_QUOTE_BROWSER_ARTIFACT_DIR="$RUNNER_TEMP/quote-browser-screenshots" NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/quote-applications.cjs "$RUNNER_TEMP/quote-to-order-apps"
       - uses: actions/upload-artifact@v4
         if: success()
         with:
           name: manufactured-applications
           path: ${{ runner.temp }}/manufactured-applications
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: quote-to-order-manufactured-applications
+          path: ${{ runner.temp }}/quote-to-order-apps
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: quote-to-order-native-browser-screenshots
+          path: ${{ runner.temp }}/quote-browser-screenshots
           retention-days: 7
           if-no-files-found: error
           include-hidden-files: false
