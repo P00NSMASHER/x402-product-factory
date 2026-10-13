@@ -1,5 +1,6 @@
 "use strict";
 const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
+const {guardMarketEvidence}=require("../../packages/sources/market-evidence-contract");
 
 const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
 const {assessFilingFreshness}=require("./decision");
@@ -55,6 +56,7 @@ function createSecFilingFreshnessService({sec,now=()=>new Date().toISOString()})
   return {async check(input){
     const normalized=validateFilingFreshnessInput(input);
     const sourceFailures=[];
+    const observedAt=now();
   const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);
     let evidence;
     try{
@@ -64,6 +66,10 @@ function createSecFilingFreshnessService({sec,now=()=>new Date().toISOString()})
         form:normalized.form,
         limit:25
       }));
+      evidence=guardMarketEvidence({
+        kind:"sec",source:"sec_edgar",
+        evidence,sourceFailures,expected:{cik:normalized.cik,form:normalized.form,limit:25,now:observedAt}
+      });
     }catch(error){
       const detail=safeSourceErrorCode(error);
       sourceFailures.push({source:"sec_edgar",detail});
@@ -72,7 +78,7 @@ function createSecFilingFreshnessService({sec,now=()=>new Date().toISOString()})
 
     const result=assessFilingFreshness(evidence,{
       maxAgeDays:normalized.maxAgeDays,
-      now:now()
+      now:observedAt
     });
 
     return {

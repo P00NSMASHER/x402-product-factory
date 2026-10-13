@@ -1,5 +1,6 @@
 "use strict";
 const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
+const {guardMarketEvidence}=require("../../packages/sources/market-evidence-contract");
 
 const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
 const {assessTreasuryRateTrend}=require("./decision");
@@ -28,6 +29,7 @@ function createTreasuryRateTrendService({treasury,now=()=>new Date().toISOString
   return {async check(input){
     const normalized=validateTreasuryTrendInput(input);
     const sourceFailures=[];
+    const observedAt=now();
   const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);
     let evidence;
     try{
@@ -35,6 +37,10 @@ function createTreasuryRateTrendService({treasury,now=()=>new Date().toISOString
         security:normalized.security,
         points:2
       }));
+      evidence=guardMarketEvidence({
+        kind:"treasuryHistory",source:"treasury_fiscal_data",
+        evidence,sourceFailures,expected:{security:normalized.security,now:observedAt}
+      });
     }catch(error){
       const detail=safeSourceErrorCode(error);
       sourceFailures.push({source:"treasury_fiscal_data",detail});
@@ -43,7 +49,7 @@ function createTreasuryRateTrendService({treasury,now=()=>new Date().toISOString
 
     const result=assessTreasuryRateTrend(evidence,{
       minChangeBps:normalized.minChangeBps,
-      checkedAt:now()
+      checkedAt:observedAt
     });
 
     return {

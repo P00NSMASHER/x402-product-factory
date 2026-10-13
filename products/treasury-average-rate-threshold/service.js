@@ -1,5 +1,6 @@
 "use strict";
 const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
+const {guardMarketEvidence}=require("../../packages/sources/market-evidence-contract");
 
 const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
 const {assessTreasuryRateThreshold}=require("./decision");
@@ -37,10 +38,15 @@ function createTreasuryRateThresholdService({treasury,now=()=>new Date().toISOSt
   return {async check(input){
     const normalized=validateTreasuryThresholdInput(input);
     const sourceFailures=[];
+    const observedAt=now();
   const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);
     let evidence;
     try{
       evidence=recordEvidence("treasury_fiscal_data",await treasury.lookup({security:normalized.security}));
+      evidence=guardMarketEvidence({
+        kind:"treasuryLookup",source:"treasury_fiscal_data",
+        evidence,sourceFailures,expected:{security:normalized.security,now:observedAt}
+      });
     }catch(error){
       const detail=safeSourceErrorCode(error);
       sourceFailures.push({source:"treasury_fiscal_data",detail});
@@ -49,7 +55,7 @@ function createTreasuryRateThresholdService({treasury,now=()=>new Date().toISOSt
     const decision=assessTreasuryRateThreshold(evidence,{
       thresholdPercent:normalized.thresholdPercent,
       operator:normalized.operator,
-      checkedAt:now()
+      checkedAt:observedAt
     });
     return {
       ...decision,
