@@ -30,3 +30,13 @@ test('workflow produces source-aware manufacturing, verified fleet and short-liv
  assert.match(s,/include-hidden-files: false/);
  assert.match(s,/cron: '23 \*\/6 \* \* \*'/);
 });
+
+test('cross-run verification allows historical receipts but authenticates the pinned current UTC cycle',()=>{
+ const s=read();
+ assert.doesNotMatch(s,/files\.length!==1/);
+ assert.match(s,/current-autonomous-cycle\.json/);
+ assert.match(s,/r\.cycle!==expectedCycle/);
+ assert.match(s,/receipt\.digest!==hash/);
+ assert.match(s,/receipt\.verification!==r\.verification/);
+ assert.match(s,/CYCLE_RECEIPT_INVALID/);
+});
