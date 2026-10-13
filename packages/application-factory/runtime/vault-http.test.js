@@ -98,7 +98,7 @@ test('logout or credential rotation prevents further attachment reads and upload
   assert.equal((await x.request('/app/api/logout',{method:'POST',headers:sessionHeaders,body:'{}'})).status,200);
   assert.equal((await x.request(url,{headers:{Cookie:cookie}})).status,401);
   x.runtime.rotateCredential('tenant-a');
-  assert.equal((await x.request(url,{method:'POST',headers:x.uploadHeaders(x.a),body:pdf})).status,401);
+  assert.equal((await x.request('/v1/workspaces/supplier-desk/documents',{method:'POST',headers:x.uploadHeaders(x.a),body:pdf})).status,401);
 });
 test('legacy servers with vault disabled retain their existing APIs and expose no upload endpoint',async t=>{
   const x=await setup(t,{enabled:false});
