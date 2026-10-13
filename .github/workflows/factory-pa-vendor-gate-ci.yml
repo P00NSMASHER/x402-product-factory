@@ -64,6 +64,7 @@ jobs:
         run: |
           node scripts/build-application-factory.js --check
           node packages/application-factory/acceptance.js --check
+          node packages/application-factory/runtime/acceptance.js
 
       - name: Verify OFAC bounded-cache and settlement safety
         run: node --test packages/sources/ofac-cache-freshness.test.js packages/sources/ofac-cache-settlement.test.js
