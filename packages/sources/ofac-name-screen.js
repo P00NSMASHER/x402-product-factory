@@ -28,16 +28,153 @@ async function fetchText(fetchImpl,url,userAgent,timeoutMs){
  finally{clearTimeout(timer);}
 }
 
-function createOfacNameAdapter({fetchImpl=fetch,timeoutMs=15000,userAgent=DEFAULT_USER_AGENT}={}){
- let cache=null;
- async function load(){if(cache)return cache;const [sdn,alt]=await Promise.all([fetchText(fetchImpl,OFAC_BASE+"/SDN.CSV",userAgent,timeoutMs),fetchText(fetchImpl,OFAC_BASE+"/ALT.CSV",userAgent,timeoutMs)]);const map=new Map();
-  for(const cols of parseCsv(sdn)){const uid=String(cols[0]??"").trim(),name=String(cols[1]??"").trim();if(uid&&name)map.set(uid,{uid,name,type:clean(cols[2]),program:clean(cols[3]),title:clean(cols[4]),remarks:clean(cols[11]),aliases:[]});}
-  for(const cols of parseCsv(alt)){const uid=String(cols[0]??"").trim(),name=String(cols[3]??"").trim(),entry=map.get(uid);if(entry&&name)entry.aliases.push({type:clean(cols[2]),name,remarks:clean(cols[4])});}
-  cache=[...map.values()];if(!cache.length){const e=new Error("ofac_empty_dataset");e.code="SOURCE_CONTRACT_INVALID";throw e;}return cache;}
- return {async lookup({name,minScore=90,limit=3}){const query=String(name||"").trim().replace(/\s+/g," ");if(query.length<2||query.length>160){const e=new Error("invalid_name");e.code="INVALID_INPUT";throw e;}if(!Number.isInteger(minScore)||minScore<70||minScore>100){const e=new Error("invalid_min_score");e.code="INVALID_INPUT";throw e;}const bounded=Math.max(1,Math.min(Number(limit)||3,10)),candidates=[];
-  for(const entry of await load()){let best=scoreName(query,entry.name),matchedOn="primary",matchedName=entry.name;for(const alias of entry.aliases){const s=scoreName(query,alias.name);if(s>best){best=s;matchedOn="alias";matchedName=alias.name;}}if(best>=minScore)candidates.push({uid:entry.uid,primaryName:entry.name,type:entry.type,program:entry.program,title:entry.title,remarks:entry.remarks,matchedOn,matchedName,score:Math.round(best)});}
-  candidates.sort((a,b)=>b.score-a.score||a.primaryName.localeCompare(b.primaryName));
-  return {available:true,query,minScore,totalCandidatesAboveThreshold:candidates.length,candidates:candidates.slice(0,bounded),provenance:{source:"U.S. Treasury OFAC Specially Designated Nationals (SDN) List",files:["SDN.CSV","ALT.CSV"],base:OFAC_BASE}};
- }};
+
+const DEFAULT_OFAC_CACHE_TTL_MS=60*60*1000;
+const MAX_OFAC_CACHE_TTL_MS=6*60*60*1000;
+
+function sourceContractFailure(message){
+ const error=new Error(message);
+ error.code="SOURCE_CONTRACT_INVALID";
+ return error;
 }
-module.exports={OFAC_BASE,DEFAULT_USER_AGENT,parseCsv,normalizeName,scoreName,createOfacNameAdapter};
+
+function createOfacNameAdapter({
+ fetchImpl=fetch,
+ timeoutMs=15000,
+ userAgent=DEFAULT_USER_AGENT,
+ cacheTtlMs=DEFAULT_OFAC_CACHE_TTL_MS,
+ now=()=>Date.now()
+}={}){
+ if(!Number.isSafeInteger(cacheTtlMs)||cacheTtlMs<1||
+    cacheTtlMs>MAX_OFAC_CACHE_TTL_MS){
+   const e=new RangeError("invalid_ofac_cache_ttl");
+   e.code="ADAPTER_CONTRACT_INVALID";
+   throw e;
+ }
+ if(typeof now!=="function"){
+   const e=new TypeError("invalid_ofac_clock");
+   e.code="ADAPTER_CONTRACT_INVALID";
+   throw e;
+ }
+ // A completed data snapshot is atomic: SDN and ALT must BOTH load before
+ // any cache is activated. Never serve a prior snapshot after TTL expiry.
+ let cache=null;
+ let inFlight=null;
+ function clock(){
+   const ms=now();
+   if(typeof ms!=="number"||!Number.isSafeInteger(ms)||
+      ms<0||ms>8640000000000000){
+     throw sourceContractFailure("ofac_clock_unavailable");
+   }
+   return ms;
+ }
+ async function refresh(){
+   const [sdn,alt]=await Promise.all([
+     fetchText(fetchImpl,OFAC_BASE+"/SDN.CSV",userAgent,timeoutMs),
+     fetchText(fetchImpl,OFAC_BASE+"/ALT.CSV",userAgent,timeoutMs)
+   ]);
+   const map=new Map();
+   for(const cols of parseCsv(sdn)){
+     const uid=String(cols[0]??"").trim();
+     const name=String(cols[1]??"").trim();
+     if(uid&&name){
+       map.set(uid,{
+         uid,name,type:clean(cols[2]),program:clean(cols[3]),
+         title:clean(cols[4]),remarks:clean(cols[11]),aliases:[]
+       });
+     }
+   }
+   for(const cols of parseCsv(alt)){
+     const uid=String(cols[0]??"").trim();
+     const name=String(cols[3]??"").trim();
+     const entry=map.get(uid);
+     if(entry&&name){
+       entry.aliases.push({type:clean(cols[2]),name,remarks:clean(cols[4])});
+     }
+   }
+   const records=[...map.values()];
+   // Previously the empty cache was assigned BEFORE checking emptiness.
+   // That made the second lookup silently screen against zero records.
+   if(!records.length)throw sourceContractFailure("ofac_empty_dataset");
+   const fetchedAtMs=clock();
+   if(cache&&fetchedAtMs<cache.fetchedAtMs){
+     throw sourceContractFailure("ofac_clock_rollback");
+   }
+   const next={records,fetchedAtMs};
+   cache=next;
+   return next;
+ }
+ async function load(){
+   const current=clock();
+   if(cache){
+     if(current<cache.fetchedAtMs){
+       cache=null;
+       throw sourceContractFailure("ofac_clock_rollback");
+     }
+     if(current-cache.fetchedAtMs<cacheTtlMs)return cache;
+   }
+   // Coalesce overlapping lookups and scheduled refreshes into one pair of
+   // source requests instead of multiplying OFAC downloads under load.
+   if(!inFlight)inFlight=refresh();
+   try{
+     return await inFlight;
+   }catch(error){
+     // Do not fall back to a stale, partially loaded, or empty SDN snapshot.
+     cache=null;
+     throw error;
+   }finally{
+     inFlight=null;
+   }
+ }
+ return {
+   async lookup({name,minScore=90,limit=3}){
+     const query=String(name||"").trim().replace(/\s+/g," ");
+     if(query.length<2||query.length>160){
+       const e=new Error("invalid_name");e.code="INVALID_INPUT";throw e;
+     }
+     if(!Number.isInteger(minScore)||minScore<70||minScore>100){
+       const e=new Error("invalid_min_score");e.code="INVALID_INPUT";throw e;
+     }
+     const bounded=Math.max(1,Math.min(Number(limit)||3,10));
+     const data=await load();
+     const candidates=[];
+     for(const entry of data.records){
+       let best=scoreName(query,entry.name),matchedOn="primary",matchedName=entry.name;
+       for(const alias of entry.aliases){
+         const score=scoreName(query,alias.name);
+         if(score>best){best=score;matchedOn="alias";matchedName=alias.name;}
+       }
+       if(best>=minScore){
+         candidates.push({
+           uid:entry.uid,primaryName:entry.name,type:entry.type,
+           program:entry.program,title:entry.title,remarks:entry.remarks,
+           matchedOn,matchedName,score:Math.round(best)
+         });
+       }
+     }
+     candidates.sort((a,b)=>b.score-a.score||a.primaryName.localeCompare(b.primaryName));
+     const ageMs=clock()-data.fetchedAtMs;
+     if(ageMs<0||ageMs>=cacheTtlMs){
+       // The data may expire even while a very large list is being scored.
+       // Refuse to return stale evidence, and retry with a new lookup.
+       cache=null;
+       throw sourceContractFailure("ofac_cached_dataset_expired");
+     }
+     return {
+       available:true,query,minScore,
+       totalCandidatesAboveThreshold:candidates.length,
+       candidates:candidates.slice(0,bounded),
+       provenance:{
+         source:"U.S. Treasury OFAC Specially Designated Nationals (SDN) List",
+         files:["SDN.CSV","ALT.CSV"],
+         base:OFAC_BASE,
+         // A local fetch timestamp is NOT a verified provider publication date.
+         localDatasetRetrievedAtUtc:new Date(data.fetchedAtMs).toISOString(),
+         localDatasetCacheAgeMs:ageMs,
+         providerPublicationVerified:false
+       }
+     };
+   }
+ };
+}
+module.exports={OFAC_BASE,DEFAULT_USER_AGENT,DEFAULT_OFAC_CACHE_TTL_MS,MAX_OFAC_CACHE_TTL_MS,parseCsv,normalizeName,scoreName,createOfacNameAdapter};
