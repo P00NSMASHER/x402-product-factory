@@ -1,6 +1,6 @@
 "use strict";
-const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
-const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
+const {trackRequiredEvidence,safeSourceErrorCode,requireAdapter,sourceUnavailable}=require("../../packages/sources/contracts");
+const {guardDomainEvidence}=require("../../packages/sources/domain-evidence-contract");
 const {assessDomainAge}=require("./decision");
 
 function parseAge(value){
@@ -29,17 +29,17 @@ function createDomainAgeService({rdap,now=()=>new Date().toISOString()}){
   return {async check(input){
     const normalized=validateDomainAgeInput(input);
     const sourceFailures=[];
-  const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);
     let evidence;
-    try{evidence=recordEvidence("rdap",await rdap.lookup({domain:normalized.domain}));}
+    try{evidence=trackRequiredEvidence("rdap",await rdap.lookup({domain:normalized.domain}),sourceFailures);}
     catch(error){
       const detail=safeSourceErrorCode(error);
       sourceFailures.push({source:"rdap",detail});
       evidence=sourceUnavailable("rdap",detail);
     }
-    const result=assessDomainAge(evidence,{minAgeDays:normalized.minAgeDays,now:now()});
+    const observedAt=now();
+    evidence=guardDomainEvidence({evidence,profile:"registration",domain:normalized.domain,now:observedAt,sourceFailures});
+    const result=assessDomainAge(evidence,{minAgeDays:normalized.minAgeDays,now:observedAt});
     return {...result,input:normalized,sourceFailures,chargeable:sourceFailures.length===0,evidence};
   }};
 }
-
 module.exports={parseAge,validateDomainAgeInput,createDomainAgeService};

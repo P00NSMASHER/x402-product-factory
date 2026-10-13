@@ -48,7 +48,17 @@ jobs:
         run: node scripts/validate-js-syntax.js
 
       - name: Run all discovered factory tests
-        run: node scripts/run-all-tests.js
+        run: |
+          # Preserve the test runner's failure status; only bound console output.
+          if node scripts/run-all-tests.js > /tmp/factory-tests.log 2>&1; then
+            grep -E '^=== TEST |testFiles|^.*(tests|pass|fail) [0-9]+$' /tmp/factory-tests.log | tail -n 100 || true
+            tail -n 5 /tmp/factory-tests.log
+          else
+            status=$?
+            grep -n -A 12 -B 1 -E '✖|not ok|Error:|error:|AssertionError' /tmp/factory-tests.log | tail -n 300 || true
+            tail -n 24 /tmp/factory-tests.log
+            exit "$status"
+          fi
 
       - name: Verify OFAC bounded-cache and settlement safety
         run: node --test packages/sources/ofac-cache-freshness.test.js packages/sources/ofac-cache-settlement.test.js
@@ -76,6 +86,9 @@ jobs:
 
       - name: Verify SEC and Treasury field-level x402 source validity
         run: node --test quality/benchmarks/sec-treasury-evidence-gate.test.js
+
+      - name: Verify standalone domain fields, UTC dates and nonchargeable corrupt evidence
+        run: node --test quality/benchmarks/domain-field-evidence-gate.test.js
 
       - name: Verify joined 22-product source quality and source-history continuity
         run: node --test quality/integration/source-safety-and-history.test.js
