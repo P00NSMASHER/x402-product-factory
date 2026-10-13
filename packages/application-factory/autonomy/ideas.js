@@ -40,8 +40,8 @@ function validateIdea(raw,filename,baseline,accepted){
    if(observed===null||observed>slot||slot-observed>180*86400000)fail('IDEA_INVALID');
  }
  let recipe;try{recipe=validateRecipe(raw.recipe);}catch{fail('IDEA_INVALID');}
+ if(recipe.requirements.some(r=>/[<>\x00-\x1f]/.test(r.label)))fail('IDEA_INVALID');
  if(recipe.requirements.length<4||!recipe.requirements.some(r=>r.renewable)||
-  recipe.requirements.some(r=>/[<>\x00-\x1f]/.test(r.label))||
   baseline.some(prior=>prior.id===recipe.id)||accepted.some(prior=>prior.recipe.id===recipe.id)||
   accepted.some(prior=>prior.cycle===raw.cycle))fail('IDEA_DUPLICATE');
  const previous=[...baseline,...accepted.map(row=>row.recipe)],currentIds=new Set(recipe.requirements.map(r=>r.id));
