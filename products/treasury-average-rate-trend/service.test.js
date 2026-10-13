@@ -15,7 +15,7 @@ test("service returns falling from two Treasury months",async()=>{
       assert.equal(input.security,"Total Marketable");
       assert.equal(input.points,2);
       return {
-        available:true,found:true,ambiguous:false,
+        available:true,found:true,ambiguous:false,query:"Total Marketable",matchDescriptions:["Total Marketable"],
         points:[
           {recordDate:"2026-08-31",securityDescription:"Total Marketable",averageInterestRatePercent:3.475},
           {recordDate:"2026-07-31",securityDescription:"Total Marketable",averageInterestRatePercent:3.525}

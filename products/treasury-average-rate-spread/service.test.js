@@ -30,8 +30,8 @@ test("service calls one same-month comparison and classifies spread",async()=>{
     treasury:{async compare(input){args=input;return{
       available:true,
       recordDate:"2026-09-30",
-      left:{found:true,ambiguous:false,selected:{recordDate:"2026-09-30",averageInterestRatePercent:4.123}},
-      right:{found:true,ambiguous:false,selected:{recordDate:"2026-09-30",averageInterestRatePercent:3.456}}
+      left:{query:"Treasury Bills",found:true,ambiguous:false,matchDescriptions:["Treasury Bills"],selected:{recordDate:"2026-09-30",securityDescription:"Treasury Bills",averageInterestRatePercent:4.123}},
+      right:{query:"Treasury Notes",found:true,ambiguous:false,matchDescriptions:["Treasury Notes"],selected:{recordDate:"2026-09-30",securityDescription:"Treasury Notes",averageInterestRatePercent:3.456}}
     };}},
     now:()=>"2026-10-02T13:40:00.000Z"
   });

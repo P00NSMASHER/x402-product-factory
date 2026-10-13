@@ -71,6 +71,9 @@ jobs:
       - name: Check remaining 17 products for nonchargeable unavailable sources
         run: node --test quality/benchmarks/remaining-source-evidence-billing.test.js
 
+      - name: Verify SEC and Treasury field-level x402 source validity
+        run: node --test quality/benchmarks/sec-treasury-evidence-gate.test.js
+
       - name: Validate product registry
         run: node scripts/validate-registry.js
 

@@ -14,7 +14,7 @@ test("input requires exactly one of ticker or cik",()=>{
 
 test("service returns recent filing with chargeable completed evidence",async()=>{
  const service=createSecFilingFreshnessService({
-  sec:{async lookup(){return{available:true,found:true,company:{name:"Apple Inc."},filings:[{form:"8-K",filingDate:"2026-10-01"}]};}},
+  sec:{async lookup(){return{available:true,found:true,company:{name:"Apple Inc.",cik:"0000320193",tickers:["AAPL"],exchanges:["Nasdaq"]},filings:[{form:"8-K",filingDate:"2026-10-01",accessionNumber:"0000320193-26-000001",primaryDocument:"a8k.htm"}]};}},
   now:()=>"2026-10-02T12:00:00Z"
  });
  const r=await service.check({ticker:"AAPL",maxAgeDays:30});

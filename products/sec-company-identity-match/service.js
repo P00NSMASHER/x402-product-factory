@@ -1,5 +1,6 @@
 "use strict";
 const {trackRequiredEvidence,safeSourceErrorCode}=require("../../packages/sources/contracts");
+const {guardMarketEvidence}=require("../../packages/sources/market-evidence-contract");
 
 const {requireAdapter,sourceUnavailable,normalizedEvidence}=require("../../packages/sources/contracts");
 const {normalizeCik,normalizeTicker}=require("../../packages/sources/sec-filings");
@@ -43,6 +44,7 @@ function createSecCompanyIdentityService({sec,now=()=>new Date().toISOString()})
   return {async check(input){
     const normalized=validateSecCompanyIdentityInput(input);
     const sourceFailures=[];
+    const observedAt=now();
   const recordEvidence=(source,result)=>trackRequiredEvidence(source,result,sourceFailures);
     let evidence;
     try{
@@ -52,6 +54,10 @@ function createSecCompanyIdentityService({sec,now=()=>new Date().toISOString()})
         form:"",
         limit:1
       }));
+      evidence=guardMarketEvidence({
+        kind:"sec",source:"sec_edgar",
+        evidence,sourceFailures,expected:{cik:normalized.cik,form:"",limit:1,now:observedAt}
+      });
     }catch(error){
       const detail=safeSourceErrorCode(error);
       sourceFailures.push({source:"sec_edgar",detail});
@@ -60,7 +66,7 @@ function createSecCompanyIdentityService({sec,now=()=>new Date().toISOString()})
 
     const result=assessSecCompanyIdentity(evidence,{
       expectedCompany:normalized.company,
-      checkedAt:now()
+      checkedAt:observedAt
     });
 
     return {
