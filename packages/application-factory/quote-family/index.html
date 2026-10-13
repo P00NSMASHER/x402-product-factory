@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Quote Desk · Product Factory</title>
+<link rel="stylesheet" href="/assets/style.css"><script src="/assets/client.js" defer></script></head>
+<body><div class="app-shell">
+  <aside class="sidebar">
+    <div class="mark" aria-hidden="true"><span>↗</span></div>
+    <p class="eyebrow">PRODUCT FACTORY / SECOND APP FAMILY</p>
+    <h2>Quote<br>Studio<span class="accent">.</span></h2>
+    <div class="sidebar-rule"></div><p class="sidebar-tag">QUOTE → REVIEW → ORDER</p>
+    <div class="sidebar-bottom"><div class="security-dot"></div> Private local prototype
+       <p>Internal workflow only. No email, payments, real customer data, or public checkout.</p></div>
+  </aside>
+  <main class="main">
+    <div id="notice" role="status" aria-live="polite"></div><div id="error" role="alert" hidden></div>
+    <section class="login-panel" id="login-panel">
+      <p class="section-label">PRIVATE WORKSPACE ACCESS</p>
+      <h1>Quotes, without the chaos.</h1>
+      <p class="intro">Prepare precise estimates, keep approvals separate, and create a clean handoff when work is accepted.</p>
+      <form id="login-form" class="login-card"><label for="token">Operator or reviewer access key</label>
+        <input id="token" type="password" autocomplete="off" spellcheck="false" minlength="43" maxlength="43" placeholder="Paste your private 43-character key" required>
+        <button type="submit" class="primary">Open workspace <span aria-hidden="true">↗</span></button>
+        <p class="micro">Access keys stay in memory only. No browser storage or external requests.</p></form>
+    </section>
+    <section class="workspace" id="workspace" hidden>
+      <header class="topbar"><div><p class="section-label">YOUR OPERATIONS / QUOTE CONTROL</p><h1 id="title">Quotes</h1><p class="subtle" id="outcome"></p></div>
+       <div class="top-actions"><span class="role-chip" id="role"></span><button class="secondary" id="download">Export</button><button class="quiet" id="logout">Sign out</button></div></header>
+      <div class="metrics" aria-label="Pipeline metrics"><article class="metric"><span>QUOTES</span><strong id="metric-total">0</strong><small>All estimates</small></article>
+        <article class="metric"><span>AWAITING REVIEW</span><strong id="metric-review">0</strong><small>Second approval required</small></article>
+        <article class="metric"><span>APPROVED</span><strong id="metric-approved">0</strong><small>Awaiting handoff</small></article>
+        <article class="metric"><span>ORDERS CREATED</span><strong id="metric-orders">0</strong><small>Not invoiced</small></article></div>
+      <div class="columns"><section class="card queue"><div class="card-top"><div><p class="section-label">LIVE PIPELINE</p><h2>Quote workbench</h2></div>
+        <button class="primary small" id="new-quote">+ New quote</button></div>
+        <div class="queue-tools"><label for="search" class="sr-only">Search quotes</label><input type="search" id="search" placeholder="Search estimates…">
+         <label for="filter" class="sr-only">Filter quotes</label><select id="filter"><option value="all">All statuses</option><option value="draft">Drafts</option><option value="pending_review">Awaiting review</option><option value="approved">Approved</option><option value="converted">Converted</option><option value="expired">Expired</option></select></div>
+        <div class="table-scroll"><table><thead><tr><th>QUOTE</th><th>STATUS</th><th>ESTIMATE</th><th>VALID UNTIL</th></tr></thead><tbody id="quote-rows"></tbody></table></div>
+        <p id="empty" class="empty">No quotes yet. Create a synthetic estimate to begin.</p></section>
+       <section class="card detail"><div class="card-top"><div><p class="section-label">CONTROLLED HANDOFF</p><h2>Estimate details</h2></div><span class="tag" id="current-status">Select a quote</span></div>
+        <div id="detail-empty" class="detail-empty"><div class="empty-icon">↗</div><h3>Built for decisions.</h3><p>Select a quote to inspect its line items, approvals and handoff history.</p></div>
+        <div id="detail-content" hidden><div class="detail-heading"><h3 id="detail-name"></h3><span id="detail-number"></span></div><p id="detail-description" class="subtle"></p>
+          <div id="lines" class="lines"></div><p class="estimate-total"><span>ESTIMATED SUBTOTAL</span><strong id="detail-total">$0.00</strong></p>
+          <form id="line-form" class="line-editor" hidden><label for="item-type">Quote item</label><select id="item-type"></select>
+           <div class="line-fields"><label for="quantity">Quantity<input id="quantity" type="number" min="1" max="100000" step="1" value="1" required></label>
+           <label for="price">Unit price (USD)<input id="price" type="number" min="0" max="100000" step="0.01" value="0.00" required></label></div>
+           <button class="secondary" type="submit">Add priced item</button></form>
+          <div class="detail-actions"><button id="submit-review" class="primary" hidden>Submit for review</button>
+           <button id="approve" class="primary" hidden>Approve estimate</button><button id="reject" class="secondary" hidden>Return for revision</button>
+           <button id="reopen" class="secondary" hidden>Reopen draft</button><button id="convert" class="primary" hidden>Create order handoff</button></div>
+          <p id="order-info" class="order-info" hidden></p>
+          <p class="micro">A reviewer must approve a quote before order handoff. Quotes and orders are not invoices. No payments can be collected.</p>
+        </div></section></div>
+      <section class="card activity"><div class="card-top"><div><p class="section-label">AUDIT STREAM</p><h2>Internal activity</h2></div><span class="subtle">Headless expiry monitoring</span></div>
+       <div id="activity"></div></section>
+      <footer>LOCAL DEVELOPMENT CANDIDATE <span>•</span> Synthetic data only <span>•</span> No customer verification <span>•</span> No checkout or external messages</footer>
+    </section>
+  </main>
+</div>
+<dialog id="create-dialog"><form id="create-form"><div class="dialog-top"><h2>New estimate</h2><button class="quiet" type="button" id="cancel-new" aria-label="Close form">✕</button></div>
+ <label for="client-name">Synthetic buyer or job label</label><input id="client-name" required maxlength="100" placeholder="e.g. Sample print project">
+ <label for="valid-until">Quote expiration date</label><input id="valid-until" type="date" required>
+ <p class="micro">This example is for synthetic evaluation. Do not enter real customer information or financial records.</p>
+ <button class="primary" type="submit">Create draft</button></form></dialog>
+</body></html>

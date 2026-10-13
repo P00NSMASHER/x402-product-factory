@@ -1,0 +1,37 @@
+name: Second application family - Quote to Order
+on:
+  pull_request:
+    paths:
+      - 'packages/application-factory/quote-family/**'
+      - 'scripts/manufacture-quote-apps.js'
+      - 'quality/browser/quote-applications.cjs'
+      - '.github/workflows/factory-quote-family-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: factory-quote-apps-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  quote-apps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Test quote pricing, tenant boundaries and manufacturing contracts
+        run: node --test packages/application-factory/quote-family/*.test.js
+      - name: Execute independently tested three-application factory lane
+        run: |
+          node scripts/manufacture-quote-apps.js --output "$RUNNER_TEMP/quote-apps"
+          node -e 'const r=require(process.argv[1]);if(r.accepted!==3||r.failed!==0||r.verification!=="executed-packaged-quote-lifecycle"||r.releaseApproved!==false||r.paymentsSent!==0||r.realCustomers!==null||r.collectedRevenue!==null)throw Error("QUOTE_FAMILY_REJECTED");console.log(JSON.stringify({accepted:r.accepted,releaseApproved:false}));' "$RUNNER_TEMP/quote-apps/manufacturing-report.json"
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: quote-to-order-applications
+          path: ${{ runner.temp }}/quote-apps
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false

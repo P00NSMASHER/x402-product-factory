@@ -1,0 +1,11 @@
+# Factory second app family — quote-to-order design
+
+**User goal:** Constantly produce meaningful, complete app candidates without manually prompting each iteration. **Current constraint:** Most completed candidates use the same document-intake workflow; simply generating more names over that same mechanism does not increase product differentiation. Existing synthetic-only/noncommercial, no spending/deployment/user-data limits are retained.
+
+**Alternatives:** More document templates (low novelty); generic unrestricted model-written apps (unsafe, unbounded quality cost); reusable second factory lane built around a different fully implemented commercial workflow (selected).
+
+**Family:** Local quote-to-order service with three industry-specific item catalogs but shared independently executed quote kernel: quantity × integer-cent price, bounded totals, draft revisions, two-role review, accepted order handoff, version fencing, idempotency, durable SQLite, headless expiration/notifications and responsive UI. This is not an invoice, payment flow or public CRM. Three initial editions correspond to commercial print production, rental equipment and field service work, with distinct units and buyer jobs.
+
+**Architecture:** New self-contained `quote-family` package, never extending or weakening existing document-family kernel/security. One self-contained compiler emits complete files and SHA-256 manifest; existing full factory CI can run the same independent package tests alongside inherited product gates. A separate read-only CI workflow validates and publishes synthetic artifacts only; browser acceptance uses already installed Playwright in inherited manufacturing job. The pre-existing six-hour candidate task may verify this new lane but does not gain new spending or deployment permissions.
+
+**Acceptance:** Exact input schema, no arbitrary code, bounded prices, float-free authoritative sums, separate operator/reviewer identities and tenant isolation, idempotent uncertain writes, expiry, durable restart, symlink/tamper rejection, no injected approvals, no payment/email/outbound, working responsive desktop/mobile browser on three compiled editions. Users must not mistake empty pricing tables or technical passes for market-validated business outcomes.
