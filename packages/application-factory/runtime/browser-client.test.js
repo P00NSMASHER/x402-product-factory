@@ -59,3 +59,27 @@ test('a late logout response cannot disconnect a newer successful login',async()
   const x=await setup();x.setMode('blocked');const stale=x.c.logout();await x.c.login('a'.repeat(43));
   x.release(response({signedOut:true}));await assert.rejects(()=>stale,/STALE_RESPONSE/);assert.equal(x.c.isAuthenticated(),true);
 });
+
+test('attachment upload sends bounded binary data with CSRF and stable idempotency key',async()=>{
+  const x=await setup(),bytes=Uint8Array.from(Buffer.from('%PDF-1.7\nsynthetic\n%%EOF'));
+  x.setMode('network');
+  await assert.rejects(()=>x.c.upload('supplier-desk','r1','insurance',{name:'policy.pdf',mediaType:'application/pdf',bytes}),/NETWORK_UNCERTAIN/);
+  assert.equal(x.c.hasPending(),true);x.setMode('ok');await x.c.retry();
+  const sends=x.calls.filter(c=>c.url.endsWith('/documents'));
+  assert.equal(sends.length,2);
+  assert.equal(sends[0].opts.headers['Content-Type'],'application/octet-stream');
+  assert.equal(sends[0].opts.headers['X-Record-Id'],'r1');
+  assert.equal(sends[0].opts.headers['X-Requirement-Id'],'insurance');
+  assert.equal(sends[0].opts.headers['X-Document-Name'],'policy.pdf');
+  assert.equal(sends[0].opts.headers['X-Document-Type'],'application/pdf');
+  assert.equal(sends[0].opts.headers['X-CSRF-Token'],'csrf-a');
+  assert.equal(sends[0].opts.headers['Idempotency-Key'],sends[1].opts.headers['Idempotency-Key']);
+  assert.equal(sends[0].opts.body,sends[1].opts.body);
+  assert.equal(x.c.hasPending(),false);
+});
+test('unresolved upload blocks other writes and logout clears its sensitive byte buffer',async()=>{
+  const x=await setup(),bytes=Uint8Array.from(Buffer.from('%PDF-1.7\nsynthetic\n%%EOF'));x.setMode('network');
+  await assert.rejects(()=>x.c.upload('supplier-desk','r1','insurance',{name:'policy.pdf',mediaType:'application/pdf',bytes}),/NETWORK_UNCERTAIN/);
+  await assert.rejects(()=>x.c.command('supplier-desk',{type:'archive',recordId:'r1'}),/WRITE_PENDING/);
+  x.c.disconnect();assert.equal(x.c.hasPending(),false);
+});
