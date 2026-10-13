@@ -5,6 +5,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { DatabaseSync } = require('node:sqlite');
 const Kernel = require('../kernel');
+const {createPilots}=require('./pilot');
 const DEFAULTS = Object.freeze({ intervalMs:60000, leaseMs:30000, batchSize:25, maxAttempts:3 });
 const fail = code => { throw new Error(code); };
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -50,7 +51,7 @@ function openRuntime({filename,recipes,clock=Date.now}={}) {
     db.exec('PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON; PRAGMA trusted_schema=OFF; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;');
     const version=db.prepare('PRAGMA user_version').get().user_version;
     const applicationId=db.prepare('PRAGMA application_id').get().application_id;
-    if((version!==0&&version!==1)||(version===1&&applicationId!==1178682196)||(version===0&&applicationId!==0))fail('SCHEMA_UNSUPPORTED');
+    if((version!==0&&version!==1&&version!==2)||((version===1||version===2)&&applicationId!==1178682196)||(version===0&&applicationId!==0))fail('SCHEMA_UNSUPPORTED');
     if(version===0) {
       if(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").get().n)fail('SCHEMA_UNSUPPORTED');
       db.exec(`BEGIN IMMEDIATE;
@@ -78,10 +79,11 @@ function openRuntime({filename,recipes,clock=Date.now}={}) {
     catch(error){db.exec('ROLLBACK');throw error;}
   }
   const now = () => timestamp(clock());
+  const pilots=createPilots({db,catalog,transaction,now});
   function authenticate(token) {
     if(typeof token!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(token))fail('UNAUTHORIZED');
     const tenant=db.prepare('SELECT id FROM tenants WHERE token_hash=? AND active=1').get(hash(token));
-    if(!tenant)fail('UNAUTHORIZED');return tenant.id;
+    if(!tenant||!pilots.allowTenant(tenant.id,now()))fail('UNAUTHORIZED');return tenant.id;
   }
   function rowFor(tenantId,id) {
     if(!isId(id))fail('NOT_FOUND');
@@ -110,11 +112,16 @@ function openRuntime({filename,recipes,clock=Date.now}={}) {
     if(!fields(claim,['tenantId','workspaceId','leaseToken']))fail('LEASE_LOST');
     const row=rowFor(claim.tenantId,claim.workspaceId);
     const active=db.prepare('SELECT active FROM tenants WHERE id=?').get(claim.tenantId)?.active;
-    if(!active||!row.enabled||row.lease_token!==claim.leaseToken||!row.lease_until||row.lease_until<=time)fail('LEASE_LOST');return row;
+    if(!active||!pilots.allowTenant(claim.tenantId,time)||!row.enabled||row.lease_token!==claim.leaseToken||!row.lease_until||row.lease_until<=time)fail('LEASE_LOST');return row;
   }
   const runtime={
     close(){if(!closed){db.close();closed=true;}},
     recipeCatalog(){return [...catalog.values()].map(clone);},
+    issuePilot(input){return pilots.issue(input);},
+    activatePilot(code,consent){return pilots.activate(code,consent);},
+    revokePilot(id){return pilots.revoke(id);},
+    pilotReport(){return pilots.report();},
+    pilotStatus(token,id){const tenant=authenticate(token);rowFor(tenant,id);return pilots.status(tenant,id);},
     // Internal stable identity for tenant-scoped services; never accept a caller tenant ID.
     tenantId(token){return authenticate(token);},
     provisionTenant(id){
@@ -133,7 +140,7 @@ function openRuntime({filename,recipes,clock=Date.now}={}) {
     });},
     createWorkspace(token,input){
       const tenant=authenticate(token);
-      if(!fields(input,['id','recipeId'])||!isId(input.id)||!catalog.has(input.recipeId))fail('WORKSPACE_INVALID');
+      if(!fields(input,['id','recipeId'])||!isId(input.id)||!catalog.has(input.recipeId)||!pilots.allowWorkspace(tenant,input.id,input.recipeId))fail('WORKSPACE_INVALID');
       return transaction(()=>{
         authenticate(token); // Recheck after acquiring the write lock.
         const time=now(),recipe=catalog.get(input.recipeId), prior=db.prepare('SELECT * FROM workspaces WHERE tenant_id=? AND id=?').get(tenant,input.id);
@@ -146,7 +153,7 @@ function openRuntime({filename,recipes,clock=Date.now}={}) {
       });
     },
     workspaces(token){const tenant=authenticate(token);return db.prepare('SELECT * FROM workspaces WHERE tenant_id=? ORDER BY id').all(tenant).map(status);},
-    workspace(token,id){const row=rowFor(authenticate(token),id),ws=load(row);return {...status(row),recipe:JSON.parse(row.recipe),snapshot:ws.snapshot(),records:ws.list()};},
+    workspace(token,id){const row=rowFor(authenticate(token),id),ws=load(row);return {...status(row),recipe:JSON.parse(row.recipe),snapshot:ws.snapshot(),records:ws.list(),pilot:pilots.status(row.tenant_id,id)};},
     inbox(token,id){const tenant=authenticate(token);rowFor(tenant,id);return db.prepare('SELECT message_id,payload,status,created_ms FROM inbox WHERE tenant_id=? AND workspace_id=? ORDER BY created_ms,message_id').all(tenant,id)
       .map(row=>({id:row.message_id,...JSON.parse(row.payload),status:row.status,createdAt:row.created_ms,channel:'internal-inbox'}));},
     command(token,id,raw,key,expectedVersion){
@@ -160,12 +167,13 @@ function openRuntime({filename,recipes,clock=Date.now}={}) {
         if(receipt){if(receipt.command_hash!==fingerprint)fail('IDEMPOTENCY_CONFLICT');return JSON.parse(receipt.result);}
         if(expectedVersion!==undefined&&expectedVersion!==row.version)fail('VERSION_CONFLICT');
         if(db.prepare('SELECT count(*) AS n FROM receipts WHERE tenant_id=? AND workspace_id=?').get(tenant,id).n>=1000)fail('CAPACITY_LIMIT');
-        const time=now(),ws=load(row);advance(row,ws,time);let result;
+        const time=now();if(!pilots.allowTenant(tenant,time))fail('UNAUTHORIZED');const ws=load(row);advance(row,ws,time);let result;
         if(command.type==='add')result=ws.addRecord({name:command.name,dueOn:command.dueOn});
         else if(command.type==='receive')result=ws.receive(command.recordId,command.requirementId,Object.hasOwn(command,'expiresOn')?{expiresOn:command.expiresOn}:{});
         else if(command.type==='archive')result=ws.archive(command.recordId);
         else result={enabled:command.enabled};
         const snapshot=ws.snapshot();syncInbox(row,snapshot,time);
+        pilots.observe(tenant,command,ws,time);
         db.prepare('UPDATE workspaces SET snapshot=?,version=version+1,observed_ms=?,next_run=? WHERE tenant_id=? AND id=?')
           .run(JSON.stringify(snapshot),time,Math.min(time,row.next_run),tenant,id);
         if(command.type==='automation')db.prepare('UPDATE workspaces SET enabled=?,failures=0,last_error=NULL,lease_token=NULL,lease_until=NULL,next_run=? WHERE tenant_id=? AND id=?')
@@ -175,7 +183,7 @@ function openRuntime({filename,recipes,clock=Date.now}={}) {
       });
     },
     claimDue(){return transaction(()=>{
-      const time=now(),row=db.prepare(`SELECT w.* FROM workspaces w JOIN tenants t ON t.id=w.tenant_id
+      const time=now();pilots.expire(time);const row=db.prepare(`SELECT w.* FROM workspaces w JOIN tenants t ON t.id=w.tenant_id
         WHERE t.active=1 AND w.enabled=1 AND w.failures<? AND w.next_run<=? AND (w.lease_until IS NULL OR w.lease_until<=?)
         ORDER BY w.next_run,w.tenant_id,w.id LIMIT 1`).get(DEFAULTS.maxAttempts,time,time);
       if(!row)return null;const leaseToken=crypto.randomBytes(24).toString('hex');

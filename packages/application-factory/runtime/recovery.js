@@ -5,6 +5,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { DatabaseSync } = require('node:sqlite');
 const Kernel = require('../kernel');
+const {COLUMNS:PILOT_COLUMNS}=require('./pilot');
 const MAGIC = Buffer.from('FACTORY-RECOVERY-1\n');
 const MAX_DB = 32 * 1024 * 1024, MAX_ENVELOPE = 96 * 1024 * 1024;
 const ROOT = path.resolve(__dirname, '../../..');
@@ -12,6 +13,7 @@ const fail = code => { throw new Error(code); };
 const sha = value => crypto.createHash('sha256').update(value).digest('hex');
 const id = value => typeof value === 'string' && /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(value) && value.length <= 60;
 const columns = {
+  ...PILOT_COLUMNS,
   tenants: 'id,token_hash,active',
   workspaces: 'tenant_id,id,recipe,snapshot,version,enabled,next_run,observed_ms,failures,last_error,last_success,lease_token,lease_until',
   inbox: 'tenant_id,workspace_id,message_id,payload,status,created_ms',
@@ -69,9 +71,10 @@ function syncFile(filename) { const fd = fs.openSync(filename, 'r'); try { fs.fs
 function syncDir(dir) { if (process.platform !== 'win32') syncFile(dir); }
 function schema(db, vault) {
   db.exec('PRAGMA trusted_schema=OFF;');
-  const expected = vault ? ['vault_documents'] : ['inbox', 'receipts', 'tenants', 'workspaces'];
+  const v = db.prepare('PRAGMA user_version').get().user_version;
+  const expected = vault ? ['vault_documents'] : ['inbox', 'receipts', 'tenants', 'workspaces', ...(v===2?['pilot_events','pilot_invites']:[])].sort();
   const objects = db.prepare("SELECT type,name,sql FROM sqlite_schema WHERE name NOT LIKE 'sqlite_%' AND type != 'index' ORDER BY name").all();
-  if (db.prepare('PRAGMA user_version').get().user_version !== 1 ||
+  if ((vault?v!==1:![1,2].includes(v)) ||
       db.prepare('PRAGMA application_id').get().application_id !== (vault ? 1178682197 : 1178682196) ||
       objects.map(o => o.name).join(',') !== expected.join(',') ||
       objects.some(o => o.type !== 'table' || !/^CREATE TABLE\s/i.test(o.sql || ''))) fail('SCHEMA_UNSUPPORTED');
@@ -113,6 +116,28 @@ function inspectPair(dir, vaultKey) {
         if (!parent) fail('RECOVERY_REFERENCE');
         try { JSON.parse(table === 'inbox' ? row.payload : row.result); } catch { fail('STATE_CORRUPT'); }
         if (table === 'inbox' && !parent.messages.has(row.message_id)) fail('RECOVERY_REFERENCE');
+      }
+    }
+    if(db.prepare('PRAGMA user_version').get().user_version===2){
+      const invites=new Map();let total=0;
+      for(const row of db.prepare('SELECT * FROM pilot_invites').iterate()){
+        if(++total>100||!/[0-9a-f]{32}/.test(row.id)||!/^[0-9a-f]{64}$/.test(row.code_hash)||![0,1].includes(row.active))fail('STATE_CORRUPT');
+        let recipe;try{recipe=Kernel.validateRecipe(JSON.parse(row.recipe));timeCheck(row.issued_ms);timeCheck(row.activate_by);}catch{fail('STATE_CORRUPT');}
+        if(row.activate_by<=row.issued_ms||row.activate_by-row.issued_ms>28*86400000||row.duration_ms<86400000||row.duration_ms>14*86400000||row.duration_ms%86400000)fail('STATE_CORRUPT');
+        if(row.tenant_id===null){if(row.activated_ms!==null||row.expires_ms!==null)fail('RECOVERY_REFERENCE');continue;}
+        const parent=workspaces.get(JSON.stringify([row.tenant_id,recipe.id]));
+        if(!tenants.has(row.tenant_id)||!parent||row.activated_ms<row.issued_ms||row.activated_ms>=row.activate_by||row.expires_ms!==row.activated_ms+row.duration_ms||!Number.isSafeInteger(row.activated_ms))fail('RECOVERY_REFERENCE');
+        if(JSON.stringify(JSON.parse(parent.row.recipe))!==JSON.stringify(recipe))fail('RECOVERY_REFERENCE');
+        invites.set(row.tenant_id,{row,parent});
+      }
+      let eventCount=0;
+      for(const event of db.prepare('SELECT * FROM pilot_events').iterate()){
+        const entry=invites.get(event.tenant_id);
+        if(++eventCount>100000||!entry||!['activated','active_day','intake_created','document_received','checklist_completed'].includes(event.kind)||!Number.isSafeInteger(event.occurred_ms)||event.occurred_ms<entry.row.activated_ms||event.occurred_ms>=entry.row.expires_ms)fail('RECOVERY_REFERENCE');
+        if(event.kind==='activated'&&event.reference!=='trial')fail('RECOVERY_REFERENCE');
+        if(event.kind==='active_day'&&event.reference!==new Date(event.occurred_ms).toISOString().slice(0,10))fail('RECOVERY_REFERENCE');
+        if(['intake_created','checklist_completed'].includes(event.kind)&&!entry.parent.records.has(event.reference))fail('RECOVERY_REFERENCE');
+        if(event.kind==='document_received'){const [record,requirement,...rest]=event.reference.split(':');if(rest.length||!entry.parent.records.has(record)||!entry.parent.requirements.has(requirement))fail('RECOVERY_REFERENCE');}
       }
     }
     const hasVault = fs.existsSync(path.join(dir, 'documents.sqlite'));
@@ -271,6 +296,7 @@ function restoreRecovery({ filename, key, vaultKey, destination } = {}) {
     try {
       db.exec('PRAGMA trusted_schema=OFF; BEGIN IMMEDIATE;');
       for (const row of db.prepare('SELECT id FROM tenants').all()) db.prepare('UPDATE tenants SET token_hash=? WHERE id=?').run(sha(crypto.randomBytes(32)), row.id);
+      if(db.prepare('PRAGMA user_version').get().user_version===2)db.exec('UPDATE pilot_invites SET active=0;');
       db.exec('UPDATE workspaces SET enabled=0,lease_token=NULL,lease_until=NULL; COMMIT; PRAGMA wal_checkpoint(TRUNCATE);');
     } finally { db.close(); }
     inspectPair(stage, vaultKey);

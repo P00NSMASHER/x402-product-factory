@@ -20,12 +20,5 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
-      - name: Temporary tracked-source diagnostic
-        run: git archive --format=tar -o "$RUNNER_TEMP/pilot-source.tar" HEAD
-      - uses: actions/upload-artifact@v4
-        with:
-          name: pilot-source-diagnostic
-          path: ${{ runner.temp }}/pilot-source.tar
-          retention-days: 1
       - name: Exercise private evaluation lifecycle
         run: node --test packages/application-factory/runtime/pilot*.test.js

@@ -31,6 +31,7 @@
       disconnect,
       isAuthenticated(){return csrf!==null;},hasPending(){return pending!==null;},
       async login(credential){disconnect();const generation=epoch;const result=await request('/app/api/session',{method:'POST',body:JSON.stringify({credential}),generation});csrf=result.csrfToken;return result;},
+      async loginPilot(inviteCode,consent){disconnect();const generation=epoch;const result=await request('/app/api/pilot',{method:'POST',body:JSON.stringify({inviteCode,consent}),generation});csrf=result.csrfToken;return result;},
       async restore(){const result=await request('/app/api/session');csrf=result.csrfToken;return result;},
       async logout(){const generation=epoch;try{await request('/app/api/logout',{method:'POST',body:'{}',generation});}finally{if(generation===epoch)disconnect();}},
       read(url){return request(url);},

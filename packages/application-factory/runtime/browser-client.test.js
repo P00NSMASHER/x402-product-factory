@@ -83,3 +83,8 @@ test('unresolved upload blocks other writes and logout clears its sensitive byte
   await assert.rejects(()=>x.c.command('supplier-desk',{type:'archive',recordId:'r1'}),/WRITE_PENDING/);
   x.c.disconnect();assert.equal(x.c.hasPending(),false);
 });
+test('pilot login sends explicit synthetic consent, never puts access codes in URLs and uses normal session state',async()=>{
+ const calls=[];const c=moduleValue.createConnection({fetchImpl:async(url,opts)=>{calls.push({url,opts});return response({csrfToken:'pilot-csrf',expiresAt:10000});}});
+ assert.equal(typeof c.loginPilot,'function');await c.loginPilot('z'.repeat(43),true);assert.equal(c.isAuthenticated(),true);
+ assert.equal(calls[0].url,'/app/api/pilot');assert.deepEqual(JSON.parse(calls[0].opts.body),{inviteCode:'z'.repeat(43),consent:true});assert.equal(calls[0].opts.credentials,'same-origin');
+});

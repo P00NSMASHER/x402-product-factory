@@ -8,7 +8,7 @@
   function message(text='',error=false){$(error?'error':'notice').textContent=text;if(error)$('error').hidden=!text;}
   function clearPrivate(){
     active=false;viewEpoch++;selected='';workspace=null;recordId=null;detailKey='';busy=false;refreshing=false;
-    $('workspace-panel').hidden=true;$('login-panel').hidden=false;$('credential').value='';
+    $('workspace-panel').hidden=true;$('login-panel').hidden=false;$('credential').value='';$('pilot-code').value='';$('pilot-consent').checked=false;$('pilot-summary').textContent='';$('pilot-summary').hidden=true;
     for(const id of ['records','messages','events','documents','workspace-select'])$(id).replaceChildren();
     for(const id of ['workspace-title','outcome','detail-title','saved-status','last-run','automation-status'])$(id).textContent='';
     for(const id of ['record-count','complete-count','notice-count'])$(id).textContent='0';
@@ -83,6 +83,7 @@
   }
   function showState(inbox){
     $('workspace-title').textContent=workspace.recipe.title;const option=[...$('workspace-select').options].find(o=>o.value===selected);if(option)option.textContent=workspace.recipe.title;$('edition').textContent='DOCUMENT WORKFLOWS / '+workspace.recipe.recordLabel.toUpperCase();
+    $('pilot-summary').hidden=!workspace.pilot;if(workspace.pilot)$('pilot-summary').textContent='Synthetic evaluation · expires '+new Date(workspace.pilot.expiresAt).toLocaleString()+' · '+workspace.pilot.completedRecords+' completed checklists across '+workspace.pilot.activeDays+' active days. Not demand or revenue evidence.';
     $('outcome').textContent=workspace.recipe.outcome;$('record-count').textContent=workspace.records.filter(r=>!r.archived).length;
     $('complete-count').textContent=workspace.records.filter(r=>r.status==='complete').length;$('notice-count').textContent=inbox.filter(r=>r.status==='open').length;
     $('automation-status').textContent=workspace.quarantined?'Attention required: automation quarantined after repeated failures.':workspace.enabled?'Enabled · browser-independent worker':'Paused for this workspace';
@@ -150,6 +151,14 @@
     catch(error){problem(error);return false;}
     finally{if(generation===viewEpoch){busy=false;writeControls();await refresh();}}
   }
+  function pilotMode(){ $('pilot-form').hidden=false;$('login-form').hidden=true;$('pilot-code').focus(); }
+  $('show-pilot').addEventListener('click',()=>{if($('pilot-form').hidden)pilotMode();else{$('pilot-form').hidden=true;$('login-form').hidden=false;}});
+  if(window.location.hash==='#pilot')pilotMode();
+  $('pilot-form').addEventListener('submit',async event=>{
+    event.preventDefault();$('start-pilot').disabled=true;message('',true);
+    try{await connection.loginPilot($('pilot-code').value.trim(),$('pilot-consent').checked);await activate();}
+    catch(error){problem(error);}finally{$('pilot-code').value='';$('pilot-consent').checked=false;$('start-pilot').disabled=false;}
+  });
   $('login-form').addEventListener('submit',async event=>{
     event.preventDefault();$('sign-in').disabled=true;message('',true);
     try{await connection.login($('credential').value.trim());$('credential').value='';await activate();}catch(error){problem(error);}finally{$('sign-in').disabled=false;}

@@ -2,12 +2,14 @@
 const fs=require('node:fs'),path=require('node:path');
 const {createSessions,cookieId,sessionCookie,expiredCookie}=require('./browser-sessions');
 const {DOCUMENT_PATH}=require('./vault-http');
+const {buildOffer,renderOffer}=require('../growth/offers');
 const fail=code=>{throw new Error(code);};
 const fields=(value,required,optional=[])=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&
   required.every(k=>Object.hasOwn(value,k))&&Object.keys(value).every(k=>required.includes(k)||optional.includes(k));
 const CSP="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'none'; font-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'";
 function createBrowserRoutes({runtime,readBody,send,evidence,readBinary,sendDownload}){
   const sessions=createSessions({validate:credential=>runtime.workspaces(credential)});
+  let pilotFailures=[];
   const assets=new Map([
     ['/app',['browser.html','text/html; charset=utf-8']],
     ['/app/',['browser.html','text/html; charset=utf-8']],
@@ -22,6 +24,13 @@ function createBrowserRoutes({runtime,readBody,send,evidence,readBinary,sendDown
       if(url!=='/app'&&!url.startsWith('/app/'))return false;
       if((req.headers.origin!==undefined&&req.headers.origin!==origin)||
          ['cross-site','same-site'].includes(req.headers['sec-fetch-site']))fail('FORBIDDEN');
+      const preview=/^\/app\/pilots\/([a-z][a-z0-9-]{0,59})$/.exec(url);
+      if(req.method==='GET'&&preview){
+        const recipe=runtime.recipeCatalog().find(r=>r.id===preview[1]);if(!recipe)fail('NOT_FOUND');
+        res.writeHead(200,{'content-type':'text/html; charset=utf-8','cache-control':'no-store',
+          'content-security-policy':"frame-ancestors 'none'",'x-frame-options':'DENY','x-content-type-options':'nosniff','referrer-policy':'no-referrer'});
+        res.end(renderOffer(buildOffer(recipe),{localInvitation:true}));return true;
+      }
       const asset=assets.get(url);
       if(req.method==='GET'&&asset){
         res.writeHead(200,{'content-type':asset.type,'cache-control':'no-store','content-security-policy':CSP,
@@ -32,6 +41,17 @@ function createBrowserRoutes({runtime,readBody,send,evidence,readBinary,sendDown
       if(!url.startsWith('/app/api/'))fail('NOT_FOUND');
       if(req.method!=='GET'&&req.method!=='POST')fail('NOT_FOUND');
       if(req.method==='POST'&&req.headers.origin!==origin)fail('FORBIDDEN');
+      if(url==='/app/api/pilot'&&req.method==='POST'){
+        const time=Date.now();pilotFailures=pilotFailures.filter(t=>time-t<60000);
+        if(pilotFailures.length>=20)fail('RATE_LIMIT');
+        try{
+          const body=await readBody(req);if(!fields(body,['inviteCode','consent']))fail('BAD_REQUEST');
+          const activated=runtime.activatePilot(body.inviteCode,body.consent);
+          const issued=sessions.issue(activated.credential);sessions.remove(cookieId(req.headers.cookie));
+          send(res,200,{csrfToken:issued.csrf,expiresAt:issued.expiresAt,pilotExpiresAt:activated.expiresAt}, {'set-cookie':sessionCookie(issued.id)});
+          return true;
+        }catch(error){pilotFailures.push(time);throw error;}
+      }
       if(url==='/app/api/session'&&req.method==='POST'){
         const body=await readBody(req);if(!fields(body,['credential']))fail('BAD_REQUEST');
         const issued=sessions.issue(body.credential);sessions.remove(cookieId(req.headers.cookie));
