@@ -6,6 +6,7 @@ on:
       - 'packages/application-factory/manufacturing/**'
       - 'packages/application-factory/recipes.json'
       - 'scripts/run-autonomous-factory.js'
+      - 'scripts/validate-autonomy-ideas.js'
       - '.github/workflows/factory-autonomy-ci.yml'
   workflow_dispatch:
   schedule:
@@ -30,6 +31,10 @@ jobs:
         run: |
           node scripts/run-autonomous-factory.js --output "$RUNNER_TEMP/autonomous-apps"
           node -e 'const fs=require("fs"),path=require("path"),dir=process.env.RUNNER_TEMP;const root=path.join(dir,"autonomous-apps","autonomy");const files=fs.readdirSync(root).filter(x=>/^cycle-\d+\.json$/.test(x));if(files.length!==1)throw Error("MISSING_CYCLE_RECEIPT");const r=JSON.parse(fs.readFileSync(path.join(root,files[0]),"utf8"));if(!r.exhausted&&(r.planned!==1||r.failed!==0||r.accepted!==1||r.verification!=="executed-packaged-workflow"))throw Error("AUTONOMY_ACCEPTANCE_FAILED");if(r.releaseApproved!==false||r.marketValidated!==false||r.paymentsSent!==0||r.transmittedMessages!==0)throw Error("UNSAFE_RELEASE_STATE");console.log(JSON.stringify({cycle:r.cycle,accepted:r.accepted,exhausted:r.exhausted,releaseApproved:false}));'
+      - name: Admit researched app blueprints and independently execute newest candidates
+        run: |
+          node scripts/validate-autonomy-ideas.js --check
+          node scripts/validate-autonomy-ideas.js --build-pending --output "$RUNNER_TEMP/autonomous-apps"
       - name: Preserve bounded candidate artifacts and source-derived receipts
         uses: actions/upload-artifact@v4
         if: success()
