@@ -60,6 +60,9 @@ jobs:
             exit "$status"
           fi
 
+      - name: Independent tenant isolation, recovery, and document-policy suite (offline)
+        run: node --test packages/application-factory/tenant-service.test.js
+
       - name: Verify application-family manufacturing (offline)
         run: |
           node scripts/build-application-factory.js --check
