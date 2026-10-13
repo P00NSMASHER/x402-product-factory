@@ -6,6 +6,10 @@ Canonical repository for the x402 Product Factory.
 
 Build narrow, deterministic, machine-purchasable decision tools for autonomous agents while sharing one hardened x402, evidence, source-adapter, test, and discovery layer.
 
+## Source-safety and history-continuity integration (draft)
+
+[Joint release-readiness review](quality/integration/INTEGRATION_REVIEW.md) combines the source-history integrity improvements from PR #18 with the 22-product settlement/source-data safeguards from PR #19. A dedicated test verifies all 22 unchanged x402 challenges and routes, three classes of source validation, and source-history fail-closed behavior. This is a **separate draft integration branch**, not a production merge or release approval.
+
 ## SEC and Treasury paid-evidence contract guard (draft)
 
 The [SEC/Treasury field-level quality upgrade](quality/benchmarks/SEC_TREASURY_FIELD_EVIDENCE.md) adds non-chargeable protection to five existing staging tools: Products 006/013 (SEC EDGAR filing/identity), 008/014/015 (Treasury monthly rates/changes/spreads). Malformed *available:true* evidence now fails before x402 settlement. Authentic no-match and completed adverse responses keep existing paid semantics. This work is stacked on the 22-product availability safety branch and remains **draft, unmerged, undeployed**.

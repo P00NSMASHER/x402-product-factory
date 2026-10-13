@@ -135,7 +135,8 @@ function makeReadOnlyTransport(rawFetch){
          Object.keys(options.headers||{}).some(h=>h.toLowerCase()===key.toLowerCase()))){
       throw gate("SOURCE_READ_ONLY_POLICY_BLOCKED");
     }
-    if(++counter.total>MAX_REQUESTS)throw gate("SOURCE_READ_ONLY_POLICY_BLOCKED");
+    if(counter.total>=MAX_REQUESTS)throw gate("SOURCE_READ_ONLY_POLICY_BLOCKED");
+    counter.total++;
     counter[authority]++;
     let res;
     try{
@@ -158,7 +159,8 @@ function makeReadOnlyTransport(rawFetch){
       const target=allowedOfacPublisherRedirect(
         rawUrl,res.headers?.get?.("location")
       );
-      if(++counter.total>MAX_REQUESTS)throw gate("SOURCE_READ_ONLY_POLICY_BLOCKED");
+      if(counter.total>=MAX_REQUESTS)throw gate("SOURCE_READ_ONLY_POLICY_BLOCKED");
+    counter.total++;
       counter[authority]++;
       try{
         res=await rawFetch(target,{
