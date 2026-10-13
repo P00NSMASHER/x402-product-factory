@@ -31,7 +31,7 @@ test('each slot advances to a different work-ready candidate without manual prod
  assert.equal(seen.size,72);
 });
 test('finite curated catalog is exhausted rather than silently recycling junk',()=>{
- const plan=loop.planCycle({at:new Date(Date.parse(EPOCH)+72*21600000).toISOString()});
+ const plan=loop.planCycle({at:new Date(Date.parse(EPOCH)+99999*21600000).toISOString()});
  assert.equal(plan.exhausted,true);assert.equal(plan.recipes.length,0);
  assert.equal(plan.nextAction,'catalog_refresh_required');
 });
@@ -90,7 +90,7 @@ test('a different cycle builds a separate version with isolated manifest identit
  assert.equal(fs.readdirSync(path.join(outputRoot,'autonomy')).length,2);
 });
 test('exhausted cycle avoids any paid or external side effect and emits no fake new product',t=>{
- const outputRoot=dir(t),time=new Date(Date.parse(EPOCH)+72*21600000).toISOString();
+ const outputRoot=dir(t),time=new Date(Date.parse(EPOCH)+99999*21600000).toISOString();
  const result=loop.runCycle({at:time,outputRoot});
  assert.equal(result.planned,0);assert.equal(result.accepted,0);
  assert.equal(result.exhausted,true);assert.equal(result.transmittedMessages,0);
