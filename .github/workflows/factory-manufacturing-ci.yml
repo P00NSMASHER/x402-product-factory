@@ -1,0 +1,42 @@
+name: Full-stack application manufacturing
+on:
+  pull_request:
+    paths:
+      - 'packages/application-factory/**'
+      - 'scripts/**'
+      - '.github/workflows/factory-manufacturing-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: factory-manufacturing-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  manufacturing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Preserve exact-source diagnostic snapshot
+        run: git archive --format=tar -o "$RUNNER_TEMP/factory-source.tar" HEAD
+      - name: Full-stack manufacturing contracts
+        run: node --test packages/application-factory/manufacturing/*.test.js
+      - name: Assemble and independently exercise every default edition
+        run: node scripts/manufacture-applications.js --output "$RUNNER_TEMP/manufactured-applications"
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: manufactured-applications
+          path: ${{ runner.temp }}/manufactured-applications
+          retention-days: 7
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: manufacturing-source-diagnostic
+          path: ${{ runner.temp }}/factory-source.tar
+          retention-days: 1
+          if-no-files-found: error
