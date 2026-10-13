@@ -112,6 +112,10 @@ The [remaining-product source-billing audit](REMAINING_SOURCE_BILLING_SAFETY.md)
 
 Every service normalizes arbitrary adapter error messages/codes before they reach an x402 response, while retaining completed adverse outcomes. A single table-driven test suite checks **both handwritten and generated** paid handlers for all 17 product IDs, rejection without settlement, privacy, and positive billing behavior on intentional valid negative signals. This is draft-only, no real payment or provider calls.
 
+### OFAC SDN/ALT cache freshness and fail-closed recovery (draft)
+
+[OFAC cache freshness QA](OFAC_CACHE_FRESHNESS.md) bounds the shared OFAC source adapter's in-process cache age to one hour by default and never serves an expired or failed/empty SDN+ALT refresh. A local retrieval timestamp is included as evidence of **when this process fetched the files**, not their government publication time or any sanctions-clearance guarantee. Cross-product settlement tests cover Products 009, 016 and 018 and enforce `502 chargeable:false` with no payment settlement after an expired OFAC fetch fails. All source queries, money movement and user data remain unchanged.
+
 ### Test and release barriers
 
 The unchanged Factory product CI continues to run every existing staging release gate and all discovered tests, plus deterministic `--check` gates for these artifacts. Tests include tampered artifacts, unauthorized Product 025+ assertions, partial/private evidence input, inconsistent price arithmetic, duplicate trial entries, and fake approvals.

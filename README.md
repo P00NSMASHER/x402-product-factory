@@ -6,6 +6,10 @@ Canonical repository for the x402 Product Factory.
 
 Build narrow, deterministic, machine-purchasable decision tools for autonomous agents while sharing one hardened x402, evidence, source-adapter, test, and discovery layer.
 
+## OFAC source freshness and atomic refresh (draft)
+
+The [OFAC refresh correctness upgrade](quality/benchmarks/OFAC_CACHE_FRESHNESS.md) eliminates unbounded in-process SDN/ALT caching across the existing OFAC-dependent staging products. One-hour default local cache expiry, atomic publication, concurrent request coalescing, and **non-chargeable upstream-error handling** prevent an expired, empty or partially refreshed OFAC dataset from being treated as a valid negative name screen. The included local fetch timestamp **does not** authenticate the date or completeness of OFAC's published files. This change is a separate **draft PR**, unmerged and undeployed.
+
 ## Source-safety and history-continuity integration (draft)
 
 [Joint release-readiness review](quality/integration/INTEGRATION_REVIEW.md) combines the source-history integrity improvements from PR #18 with the 22-product settlement/source-data safeguards from PR #19. A dedicated test verifies all 22 unchanged x402 challenges and routes, three classes of source validation, and source-history fail-closed behavior. This is a **separate draft integration branch**, not a production merge or release approval.

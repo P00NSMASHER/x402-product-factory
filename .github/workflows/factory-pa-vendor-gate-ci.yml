@@ -50,6 +50,9 @@ jobs:
       - name: Run all discovered factory tests
         run: node scripts/run-all-tests.js
 
+      - name: Verify OFAC bounded-cache and settlement safety
+        run: node --test packages/sources/ofac-cache-freshness.test.js packages/sources/ofac-cache-settlement.test.js
+
       - name: Verify Product Quality Lab evidence and hostile input coverage
         run: |
           node quality/product-quality-lab.js --check
