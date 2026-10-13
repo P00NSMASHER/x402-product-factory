@@ -223,13 +223,25 @@ function recover({
       "-n",ARTIFACT_NAME,"-D",dest
     ]);
     if(response?.status===0){
-      const snap=confirmedSnapshot(path.join(dest,SNAPSHOT_FILE),priorRun);
-      if(snap){
+      // The first historical workflow stored files flat. Adding a history
+      // file from a second folder caused GitHub upload-artifact to preserve
+      // this ONE known alternate directory prefix. Never scan arbitrary
+      // extracted paths: doing so could import untrusted ZIP content.
+      const allowedSnapshots=[
+        path.join(dest,SNAPSHOT_FILE),
+        path.join(dest,"factory018-current",SNAPSHOT_FILE)
+      ];
+      let accepted=null,acceptedFile=null;
+      for(const file of allowedSnapshots){
+        const snap=confirmedSnapshot(file,priorRun);
+        if(snap){accepted=snap;acceptedFile=file;break}
+      }
+      if(accepted){
         selected=priorRun.id;
-        observed=snap.observed_at_utc;
-        fs.copyFileSync(path.join(dest,SNAPSHOT_FILE),
-          path.join(base,SNAPSHOT_FILE));
+        observed=accepted.observed_at_utc;
+        fs.copyFileSync(acceptedFile,path.join(base,SNAPSHOT_FILE));
         fs.chmodSync(path.join(base,SNAPSHOT_FILE),0o600);
+        fs.rmSync(dest,{recursive:true,force:true});
         break;
       }
     }

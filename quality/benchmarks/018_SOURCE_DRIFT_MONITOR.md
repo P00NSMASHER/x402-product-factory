@@ -20,6 +20,12 @@ Retained fields are limited to observation time, fixed source IDs, compatibility
 
 A genuine first same-branch run with **zero previously completed runs** reports `BOOTSTRAP_BASELINE_PENDING`. If an older completed run is known but its artifact is missing, corrupt, expired, from another branch, outside its Actions run time window, or fails the strict snapshot schema, the monitor returns **HOLD** rather than incorrectly bootstrapping. A failed GitHub run-list query is also **HOLD**, never "first observation."
 
+## GitHub artifact layout compatibility
+
+On the first proposed monitor run, GitHub Actions uploaded all redacted source files from one directory. A subsequent history-file addition temporarily caused the artifact ZIP to preserve the `factory018-current/` directory prefix when multiple upload paths had different parents. The continuity gate **correctly failed closed** instead of claiming an unverified comparison.
+
+The recovered implementation supports only the two known fixed paths (`current.json` at the ZIP root and `factory018-current/current.json`), rejects unrelated nested files, and deletes temporary downloads after schema/time validation. **New artifacts place `history.json` in the same directory as the redacted snapshot** so future downloads use the flat layout again. This is an artifact packaging compatibility fix, not a relaxed source/payment policy.
+
 ## Historical integrity and recovery
 
 The additional [baseline continuity gate](018-baseline-continuity.js) reads only previous **same-branch completed** GitHub Actions metadata and redacted artifacts. It checks up to 12 candidates from a bounded 30-run API listing, validates exact prior snapshot schema and file size, binds the observation timestamp to its associated completed run, and compares that selected timestamp with the current drift report.

@@ -60,7 +60,7 @@ function observation(time=EARLIER){
 function previousRun(id,start="2026-10-12T16:29:00Z",end="2026-10-12T16:32:00Z"){
   return {id,head_branch:BRANCH,status:"completed",run_started_at:start,updated_at:end};
 }
-function runner(runs,{missing=[],tamper={},apiFail=false}={}){
+function runner(runs,{missing=[],tamper={},apiFail=false,nested=[],unexpected=[]}={}){
   const attempts=[];
   return {
     attempts,
@@ -76,9 +76,11 @@ function runner(runs,{missing=[],tamper={},apiFail=false}={}){
       attempts.push(id);
       const dest=args[args.indexOf("-D")+1];
       if(missing.includes(id))return {status:1,stdout:"",stderr:"not found"};
-      fs.mkdirSync(dest,{recursive:true});
+      const fileDir=nested.includes(id)?path.join(dest,"factory018-current"):
+        unexpected.includes(id)?path.join(dest,"other-unapproved-path"):dest;
+      fs.mkdirSync(fileDir,{recursive:true});
       const payload=tamper[id]??monitor.snapshot(observation(EARLIER));
-      fs.writeFileSync(path.join(dest,"current.json"),JSON.stringify(payload));
+      fs.writeFileSync(path.join(fileDir,"current.json"),JSON.stringify(payload));
       return {status:0,stdout:"",stderr:""};
     }
   };
@@ -253,5 +255,26 @@ test("symlinked redacted artifact is not a trusted snapshot",()=>{
     fs.writeFileSync(target,JSON.stringify(valid));
     fs.symlinkSync(target,linked);
     assert.equal(history.confirmedSnapshot(linked,previousRun(205)),null);
+  });
+});
+
+
+test("historical nested GitHub Actions artifact is recovered without accepting arbitrary paths",()=>{
+  tempTest(dir=>{
+    const current=previousRun(303);
+    const {state,attempts}=restore(dir,[current],{nested:[303]});
+    assert.deepEqual(attempts,["api",303]);
+    assert.equal(state.history_state,"VERIFIED_PREVIOUS");
+    assert.equal(state.selected_prior_run_id,303);
+    assert.equal(fs.existsSync(path.join(dir,"current.json")),true);
+    assert.equal(fs.existsSync(path.join(dir,"candidate-303")),false);
+    const baseline=monitor.readPrevious(path.join(dir,"current.json"));
+    assert.equal(history.verifyAgainstReport(state,report(baseline)).ok,true);
+  });
+  tempTest(dir=>{
+    const current=previousRun(304);
+    const {state}=restore(dir,[current],{unexpected:[304]});
+    assert.equal(state.history_state,"HOLD_PRIOR_ARTIFACT_GAP");
+    assert.equal(fs.existsSync(path.join(dir,"current.json")),false);
   });
 });

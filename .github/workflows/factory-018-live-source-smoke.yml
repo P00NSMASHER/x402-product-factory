@@ -55,6 +55,9 @@ jobs:
             "$RUNNER_TEMP/factory018-current/current.json" \
             "$RUNNER_TEMP/factory018-current/report.json" \
             "$RUNNER_TEMP/factory018-current/summary.md"
+          # Keep EVERY uploaded redacted file under one parent so
+          # upload-artifact extracts current.json at the ZIP root.
+          install -m 600 "$RUNNER_TEMP/factory018-prior/history.json" "$RUNNER_TEMP/factory018-current/history.json"
           cat "$RUNNER_TEMP/factory018-current/summary.md" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish only redacted public-source drift evidence
@@ -66,7 +69,7 @@ jobs:
             ${{ runner.temp }}/factory018-current/current.json
             ${{ runner.temp }}/factory018-current/report.json
             ${{ runner.temp }}/factory018-current/summary.md
-            ${{ runner.temp }}/factory018-prior/history.json
+            ${{ runner.temp }}/factory018-current/history.json
           retention-days: 35
           if-no-files-found: warn
 
