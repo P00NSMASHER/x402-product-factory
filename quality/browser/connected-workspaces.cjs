@@ -45,6 +45,18 @@ async function main(){
         page=await pageFor(context);await page.locator('#workspace-panel').waitFor({state:'visible'});await choose(page,recipe);
         await until(async()=>Number(await page.locator('#notice-count').textContent())>0,'saved inbox');
         await page.getByRole('button',{name:'Open '+name,exact:true}).click();
+        const binary=Buffer.from('%PDF-1.7\nSynthetic browser attachment\n%%EOF\n');
+        const selector=page.getByLabel('Select document for '+recipe.requirements[0].label,{exact:true});
+        await selector.setInputFiles({name:'synthetic-evidence.pdf',mimeType:'application/pdf',buffer:binary});
+        const uploadForm=page.locator('#documents form').filter({has:selector});
+        await uploadForm.getByRole('button',{name:'Attach document',exact:true}).click();
+        const stored=page.getByRole('link',{name:'Download synthetic-evidence.pdf',exact:true});
+        await stored.waitFor({state:'visible'});
+        const received=page.waitForEvent('download');await stored.click();
+        const receivedFile=await received;assert.equal(receivedFile.suggestedFilename(),'synthetic-evidence.pdf');
+        assert.deepEqual(fs.readFileSync(await receivedFile.path()),binary);
+        assert.equal(fs.readFileSync(path.join(dir,'vault.sqlite')).includes(binary),false);
+        report.evidenceUploadsVerified++;
         for(const req of recipe.requirements){
           let form=page.locator('#documents form').filter({has:page.getByRole('heading',{name:req.label,exact:true})});
           if(req.renewable)await form.locator('input[type=date]').fill('2028-01-01');
