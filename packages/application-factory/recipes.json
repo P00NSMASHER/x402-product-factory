@@ -1,0 +1,53 @@
+[
+  {
+    "version": 1,
+    "family": "document-workflow",
+    "id": "supplier-desk",
+    "title": "Supply Desk",
+    "buyer": "Small distributors coordinating new suppliers",
+    "outcome": "Collect supplier records and keep renewal dates visible in one workspace.",
+    "recordLabel": "Supplier",
+    "defaultDueDays": 7,
+    "reminderEveryDays": 3,
+    "renewalWindowDays": 30,
+    "requirements": [
+      {"id": "business-profile", "label": "Business profile", "renewable": false},
+      {"id": "insurance", "label": "Insurance evidence", "renewable": true},
+      {"id": "supplier-terms", "label": "Supplier terms acknowledgement", "renewable": false}
+    ]
+  },
+  {
+    "version": 1,
+    "family": "document-workflow",
+    "id": "contractor-renewals",
+    "title": "Renewal Desk",
+    "buyer": "Operations teams coordinating contractor documentation",
+    "outcome": "Track expiring contractor records and prepare timely renewal reminders.",
+    "recordLabel": "Contractor",
+    "defaultDueDays": 5,
+    "reminderEveryDays": 2,
+    "renewalWindowDays": 45,
+    "requirements": [
+      {"id": "insurance", "label": "Insurance evidence", "renewable": true},
+      {"id": "trade-qualification", "label": "Trade qualification record", "renewable": true},
+      {"id": "safety-acknowledgement", "label": "Safety acknowledgement", "renewable": false}
+    ]
+  },
+  {
+    "version": 1,
+    "family": "document-workflow",
+    "id": "agency-intake",
+    "title": "Client Intake",
+    "buyer": "Small agencies collecting project inputs from new clients",
+    "outcome": "Turn scattered project inputs into a clear, complete client checklist.",
+    "recordLabel": "Client",
+    "defaultDueDays": 10,
+    "reminderEveryDays": 4,
+    "renewalWindowDays": 0,
+    "requirements": [
+      {"id": "project-brief", "label": "Project brief", "renewable": false},
+      {"id": "brand-assets", "label": "Brand asset reference", "renewable": false},
+      {"id": "client-signoff", "label": "Client sign-off record", "renewable": false}
+    ]
+  }
+]
