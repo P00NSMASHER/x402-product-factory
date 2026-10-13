@@ -56,7 +56,7 @@ function renderFleetHtml(model){
   '<meta name="robots" content="noindex,nofollow"><meta http-equiv="Content-Security-Policy" content="'+
   escape(csp)+'"><title>Autonomous Factory Fleet</title><style>'+STYLE+'</style></head><body><header>'+
   '<div class="tag">Private engineering operations</div><h1>Autonomous Factory Fleet</h1>'+
-  '<p class="intro">Verified candidate builds, missed jobs and research gaps. Implementation checks are not market proof. No customer data, contact, checkout or deployment.</p></header><main>'+
+  '<p class="intro">Verified candidate builds, missed jobs and research gaps. Implementation checks are not market proof. No customer data, contact collection, sales, or deployment.</p></header><main>'+
   '<div class="cards">'+cards+'</div><div class="panel"><h2>Build ledger</h2>'+
   '<p class="muted">Source-checked local build artifacts; no paid-buyer or revenue inference.</p>'+
   '<div class="table-scroll"><table><thead><tr><th>Cycle</th><th>App</th><th>State</th><th>Acceptance</th></tr></thead><tbody>'+
