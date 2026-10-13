@@ -80,6 +80,11 @@ jobs:
       - name: Verify joined 22-product source quality and source-history continuity
         run: node --test quality/integration/source-safety-and-history.test.js
 
+      - name: Verify transplanted source-history code and draft release graph (offline)
+        run: |
+          node quality/governance/integrated-history.js --check
+          node --test quality/governance/release-chain.test.js quality/governance/integrated-history.test.js
+
       - name: Validate product registry
         run: node scripts/validate-registry.js
 

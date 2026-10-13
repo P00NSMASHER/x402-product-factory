@@ -1,0 +1,38 @@
+name: Factory integrated release graph integrity (read-only)
+
+on:
+  pull_request:
+    paths:
+      - 'quality/governance/**'
+      - '.github/workflows/factory-release-chain-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+
+concurrency:
+  group: factory-release-chain-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  read-only-upstream-release-integrity:
+    name: Check pinned draft PR ancestry and exact-head CI (not release approval)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Validate 14-PR release ancestry and source-history byte preservation
+        run: |
+          node --test quality/governance/release-chain.test.js quality/governance/integrated-history.test.js
+          node quality/governance/integrated-history.js --check
+      - name: Audit exact-head CI of 14 stacked draft PRs (read-only GitHub)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node quality/governance/release-chain.js --audit-live
+
+      - name: Verify independent PR18 history source and exact checks (GitHub GET-only)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node quality/governance/integrated-history.js --audit-live
