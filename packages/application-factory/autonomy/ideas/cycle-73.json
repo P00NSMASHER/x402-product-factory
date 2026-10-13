@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "cycle": 73,
+  "hypothesis": {
+    "customerProblem": "Small warehouse teams may lose track of shift inspection records and follow-up maintenance notes for powered trucks.",
+    "buyerTrigger": "A supervisor prepares to hand over powered industrial truck activity at shift change.",
+    "expensiveFailure": "An unresolved equipment observation may be missed when the next team searches for the relevant inspection record.",
+    "discoveryQuestion": "How are shift inspection checklists and maintenance follow-up decisions handed over today?",
+    "differentiator": "Track inspection receipt, open maintenance follow-up, shift transfer and dated supervisor review separately.",
+    "status": "unverified"
+  },
+  "sources": [
+    {
+      "url": "https://www.osha.gov/training/library/powered-industrial-trucks/checklist",
+      "observedOn": "2026-10-13"
+    },
+    {
+      "url": "https://www.osha.gov/etools/powered-industrial-trucks/operating-forklift/pre-operation",
+      "observedOn": "2026-10-13"
+    }
+  ],
+  "recipe": {
+    "version": 1,
+    "family": "document-workflow",
+    "id": "forklift-shift-handoff-73",
+    "title": "Forklift Shift Inspection Handoff",
+    "buyer": "Warehouse operations coordinators managing powered truck documentation",
+    "outcome": "Track inspection handoffs and unresolved maintenance paperwork without substituting for equipment safety checks.",
+    "recordLabel": "Shift inspection",
+    "defaultDueDays": 1,
+    "reminderEveryDays": 1,
+    "renewalWindowDays": 10,
+    "requirements": [
+      {
+        "id": "preshift-equipment-check",
+        "label": "Pre-shift equipment check",
+        "renewable": false
+      },
+      {
+        "id": "maintenance-exception-note",
+        "label": "Maintenance exception follow-up",
+        "renewable": false
+      },
+      {
+        "id": "supervisor-transfer-reference",
+        "label": "Supervisor handoff record",
+        "renewable": false
+      },
+      {
+        "id": "inspection-cycle-review",
+        "label": "Internal inspection cycle review",
+        "renewable": true
+      }
+    ]
+  }
+}

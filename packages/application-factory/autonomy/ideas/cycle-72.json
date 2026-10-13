@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "cycle": 72,
+  "hypothesis": {
+    "customerProblem": "Small specialty food suppliers may struggle to find receiving and shipping lot references during traceability inquiries.",
+    "buyerTrigger": "A distributor receives or releases a food lot and must coordinate supporting references.",
+    "expensiveFailure": "Missing lot handoff references can delay internal reviews during an inventory or delivery discrepancy.",
+    "discoveryQuestion": "How does the distribution team locate linked receiving and shipping documents for a lot today?",
+    "differentiator": "Connect internal lot reference, receiving handoff, shipping handoff and traceability plan review in one dated checklist.",
+    "status": "unverified"
+  },
+  "sources": [
+    {
+      "url": "https://www.fda.gov/food/food-safety-modernization-act-fsma/fsma-final-rule-requirements-additional-traceability-records-certain-foods",
+      "observedOn": "2026-10-13"
+    },
+    {
+      "url": "https://www.fda.gov/food/food-safety-modernization-act-fsma/frequently-asked-questions-fsma-food-traceability-rule",
+      "observedOn": "2026-10-13"
+    }
+  ],
+  "recipe": {
+    "version": 1,
+    "family": "document-workflow",
+    "id": "food-lot-transfer-72",
+    "title": "Food Lot Transfer Desk",
+    "buyer": "Small specialty food distributors handling business-to-business shipments",
+    "outcome": "Track recorded lot, receipt and shipment references for internal handoff review; not regulatory certification.",
+    "recordLabel": "Lot transfer",
+    "defaultDueDays": 5,
+    "reminderEveryDays": 2,
+    "renewalWindowDays": 28,
+    "requirements": [
+      {
+        "id": "lot-identity-record",
+        "label": "Lot identity reference",
+        "renewable": false
+      },
+      {
+        "id": "receiving-event-reference",
+        "label": "Receiving event reference",
+        "renewable": false
+      },
+      {
+        "id": "shipping-event-reference",
+        "label": "Shipping event reference",
+        "renewable": false
+      },
+      {
+        "id": "internal-plan-review",
+        "label": "Internal traceability plan review",
+        "renewable": true
+      }
+    ]
+  }
+}
