@@ -278,3 +278,23 @@ test("historical nested GitHub Actions artifact is recovered without accepting a
     assert.equal(fs.existsSync(path.join(dir,"current.json")),false);
   });
 });
+
+
+test("a failed prior monitoring job with valid redacted data supports a new observation but never erases the failure",()=>{
+  tempTest(dir=>{
+    const failedRun=previousRun(401);
+    failedRun.conclusion="failure";
+    const {state}=restore(dir,[failedRun]);
+    assert.equal(state.history_state,"VERIFIED_PREVIOUS");
+    assert.equal(state.release_approved,false);
+    assert.equal(state.payment_sent,false);
+    const previous=monitor.readPrevious(path.join(dir,"current.json"));
+    const result=report(previous);
+    assert.equal(history.verifyAgainstReport(state,result).ok,true);
+    assert.equal(result.release_approval_granted,false);
+    const forged=structuredClone(result);
+    forged.release_approval_granted=true;
+    assert.throws(()=>history.verifyAgainstReport(state,forged),
+      /SOURCE_DRIFT_GATE/);
+  });
+});

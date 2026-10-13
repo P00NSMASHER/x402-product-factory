@@ -35,6 +35,8 @@ The additional [baseline continuity gate](018-baseline-continuity.js) reads only
 - **HOLD_PRIOR_ARTIFACT_GAP:** The immediately preceding run has no trustworthy observation. An older validated snapshot can be compared for context, but the workflow **still fails** rather than claiming uninterrupted monitoring.
 - **HOLD_RUN_LOOKUP_UNAVAILABLE:** GitHub run history cannot be verified, including mismatched branch/completion metadata; the monitor fails rather than fabricating a clean first run.
 
+If a **failed** monitoring run nevertheless wrote a validated *redacted source snapshot* before reporting a history gap, that completed source observation may serve as the immediate predecessor on the next run. A subsequent valid comparison can restore new observation continuity without erasing the previous failed check or overriding production release HOLD. This is the bounded recovery path after a detected gap.
+
 The repository stores neither tokens nor previous API payloads. GitHub's read-only actions token is used only for run metadata and the bounded, redacted artifact, and an allowlisted history status is included in the new current-run artifact. Any future alarm is only a reason to investigate the fixed-public source monitor and **never** a license to change vendor decisions, initiate payments or deploy.
 
 ## Alert policy
