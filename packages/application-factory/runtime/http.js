@@ -42,6 +42,18 @@ function createRuntimeServer({runtime,vault=null,automation=true,pollMs=1000}={}
       if(req.method==='GET'&&url==='/v1/recipes')return send(res,200,runtime.recipeCatalog());
       if(req.method==='GET'&&url==='/v1/workspaces')return send(res,200,runtime.workspaces(token));
       if(req.method==='POST'&&url==='/v1/workspaces')return send(res,201,runtime.createWorkspace(token,await readBody(req)));
+      const evidenceMatch=evidence&&DOCUMENT_PATH.exec(url);
+      if(evidenceMatch&&url.startsWith('/v1/')){
+        const [,id,documentId]=evidenceMatch;
+        if(req.method==='GET'&&documentId)return sendDownload(res,evidence.download(token,id,documentId));
+        if(req.method==='GET'&&!documentId)return send(res,200,evidence.list(token,id));
+        if(req.method==='POST'&&!documentId){
+          const bytes=await readBinary(req);
+          runtime.workspaces(token);
+          return send(res,201,evidence.upload(token,id,req.headers,bytes));
+        }
+        reject('NOT_FOUND');
+      }
       const match=/^\/v1\/workspaces\/([a-z][a-z0-9]*(?:-[a-z0-9]+)*)(?:\/(inbox|commands))?$/.exec(url);
       if(!match)reject('NOT_FOUND');const [,id,action]=match;
       if(req.method==='GET'&&!action)return send(res,200,runtime.workspace(token,id));
