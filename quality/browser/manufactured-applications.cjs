@@ -1,13 +1,14 @@
 'use strict';
 // Native UI checks import each accepted artifact, never the source repository runtime.
 const {chromium}=require('playwright');
+const {pathToFileURL}=require('node:url');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 const {compileApplication,verifyApplication}=require('../../packages/application-factory/manufacturing/assembler');
 const recipes=require('../../packages/application-factory/recipes.json');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function until(fn){const end=Date.now()+8000;while(Date.now()<end){if(await fn())return;await wait(25);}throw new Error('PACKAGED_BROWSER_TIMEOUT');}
 async function main(root){
-  const report={kind:'manufactured-native-browser-acceptance',passed:false,editions:0,journeys:0,evidenceDownloads:0,headlessWorkerChecks:0,pageErrors:0,outboundRequests:0,releaseApproved:false};
+  const report={kind:'manufactured-native-browser-acceptance',passed:false,editions:0,journeys:0,offerPreviews:0,evidenceDownloads:0,headlessWorkerChecks:0,pageErrors:0,outboundRequests:0,releaseApproved:false};
   const browser=await chromium.launch({headless:true});
   try{
     for(const recipe of recipes){
@@ -15,6 +16,23 @@ async function main(root){
       const from=rel=>require(path.join(directory,rel)),{openRuntime}=from('packages/application-factory/runtime/runtime.js');
       const {openVault}=from('packages/application-factory/runtime/vault.js'),{createRuntimeServer}=from('packages/application-factory/runtime/http.js');
       const catalog=from('packages/application-factory/recipes.json');assert.equal(catalog.length,1);
+      const offerPath=path.join(directory,"growth/index.html");
+      for(const width of [1440,390]){
+        const offerPage=await browser.newPage({viewport:{width,height:950}});
+        offerPage.on("pageerror",()=>report.pageErrors++);
+        offerPage.on("request",request=>{if(!request.url().startsWith("file:"))report.outboundRequests++;});
+        try{
+          await offerPage.goto(pathToFileURL(offerPath).href);
+          assert.equal(await offerPage.locator("h1").textContent(),recipe.title);
+          await offerPage.getByRole("heading",{name:"Not available for purchase"}).waitFor();
+          assert.equal(await offerPage.locator("form").count(),0);
+          assert.equal(await offerPage.locator("a[href^=http]").count(),0);
+          await offerPage.getByRole("link",{name:"Explore a pilot outline"}).click();
+          assert.ok(offerPage.url().endsWith("#pilot-process"));
+          assert.equal(await offerPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
+          report.offerPreviews++;
+        }finally{await offerPage.close();}
+      }
       const temp=fs.mkdtempSync(path.join(os.tmpdir(),'factory-manufactured-browser-'));
       let runtime,vault,server;
       try{
@@ -52,7 +70,7 @@ async function main(root){
         report.editions++;
       }finally{await server?.close();vault?.close();runtime?.close();fs.rmSync(temp,{recursive:true,force:true});}
     }
-    assert.equal(report.journeys,6);assert.equal(report.evidenceDownloads,6);assert.equal(report.pageErrors,0);assert.equal(report.outboundRequests,0);report.passed=true;
+    assert.equal(report.journeys,6);assert.equal(report.offerPreviews,6);assert.equal(report.evidenceDownloads,6);assert.equal(report.pageErrors,0);assert.equal(report.outboundRequests,0);report.passed=true;
     console.log(JSON.stringify(report,null,2));return report;
   }finally{await browser.close();}
 }
