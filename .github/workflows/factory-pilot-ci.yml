@@ -1,0 +1,24 @@
+name: Private pilot lifecycle
+on:
+  pull_request:
+    paths:
+      - 'packages/application-factory/**'
+      - 'scripts/**'
+      - '.github/workflows/factory-pilot-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: factory-pilot-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Exercise private evaluation lifecycle
+        run: node --test packages/application-factory/runtime/pilot*.test.js
