@@ -106,6 +106,24 @@ function openCampaign({filename,key,recipes,clock=Date.now}={}){
         independentlyVerifiedBuyerDemand:null,realCustomers:null,collectedRevenue:null,releaseApproved:false,
         checkoutEnabled:false,outreachEnabled:false,transmittedMessages:0};
     },
+    // Read-only public organization summaries. Buyer contacts and message delivery are deliberately absent.
+    accounts(){
+      const data=load(),date=today();
+      return data.targets.map(t=>{
+        const events=data.events.filter(e=>e.domain===t.domain),stage=status(data,t.domain);
+        let action=stage==='new'?'review_sources':stage==='reviewed'?'review_outreach_draft':
+          stage==='reported_reply'?'review_buyer_reply':stage==='reported_outreach'?'review_followup':null;
+        if(action==='review_followup'){
+          const last=events.filter(e=>e.kind==='reported_outreach').at(-1);
+          if(!last||Date.parse(date+'T00:00:00Z')-Date.parse(last.occurredOn+'T00:00:00Z')<7*86400000)action=null;
+        }
+        return {domain:t.domain,company:t.company,recipeId:t.recipeId,homepage:t.homepage,
+          researchPriority:t.researchPriority,priorityMeaning:t.priorityMeaning,stage,action,
+          lastReportedOn:events.at(-1)?.occurredOn||null,
+          dataSource:'operator_provided_unverified',demandVerified:false,
+          qualifiedBuyer:false,sendEnabled:false,manualReviewRequired:Boolean(action)};
+      }).sort((a,b)=>a.domain.localeCompare(b.domain));
+    },
     nextActions(){const data=load(),date=today();return data.targets.flatMap(t=>{
       const state=status(data,t.domain),entries=data.events.filter(e=>e.domain===t.domain);
       if(state==='suppressed'||state==='reported_pilot_interest')return [];

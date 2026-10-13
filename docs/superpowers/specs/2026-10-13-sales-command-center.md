@@ -1,0 +1,9 @@
+# Sales Command Center — architecture brief
+
+**Outcome:** Make the previously approved mass-production factory more likely to find buyers by connecting its existing public-organization acquisition review, private campaign stages, and separately operator-attested external buyer evidence. The owner wants increasingly autonomous work while keeping messaging, payment, launch and spending disabled until approved.
+
+**Alternatives:** (1) Automated public sales outreach and checkout: premature under the existing commercial HOLD. (2) Another simulated opportunity scorer: produces activity but no real demand. (3) A private signed-source sales board: selected because it prioritizes authentic interviews and preserves suppression without making false revenue claims.
+
+**Architecture:** Extend existing HMAC-protected campaign with a read-only public organization accessor; do not capture personal contacts. A pure sales board reconciles statuses and optionally loads only signed Growth Lab reports. A strict local CLI reads existing operator-private key files and state, exports static CSS-hash-pinned HTML, JSON and an operator brief to a NEW exclusive directory. This is read-only, not a sender, scheduler, customer-credential system, payment verifier or public SaaS. The release freeze remains unchanged.
+
+**Verification:** missing, corrupt or forged sources, wrong keys, unsafe output paths and duplicate recipe IDs fail closed. 300 public organizations are supported as RESEARCH only. Operator suppression always excludes further actions, regardless of reimports. Synthetic evaluation cannot be promoted to real qualified buyer counts; operator-attested external evidence remains explicitly unverified by external bank/processors. Existing deployment, financial, browser and source gates remain unmodified.

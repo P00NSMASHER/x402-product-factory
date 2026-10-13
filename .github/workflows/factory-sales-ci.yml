@@ -1,0 +1,26 @@
+name: Factory sales command center
+on:
+  pull_request:
+    paths:
+      - 'packages/application-factory/growth/**'
+      - 'packages/application-factory/sales/**'
+      - 'packages/application-factory/recipes.json'
+      - 'scripts/build-sales-command-center.js'
+      - '.github/workflows/factory-sales-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: factory-sales-ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  sales-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify signed campaign and offline sales export
+        run: node --test packages/application-factory/sales/*.test.js packages/application-factory/growth/campaign.test.js packages/application-factory/growth/prospecting.test.js

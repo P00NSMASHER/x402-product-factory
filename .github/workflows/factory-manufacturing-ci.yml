@@ -5,6 +5,7 @@ on:
       - 'packages/application-factory/**'
       - 'scripts/**'
       - 'quality/browser/manufactured-applications.cjs'
+      - 'quality/browser/sales-command-center.cjs'
       - '.github/workflows/factory-manufacturing-ci.yml'
   workflow_dispatch:
 permissions:
@@ -35,6 +36,8 @@ jobs:
         run: |
           NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/manufactured-applications.cjs "$RUNNER_TEMP/manufactured-applications"
           NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/private-pilots.cjs "$RUNNER_TEMP/manufactured-applications"
+      - name: Native sales board acceptance (review-only)
+        run: NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/sales-command-center.cjs
       - uses: actions/upload-artifact@v4
         if: success()
         with:
