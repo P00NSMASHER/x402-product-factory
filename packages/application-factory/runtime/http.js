@@ -2,10 +2,11 @@
 const http=require('node:http');
 const {startWorker}=require('./worker');
 const {createBrowserRoutes}=require('./browser-routes');
+const {createEvidenceRoutes,readBinary,DOCUMENT_PATH,sendDownload}=require('./vault-http');
 const MAX_BODY=16384;
 const ERRORS=new Map([
   ['RATE_LIMIT',429],['SESSION_LIMIT',503],['UNAUTHORIZED',401],['FORBIDDEN',403],['NOT_FOUND',404],['BODY_TOO_LARGE',413],['CONTENT_TYPE_INVALID',415],
-  ['WORKSPACE_CONFLICT',409],['IDEMPOTENCY_CONFLICT',409],['VERSION_CONFLICT',409],['CAPACITY_LIMIT',409],
+  ['WORKSPACE_CONFLICT',409],['IDEMPOTENCY_CONFLICT',409],['VERSION_CONFLICT',409],['CAPACITY_LIMIT',409],['DOCUMENT_QUOTA',409],['DOCUMENT_TOO_LARGE',413],['DOCUMENT_INTEGRITY',503],['DOCUMENT_INVALID',400],
   ...['BAD_REQUEST','COMMAND_INVALID','WORKSPACE_INVALID','IDEMPOTENCY_KEY_INVALID','VERSION_INVALID','RECORD_INVALID',
     'RECORD_UNKNOWN','RECORD_ARCHIVED','DOCUMENT_UNKNOWN','DOCUMENT_INVALID','EXPIRY_INVALID','EXPIRY_NOT_ALLOWED',
     'CLOCK_INVALID','RECORD_LIMIT','HISTORY_LIMIT'].map(code=>[code,400])
@@ -20,14 +21,15 @@ async function readBody(req){
   for await(const chunk of req){length+=chunk.length;if(length>MAX_BODY)reject('BODY_TOO_LARGE');chunks.push(chunk);}
   try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{reject('BAD_REQUEST');}
 }
-function createRuntimeServer({runtime,automation=true,pollMs=1000}={}){
+function createRuntimeServer({runtime,vault=null,automation=true,pollMs=1000}={}){
   if(!runtime||typeof runtime.command!=='function'||typeof automation!=='boolean')throw new Error('SERVER_CONFIG_INVALID');
   let worker=null;
   function send(res,status,body,headers={}){
     res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff',...headers});
     res.end(JSON.stringify(body));
   }
-  const browser=createBrowserRoutes({runtime,readBody,send});
+  const evidence=createEvidenceRoutes({runtime,vault});
+  const browser=createBrowserRoutes({runtime,readBody,send,evidence,readBinary,sendDownload});
   const server=http.createServer({maxHeaderSize:8192},async(req,res)=>{
     try{
       if(req.headers.host!==`127.0.0.1:${server.address()?.port}`)reject('FORBIDDEN');
@@ -40,6 +42,18 @@ function createRuntimeServer({runtime,automation=true,pollMs=1000}={}){
       if(req.method==='GET'&&url==='/v1/recipes')return send(res,200,runtime.recipeCatalog());
       if(req.method==='GET'&&url==='/v1/workspaces')return send(res,200,runtime.workspaces(token));
       if(req.method==='POST'&&url==='/v1/workspaces')return send(res,201,runtime.createWorkspace(token,await readBody(req)));
+      const evidenceMatch=evidence&&DOCUMENT_PATH.exec(url);
+      if(evidenceMatch&&url.startsWith('/v1/')){
+        const [,id,documentId]=evidenceMatch;
+        if(req.method==='GET'&&documentId)return sendDownload(res,evidence.download(token,id,documentId));
+        if(req.method==='GET'&&!documentId)return send(res,200,evidence.list(token,id));
+        if(req.method==='POST'&&!documentId){
+          const bytes=await readBinary(req);
+          runtime.workspaces(token);
+          return send(res,201,evidence.upload(token,id,req.headers,bytes));
+        }
+        reject('NOT_FOUND');
+      }
       const match=/^\/v1\/workspaces\/([a-z][a-z0-9]*(?:-[a-z0-9]+)*)(?:\/(inbox|commands))?$/.exec(url);
       if(!match)reject('NOT_FOUND');const [,id,action]=match;
       if(req.method==='GET'&&!action)return send(res,200,runtime.workspace(token,id));

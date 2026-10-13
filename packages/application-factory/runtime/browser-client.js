@@ -45,7 +45,7 @@
   }
   function showDetail(){
     if(!workspace||!recordId)return;const row=workspace.records.find(r=>r.id===recordId);if(!row)return;
-    const key=[row.id,row.revision,row.status].join(':');if(key===detailKey)return;detailKey=key;
+    const key=[row.id,row.revision,row.status,...(workspace.attachments||[]).filter(a=>a.recordId===row.id).map(a=>a.id)].join(':');if(key===detailKey)return;detailKey=key;
     $('detail-title').textContent=row.name;const fragment=document.createDocumentFragment();
     for(const requirement of workspace.recipe.requirements){
       const doc=row.documents[requirement.id],form=node('form');form.append(node('h3',requirement.label));
@@ -60,6 +60,24 @@
       form.addEventListener('submit',async event=>{event.preventDefault();if(busy||connection.hasPending())return;
         await mutate({type:'receive',recordId:row.id,requirementId:requirement.id,...(requirement.renewable?{expiresOn:expiry.value}:{})});
       });fragment.append(form);
+      if(Array.isArray(workspace.attachments)){
+        const attached=workspace.attachments.filter(a=>a.recordId===row.id&&a.requirementId===requirement.id);
+        for(const item of attached){
+          const link=node('a','Download '+item.name);link.href='/app/api/workspaces/'+selected+'/documents/'+item.id;
+          link.download=item.name;link.rel='noopener';fragment.append(node('p','Saved encrypted evidence · '+item.size+' bytes','muted'),link);
+        }
+        if(!row.archived){
+          const uploadForm=node('form'),fileInput=node('input'),attach=node('button','Attach document');
+          fileInput.type='file';fileInput.accept='.pdf,.png,.jpg,.jpeg';
+          fileInput.setAttribute('aria-label','Select document for '+requirement.label);
+          attach.type='submit';attach.dataset.write='';
+          uploadForm.append(fileInput,attach);
+          uploadForm.addEventListener('submit',async event=>{event.preventDefault();const file=fileInput.files?.[0];
+            if(file)await uploadFile(row.id,requirement.id,file);
+          });
+          fragment.append(uploadForm);
+        }
+      }
     }
     $('documents').replaceChildren(fragment);$('archive-record').hidden=row.archived;writeControls();
   }
@@ -92,11 +110,35 @@
         $('workspace-select').replaceChildren(...list.map(w=>{const o=node('option',w.id.replaceAll('-',' '));o.value=w.id;return o;}));
       }
       $('workspace-select').value=selected;const id=selected;
-      const [data,inbox]=await Promise.all([connection.read('/app/api/workspaces/'+id),connection.read('/app/api/workspaces/'+id+'/inbox')]);
-      if(generation!==viewEpoch||!active||selected!==id)return;workspace=data;showState(inbox);
+      const [data,inbox,attachments]=await Promise.all([
+        connection.read('/app/api/workspaces/'+id),
+        connection.read('/app/api/workspaces/'+id+'/inbox'),
+        connection.read('/app/api/workspaces/'+id+'/documents').catch(error=>{
+          if(error.status===404)return null;throw error;
+        })
+      ]);
+      if(generation!==viewEpoch||!active||selected!==id)return;workspace=data;workspace.attachments=attachments;showState(inbox);
     }catch(error){problem(error);}finally{if(generation===viewEpoch)refreshing=false;}
   }
   async function activate(){active=true;viewEpoch++;$('login-panel').hidden=true;$('workspace-panel').hidden=false;message('');message('',true);await refresh();}
+  async function uploadFile(recordId,requirementId,file){
+    if(busy||!active||!workspace||connection.hasPending())return false;
+    if(file.size<1||file.size>262144){message('Document must be 256 KiB or smaller.',true);return false;}
+    const extension=file.name.toLowerCase().split('.').pop(),types={pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg'};
+    const mediaType=file.type||types[extension];
+    if(!mediaType||!['application/pdf','image/png','image/jpeg'].includes(mediaType)){
+      message('Only PDF, PNG and JPEG evidence is accepted.',true);return false;
+    }
+    busy=true;const generation=viewEpoch;writeControls();let bytes;
+    try{
+      bytes=new Uint8Array(await file.arrayBuffer());
+      if(generation!==viewEpoch||!active)return false;
+      await connection.upload(selected,recordId,requirementId,{name:file.name,mediaType,bytes});
+      if(generation!==viewEpoch)return false;
+      message('Encrypted evidence saved locally. Review the receipt separately.');message('',true);return true;
+    }catch(error){problem(error);return false;}
+    finally{bytes?.fill(0);if(generation===viewEpoch){busy=false;writeControls();await refresh();}}
+  }
   async function mutate(command){
     if(busy||!workspace||connection.hasPending())return false;busy=true;const generation=viewEpoch;writeControls();
     try{
