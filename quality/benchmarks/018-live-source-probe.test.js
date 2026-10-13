@@ -142,6 +142,10 @@ test("read-only transport refuses redirect and enforces maximum outbound budget"
   for(let i=0;i<MAX_REQUESTS;i++)await guarded.checkedFetch(sample);
   await assert.rejects(()=>guarded.checkedFetch(sample),/SOURCE_READ_ONLY_POLICY_BLOCKED/);
   assert.equal(called,MAX_REQUESTS);
+  // An attempt that is refused BEFORE a network request cannot inflate the
+  // redacted source's request counter beyond the enforced eight-call budget.
+  assert.equal(guarded.counter.total,MAX_REQUESTS);
+  assert.equal(guarded.counter.ofac_sdn,MAX_REQUESTS);
   const redirect=makeReadOnlyTransport(async()=>makeResponse("",302));
   await assert.rejects(()=>redirect.checkedFetch(sample),/SOURCE_REDIRECT_REFUSED/);
 });
@@ -272,4 +276,32 @@ test("full real-adapter mock pipeline passes with signed publisher redirects and
     assert.equal(summary.includes(secret),false,secret+" must not appear in the public summary");
   }
   assert.equal(r.release_gate,"HOLD_PENDING_REAL_PAYMENT_BUYER_AND_COST_AUDIT");
+});
+
+
+test("redirect target cannot exceed request budget or inflate redacted counters",async()=>{
+  const signed=signedPublicPublisherLocation("SDN.CSV");
+  let calls=0;
+  const transport=makeReadOnlyTransport(async url=>{
+    calls++;
+    const u=new URL(url);
+    if(u.hostname==="sanctionslistservice.ofac.treas.gov"){
+      return {
+        status:302,ok:false,headers:{get(k){return k==="location"?signed:null}},
+        async text(){return "";}
+      };
+    }
+    return makeResponse(ofacCsv);
+  });
+  const source=OFAC_SOURCE+"SDN.CSV";
+  const padding=OFAC_SOURCE+"ALT.CSV";
+  for(let n=0;n<MAX_REQUESTS-1;n++){
+    await transport.checkedFetch(padding).catch(()=>{});
+  }
+  const before=transport.counter.total;
+  assert.ok(before<=MAX_REQUESTS);
+  await assert.rejects(()=>transport.checkedFetch(source),
+    /SOURCE_READ_ONLY_POLICY_BLOCKED/);
+  assert.equal(transport.counter.total,MAX_REQUESTS);
+  assert.equal(calls,MAX_REQUESTS);
 });
