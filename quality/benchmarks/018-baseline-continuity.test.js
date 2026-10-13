@@ -223,3 +223,35 @@ test("download commands are read-only and do not submit payments or source reque
     assert.equal(JSON.stringify(state).includes("payment_header"),false);
   });
 });
+
+
+test("historical redacted artifact timestamp must match its GitHub Actions run window",()=>{
+  tempTest(dir=>{
+    const staleRun=previousRun(202,
+      "2026-10-11T10:00:00Z","2026-10-11T10:02:00Z");
+    const {state}=restore(dir,[staleRun]);
+    assert.equal(state.history_state,"HOLD_PRIOR_ARTIFACT_GAP");
+    assert.equal(state.selected_snapshot_at_utc,null);
+    assert.equal(fs.existsSync(path.join(dir,"current.json")),false);
+    assert.equal(history.verifyAgainstReport(state,report()).ok,false);
+  });
+});
+test("invalid same-branch GitHub run listing never masquerades as a first observation",()=>{
+  tempTest(dir=>{
+    const wrong=previousRun(203);
+    wrong.head_branch="unauthorized/other-branch";
+    const {state}=restore(dir,[wrong]);
+    assert.equal(state.history_state,"HOLD_RUN_LOOKUP_UNAVAILABLE");
+    assert.notEqual(state.history_state,"NO_PREVIOUS_COMPLETED_RUN");
+  });
+});
+test("symlinked redacted artifact is not a trusted snapshot",()=>{
+  tempTest(dir=>{
+    const valid=monitor.snapshot(observation(EARLIER));
+    const target=path.join(dir,"trusted-target.json");
+    const linked=path.join(dir,"current.json");
+    fs.writeFileSync(target,JSON.stringify(valid));
+    fs.symlinkSync(target,linked);
+    assert.equal(history.confirmedSnapshot(linked,previousRun(205)),null);
+  });
+});
