@@ -3,6 +3,7 @@
 const {chromium}=require('playwright');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),assert=require('node:assert/strict');
 const {openRuntime}=require('../../packages/application-factory/runtime/runtime');
+const {openVault}=require('../../packages/application-factory/runtime/vault');
 const {createRuntimeServer}=require('../../packages/application-factory/runtime/http');
 const recipes=require('../../packages/application-factory/recipes.json');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -11,12 +12,12 @@ async function main(){
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'factory-native-browser-'));
   const artifacts=process.env.FACTORY_BROWSER_ARTIFACT_DIR;
   if(artifacts)fs.mkdirSync(artifacts,{recursive:true});
-  let runtime,server,browser,url;
+  let runtime,vault,server,browser,url;
   const filename=path.join(dir,'runtime.sqlite'),clock=()=>Date.parse('2026-10-13T12:00:00Z');
   const report={kind:'native-browser-durable-workspace-acceptance',passed:false,editions:3,viewports:2,completeJourneys:0,
     pageErrors:[],outboundRequests:0,uncertainWriteReconciled:false,serverRestartVerified:false,
-    browserStorageUsed:false,externalMessagesSent:0,paymentsSent:0,realCustomers:null,collectedRevenue:null,releaseApproved:false};
-  async function start(){runtime=openRuntime({filename,recipes,clock});server=createRuntimeServer({runtime,pollMs:25});await server.listen({port:0});url='http://127.0.0.1:'+server.address().port;}
+    browserStorageUsed:false,evidenceUploadsVerified:0,externalMessagesSent:0,paymentsSent:0,realCustomers:null,collectedRevenue:null,releaseApproved:false};
+  async function start(){runtime=openRuntime({filename,recipes,clock});vault=openVault({filename:path.join(dir,'vault.sqlite'),key:Buffer.alloc(32,9)});server=createRuntimeServer({runtime,vault,pollMs:25});await server.listen({port:0});url='http://127.0.0.1:'+server.address().port;}
   async function pageFor(context){const page=await context.newPage();page.setDefaultTimeout(7000);
     page.on('pageerror',e=>report.pageErrors.push(String(e)));
     page.on('request',request=>{if(!request.url().startsWith(url+'/'))report.outboundRequests++;});
@@ -72,12 +73,12 @@ async function main(){
       await login(page,second.token);assert.equal(await page.locator('#record-count').textContent(),'0');await context.close();
     }
     const context=await browser.newContext(),before=await pageFor(context);await login(before,first.token);
-    await server.close();runtime.close();await start();await before.goto(url+'/app');await before.getByRole('button',{name:'Sign in',exact:true}).waitFor();
+    await server.close();runtime.close();vault.close();await start();await before.goto(url+'/app');await before.getByRole('button',{name:'Sign in',exact:true}).waitFor();
     await login(before,first.token);await until(async()=>Number(await before.locator('#record-count').textContent())>=2,'database records after restart');report.serverRestartVerified=true;
     await context.close();assert.equal(report.pageErrors.length,0);assert.equal(report.outboundRequests,0);assert.equal(report.completeJourneys,6);report.passed=true;
     if(artifacts)fs.writeFileSync(path.join(artifacts,'acceptance.json'),JSON.stringify(report,null,2)+'\n');
     console.log(JSON.stringify(report,null,2));
-  }finally{await browser?.close();await server?.close();runtime?.close();fs.rmSync(dir,{recursive:true,force:true});}
+  }finally{await browser?.close();await server?.close();runtime?.close();vault?.close();fs.rmSync(dir,{recursive:true,force:true});}
 }
 if(require.main===module)main().catch(error=>{console.error(error);process.exitCode=1;});
 module.exports={main};
