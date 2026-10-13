@@ -115,6 +115,8 @@ function openRuntime({filename,recipes,clock=Date.now}={}) {
   const runtime={
     close(){if(!closed){db.close();closed=true;}},
     recipeCatalog(){return [...catalog.values()].map(clone);},
+    // Internal stable identity for tenant-scoped services; never accept a caller tenant ID.
+    tenantId(token){return authenticate(token);},
     provisionTenant(id){
       if(!isId(id))fail('TENANT_INVALID');const token=crypto.randomBytes(32).toString('base64url');
       transaction(()=>{if(db.prepare('SELECT 1 FROM tenants WHERE id=?').get(id))fail('TENANT_EXISTS');
