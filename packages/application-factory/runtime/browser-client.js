@@ -121,6 +121,24 @@
     }catch(error){problem(error);}finally{if(generation===viewEpoch)refreshing=false;}
   }
   async function activate(){active=true;viewEpoch++;$('login-panel').hidden=true;$('workspace-panel').hidden=false;message('');message('',true);await refresh();}
+  async function uploadFile(recordId,requirementId,file){
+    if(busy||!active||!workspace||connection.hasPending())return false;
+    if(file.size<1||file.size>262144){message('Document must be 256 KiB or smaller.',true);return false;}
+    const extension=file.name.toLowerCase().split('.').pop(),types={pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg'};
+    const mediaType=file.type||types[extension];
+    if(!mediaType||!['application/pdf','image/png','image/jpeg'].includes(mediaType)){
+      message('Only PDF, PNG and JPEG evidence is accepted.',true);return false;
+    }
+    busy=true;const generation=viewEpoch;writeControls();let bytes;
+    try{
+      bytes=new Uint8Array(await file.arrayBuffer());
+      if(generation!==viewEpoch||!active)return false;
+      await connection.upload(selected,recordId,requirementId,{name:file.name,mediaType,bytes});
+      if(generation!==viewEpoch)return false;
+      message('Encrypted evidence saved locally. Review the receipt separately.');message('',true);return true;
+    }catch(error){problem(error);return false;}
+    finally{bytes?.fill(0);if(generation===viewEpoch){busy=false;writeControls();await refresh();}}
+  }
   async function mutate(command){
     if(busy||!workspace||connection.hasPending())return false;busy=true;const generation=viewEpoch;writeControls();
     try{
