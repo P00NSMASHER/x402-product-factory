@@ -49,8 +49,10 @@ jobs:
           fi
       - name: Manufacture one independent synthetic edition per cycle
         run: |
-          node scripts/run-autonomous-factory.js --output "$RUNNER_TEMP/autonomous-apps"
-          node -e 'const fs=require("fs"),path=require("path"),dir=process.env.RUNNER_TEMP;const root=path.join(dir,"autonomous-apps","autonomy");const files=fs.readdirSync(root).filter(x=>/^cycle-\d+\.json$/.test(x));if(files.length!==1)throw Error("MISSING_CYCLE_RECEIPT");const r=JSON.parse(fs.readFileSync(path.join(root,files[0]),"utf8"));if(!r.exhausted&&(r.planned!==1||r.failed!==0||r.accepted!==1||r.verification!=="executed-packaged-workflow"))throw Error("AUTONOMY_ACCEPTANCE_FAILED");if(r.releaseApproved!==false||r.marketValidated!==false||r.paymentsSent!==0||r.transmittedMessages!==0)throw Error("UNSAFE_RELEASE_STATE");console.log(JSON.stringify({cycle:r.cycle,accepted:r.accepted,exhausted:r.exhausted,releaseApproved:false}));'
+          set -euo pipefail
+          at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          node scripts/run-autonomous-factory.js --output "$RUNNER_TEMP/autonomous-apps" --at "$at" > "$RUNNER_TEMP/current-autonomous-cycle.json"
+          node -e 'const fs=require("fs"),path=require("path"),crypto=require("crypto");const at=process.argv[1],root=path.join(process.env.RUNNER_TEMP,"autonomous-apps","autonomy"),r=JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP,"current-autonomous-cycle.json"),"utf8"));const expectedCycle=Math.floor((Date.parse(at)-Date.parse("2026-10-13T00:00:00Z"))/21600000);if(r.cycle!==expectedCycle)throw Error("WRONG_CYCLE");const receipt=JSON.parse(fs.readFileSync(path.join(root,"cycle-"+r.cycle+".json"),"utf8"));const hash=crypto.createHash("sha256").update(JSON.stringify({...receipt,digest:undefined})).digest("hex");if(receipt.digest!==hash||receipt.cycle!==r.cycle||receipt.accepted!==r.accepted||receipt.failed!==r.failed||receipt.verification!==r.verification)throw Error("CYCLE_RECEIPT_INVALID");if(!r.exhausted&&(r.planned!==1||r.failed!==0||r.accepted!==1||r.verification!=="executed-packaged-workflow"))throw Error("AUTONOMY_ACCEPTANCE_FAILED");if(r.releaseApproved!==false||r.marketValidated!==false||r.paymentsSent!==0||r.transmittedMessages!==0)throw Error("UNSAFE_RELEASE_STATE");console.log(JSON.stringify({cycle:r.cycle,accepted:r.accepted,reused:r.reused,exhausted:r.exhausted,releaseApproved:false}));' "$at"
       - name: Admit researched app blueprints and independently execute newest candidates
         run: |
           node scripts/validate-autonomy-ideas.js --check
