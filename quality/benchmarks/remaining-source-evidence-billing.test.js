@@ -17,7 +17,7 @@ const BASE="https://candidate.example";
 function mockAdapters(mode="unavailable"){
   const calls={registry:0,address:0,rdap:0,sec:0,treasury:0,ofac:0};
   function lookup(name){
-    return async()=>{
+    return async(query)=>{
       calls[name]++;
       if(mode==="error"){
         const failure=new Error("Private upstream "+SECRET);
@@ -30,7 +30,9 @@ function mockAdapters(mode="unavailable"){
           candidateCount:0,strongCandidateCount:0,entity:null
         };
         if(name==="rdap")return{
-          available:true,registered:false,domain:"example.com",events:{}
+          // A completed negative response belongs to the domain actually
+          // requested, not an unrelated hard-coded documentation domain.
+          available:true,registered:false,domain:query.domain,events:{}
         };
         if(name==="ofac")return{
           available:true,query:"Example LLC",minScore:90,
