@@ -69,3 +69,13 @@ test('changing an admitted blueprint after a cycle has a receipt cannot silently
  const changed=idea(72);changed.recipe.defaultDueDays=8;f.save(72,changed);
  assert.throws(()=>runCycle({at:at(72),blueprintDirectory:f.ideas,outputRoot:f.outputRoot}),/CYCLE_SOURCE_DRIFT/);
 });
+
+test('editing only the research hypothesis after a verified run invalidates the prior receipt',t=>{
+ const f=fixture(t);f.save(72);
+ const first=runCycle({at:at(72),blueprintDirectory:f.ideas,outputRoot:f.outputRoot});
+ assert.equal(first.accepted,1);
+ const revised=idea(72);
+ revised.hypothesis.customerProblem='A different unverified buyer problem cannot rewrite previously accepted research provenance.';
+ f.save(72,revised);
+ assert.throws(()=>runCycle({at:at(72),blueprintDirectory:f.ideas,outputRoot:f.outputRoot}),/CYCLE_SOURCE_DRIFT/);
+});
