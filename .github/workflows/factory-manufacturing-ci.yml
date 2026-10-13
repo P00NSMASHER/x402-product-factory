@@ -21,6 +21,8 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      - name: Verify demand-proof and commercial-claim constraints
+        run: node --test packages/application-factory/growth/*.test.js
       - name: Full-stack manufacturing contracts
         run: node --test packages/application-factory/manufacturing/*.test.js
       - name: Assemble and independently exercise every default edition
