@@ -6,6 +6,7 @@ on:
       - 'scripts/**'
       - 'quality/browser/manufactured-applications.cjs'
       - 'quality/browser/sales-command-center.cjs'
+      - 'quality/browser/autonomous-fleet.cjs'
       - '.github/workflows/factory-manufacturing-ci.yml'
   workflow_dispatch:
 permissions:
@@ -38,6 +39,8 @@ jobs:
           NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/private-pilots.cjs "$RUNNER_TEMP/manufactured-applications"
       - name: Native sales board acceptance (review-only)
         run: NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/sales-command-center.cjs
+      - name: Native fleet dashboard desktop/mobile acceptance
+        run: NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/autonomous-fleet.cjs
       - uses: actions/upload-artifact@v4
         if: success()
         with:
