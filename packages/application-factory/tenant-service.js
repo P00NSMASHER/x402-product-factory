@@ -170,7 +170,12 @@ function checkSeal(ctx, raw, tenantId, recipeId) {
 }
 function load(ctx,tenantId,recipeId) {
   const file = storagePath(ctx,tenantId,recipeId);
-  const primary = readJSON(file);
+  let primary = null, damagedPrimary = false;
+  try { primary = readJSON(file); }
+  catch (error) {
+    if (!(error instanceof GateError) || error.message !== "STORAGE_CORRUPT") throw error;
+    damagedPrimary = true;
+  }
   try {
     if (primary !== null) return {entry:checkSeal(ctx,primary,tenantId,recipeId),recovered:false};
   } catch (error) {
@@ -186,7 +191,7 @@ function load(ctx,tenantId,recipeId) {
     atomicJSON(file,recovered);
     return {entry:recovered,recovered:true};
   }
-  if (primary !== null || regular(file) || regular(backupFile)) fail(503,"STORAGE_INTEGRITY");
+  if (primary !== null || damagedPrimary || regular(file) || regular(backupFile)) fail(503,"STORAGE_INTEGRITY");
   const initial = Kernel.createWorkspace(editions.get(recipeId),{workspaceId:workspaceId(tenantId),today:FIRST_DAY});
   return {entry:{version:0,snapshot:initial.snapshot()},recovered:false};
 }
@@ -257,7 +262,7 @@ function respond(res,status,body) {
   const bytes=JSON.stringify(body);
   res.writeHead(status,{"Content-Type":"application/json; charset=utf-8",
     "Cache-Control":"no-store","X-Content-Type-Options":"nosniff",
-    "Content-Security-Policy":"default-src 'none'","Access-Control-Allow-Origin":"null"});
+    "Content-Security-Policy":"default-src 'none'"});
   res.end(bytes);
 }
 function createTenantServer(dataDir) {
