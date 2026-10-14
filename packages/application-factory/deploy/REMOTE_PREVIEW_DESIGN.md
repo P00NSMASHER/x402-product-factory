@@ -1,0 +1,3 @@
+# Private synthetic remote preview
+
+Proposed: a one-app-only loopback gateway, fronted by an owner-controlled authenticated private network with HTTPS. The gateway must select an exact hash-verified generated application, validate incoming Origin and Host, preserve per-app authorization, withhold credential material from logs and artifacts, expire after an operator-selected session, and reject unsupported routes. No public bind, public URL, customer signup, payments, production state, or paid infrastructure. Cloudflare Access is not currently enabled in the connected account. Until configured, remote verification remains blocked; CI can exercise its local private gateway only.
