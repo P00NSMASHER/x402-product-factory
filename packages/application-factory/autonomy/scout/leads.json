@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "kind": "unverified-research-lead-queue",
+  "observedOn": "2026-10-13",
+  "policy": "append-only-fixed-slot-candidates",
+  "leads": [
+    {
+      "hypothesis": {
+        "customerProblem": "Small calibration teams may struggle to reconcile received calibration certificates with reviewer exception notes.",
+        "buyerTrigger": "A laboratory or service shop receives a calibration certificate from a third-party provider.",
+        "expensiveFailure": "Incomplete certificate review notes can delay internal equipment release decisions and follow-up.",
+        "discoveryQuestion": "How does your team resolve missing certificate details before returning calibrated equipment to use?",
+        "differentiator": "Route certificate receipt, reviewer findings, correction evidence and periodic internal sign-off separately.",
+        "status": "unverified"
+      },
+      "sources": [
+        {
+          "url": "https://www.nist.gov/pml/owm/calibration-certificate-evaluation",
+          "observedOn": "2026-10-13"
+        },
+        {
+          "url": "https://www.nist.gov/calibrations/traceability",
+          "observedOn": "2026-10-13"
+        }
+      ],
+      "recipe": {
+        "version": 1,
+        "family": "document-workflow",
+        "id": "certificate-exception-desk",
+        "title": "Calibration Certificate Exception Desk",
+        "buyer": "Small calibration service coordinators and laboratory equipment administrators",
+        "outcome": "Coordinate certificate exception review and internal handoffs; not calibration, accreditation or technical certification.",
+        "recordLabel": "Certificate exception",
+        "defaultDueDays": 8,
+        "reminderEveryDays": 3,
+        "renewalWindowDays": 30,
+        "requirements": [
+          {
+            "id": "certificate-provider-intake",
+            "label": "Service provider certificate received",
+            "renewable": false
+          },
+          {
+            "id": "measurement-review-findings",
+            "label": "Measurement report review notes",
+            "renewable": false
+          },
+          {
+            "id": "certificate-correction-response",
+            "label": "Corrected certificate reference",
+            "renewable": false
+          },
+          {
+            "id": "internal-exception-signoff",
+            "label": "Periodic internal exception sign-off",
+            "renewable": true
+          }
+        ]
+      }
+    },
+    {
+      "hypothesis": {
+        "customerProblem": "Independent appliance disposal coordinators may lose references between recovery activities and the receiving facility.",
+        "buyerTrigger": "A recovered refrigerant quantity and its equipment disposal record are received for internal reconciliation.",
+        "expensiveFailure": "Missing transfer references can delay internal reporting and follow-up between technicians and dispatch coordinators.",
+        "discoveryQuestion": "How does your team link appliance disposal jobs to refrigerant recovery and transfer paperwork?",
+        "differentiator": "Maintain separate recovery event, monthly quantity summary, receiving transfer and supervisor review records.",
+        "status": "unverified"
+      },
+      "sources": [
+        {
+          "url": "https://www.epa.gov/section608/recordkeeping-and-reporting-requirements-stationary-refrigeration",
+          "observedOn": "2026-10-13"
+        },
+        {
+          "url": "https://www.epa.gov/section608/epas-refrigerant-management-program-questions-and-answers-section-608-certified",
+          "observedOn": "2026-10-13"
+        }
+      ],
+      "recipe": {
+        "version": 1,
+        "family": "document-workflow",
+        "id": "refrigerant-transfer-review",
+        "title": "Refrigerant Recovery Transfer Review",
+        "buyer": "Small appliance recovery and disposal service dispatch coordinators",
+        "outcome": "Organize recovery and transfer reference packets for internal review; not an EPA filing, safety system or compliance certification.",
+        "recordLabel": "Recovery handoff",
+        "defaultDueDays": 6,
+        "reminderEveryDays": 2,
+        "renewalWindowDays": 28,
+        "requirements": [
+          {
+            "id": "appliance-disposal-reference",
+            "label": "Appliance disposal job reference",
+            "renewable": false
+          },
+          {
+            "id": "recovery-type-quantity-log",
+            "label": "Recovery type and quantity worksheet",
+            "renewable": false
+          },
+          {
+            "id": "transfer-recipient-record",
+            "label": "Transfer recipient acknowledgment reference",
+            "renewable": false
+          },
+          {
+            "id": "monthly-recovery-review",
+            "label": "Internal monthly recovery review",
+            "renewable": true
+          }
+        ]
+      }
+    },
+    {
+      "hypothesis": {
+        "customerProblem": "Facility maintenance coordinators may have difficulty connecting critical spare part readiness to approved work packets.",
+        "buyerTrigger": "A facility work order cannot proceed until the responsible team confirms required spare-part references.",
+        "expensiveFailure": "An incomplete spare-part custody reference may slow the dispatch of a scheduled maintenance job.",
+        "discoveryQuestion": "How are critical spares identified, reserved and linked to equipment work orders before dispatch?",
+        "differentiator": "Separate asset criticality review, spare location evidence, work-order handoff and obsolescence review.",
+        "status": "unverified"
+      },
+      "sources": [
+        {
+          "url": "https://www.energy.gov/documents/doe-std-1073-2003",
+          "observedOn": "2026-10-13"
+        },
+        {
+          "url": "https://www.energy.gov/index.php/eere/femp/downloads/operations-and-maintenance-best-practices-guide-achieving-operational-efficiency",
+          "observedOn": "2026-10-13"
+        }
+      ],
+      "recipe": {
+        "version": 1,
+        "family": "document-workflow",
+        "id": "critical-spare-handoff",
+        "title": "Critical Spare Work-Order Handoff",
+        "buyer": "Facility maintenance planners linking spare inventory to internal job records",
+        "outcome": "Link critical-spare paperwork to internal work orders; no purchase, dispatch authorization or safety certification.",
+        "recordLabel": "Spare work packet",
+        "defaultDueDays": 4,
+        "reminderEveryDays": 2,
+        "renewalWindowDays": 25,
+        "requirements": [
+          {
+            "id": "asset-criticality-review",
+            "label": "Asset criticality assessment reference",
+            "renewable": false
+          },
+          {
+            "id": "spare-location-custody",
+            "label": "Spare storage and custody record",
+            "renewable": false
+          },
+          {
+            "id": "workorder-parts-handoff",
+            "label": "Work-order parts handoff note",
+            "renewable": false
+          },
+          {
+            "id": "spare-obsolescence-review",
+            "label": "Periodic obsolescence review",
+            "renewable": true
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -74,4 +74,4 @@ function loadIdeaBacklog({directory=path.join(__dirname,'ideas'),existingRecipes
  }
  return accepted.sort((a,b)=>a.cycle-b.cycle).map(row=>JSON.parse(JSON.stringify(row)));
 }
-module.exports={loadIdeaBacklog,fingerprint};
+module.exports={loadIdeaBacklog,validateIdea,fingerprint};

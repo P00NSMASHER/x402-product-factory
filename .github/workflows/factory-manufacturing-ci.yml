@@ -35,6 +35,9 @@ jobs:
         run: node scripts/manufacture-quote-apps.js --output "$RUNNER_TEMP/quote-to-order-apps"
       - name: Manufacture three independent inventory planning applications
         run: node scripts/manufacture-inventory-apps.js --output "$RUNNER_TEMP/inventory-apps"
+      - name: Rehearse actual synthetic local deployments across all three SaaS families
+        run: |
+          node scripts/rehearse-private-deployments.js --document "$RUNNER_TEMP/manufactured-applications" --quote "$RUNNER_TEMP/quote-to-order-apps" --inventory "$RUNNER_TEMP/inventory-apps" --output "$RUNNER_TEMP/deployment-rehearsal"
       - name: Install isolated browser-test dependency
         run: npm install --prefix "$RUNNER_TEMP/manufacturing-browser" --no-save --ignore-scripts playwright@1.64.0
       - name: Install Chromium
@@ -53,6 +56,14 @@ jobs:
       - name: Native six quote-to-order journeys on desktop and mobile
         run: |
           FACTORY_QUOTE_BROWSER_ARTIFACT_DIR="$RUNNER_TEMP/quote-browser-screenshots" NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/quote-applications.cjs "$RUNNER_TEMP/quote-to-order-apps"
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: private-deployment-rehearsal
+          path: ${{ runner.temp }}/deployment-rehearsal
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
       - uses: actions/upload-artifact@v4
         if: success()
         with:
