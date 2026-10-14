@@ -1,0 +1,38 @@
+name: Synthetic remote-preview gateway CI
+on:
+  pull_request:
+    paths:
+      - 'packages/application-factory/**'
+      - 'scripts/run-private-remote-demo*'
+      - 'quality/browser/remote-fleet-demo.cjs'
+      - '.github/workflows/factory-remote-preview-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: factory-remote-preview-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  remote-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.1'
+      - name: Verify API abuse rejection, secret custody, expiry, rollback and real all-family packages
+        run: |
+          node --test packages/application-factory/deploy/remote-gateway.test.js packages/application-factory/deploy/remote-gateway.integration.test.js scripts/run-private-remote-demo.test.js
+      - name: Install isolated Chromium
+        run: |
+          npm install --prefix "$RUNNER_TEMP/remote-preview-browser" --no-save --ignore-scripts playwright@1.64.0
+          "$RUNNER_TEMP/remote-preview-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Navigate a real manufactured quote UI through temporary HTTPS on iPhone and desktop widths
+        run: NODE_PATH="$RUNNER_TEMP/remote-preview-browser/node_modules" node quality/browser/remote-fleet-demo.cjs
+      - name: Enforce synthetic-only public release boundary
+        run: |
+          node -e 'const fs=require("fs");const s=fs.readFileSync("packages/application-factory/deploy/remote-gateway.js","utf8");if(!s.includes("127.0.0.1")||!s.includes("SESSION_MS")||!s.includes("SameSite=Strict"))process.exit(1);'
