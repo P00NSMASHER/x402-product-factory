@@ -7,6 +7,7 @@ const {manufactureInventoryBatch}=require('../inventory-family/manufacturing');
 const docs=require('../recipes.json'),quotes=require('../quote-family/recipes.json'),inventory=require('../inventory-family/recipes.json');
 const {launchPrivateFleet}=require('./fleet-preview');
 const {createRemoteGateway}=require('./remote-gateway');
+const {createPrivateFleetSupervisor}=require('./private-supervisor');
 const ORIGIN='https://private-demo.example.ts.net';
 function request(port,route,{method='GET',cookie,origin,headers={},body}={}){
  return new Promise((resolve,reject)=>{
@@ -26,7 +27,10 @@ test('all three manufactured app families operate behind authenticated loopback 
  assert.equal(manufactureInventoryBatch({catalog:[inventory[0]],outputRoot:sources.inventory}).accepted,1);
  const fleet=await launchPrivateFleet({sources,stateRoot:path.join(dir,'session')});
  t.after(()=>fleet.stop());
- for(const app of fleet.apps){
+ const watchdog=createPrivateFleetSupervisor({fleet,maxRestarts:2});
+ t.after(()=>watchdog.stop());
+ const initial=await watchdog.tick();assert.equal(initial.healthy,3);
+ for(const app of [...fleet.apps]){
   const gate=await createRemoteGateway({fleet,family:app.family,id:app.id,externalOrigin:ORIGIN});
   try{
    assert.equal((await request(gate.port,'/app')).status,401);
@@ -58,6 +62,35 @@ test('all three manufactured app families operate behind authenticated loopback 
    }
    assert.equal((await request(gate.port,'/health',{cookie})).status,404);
    assert.equal((await request(gate.port,'/app',{cookie,origin:'https://attacker.invalid'})).status,403);
+   // Actual verified service is closed and reopened by the existing private
+   // fleet recovery mechanism while this exact authenticated gateway stays alive.
+   const pinnedDigest=app.digest,pinnedCredentials=fs.readFileSync(app.privateCredentialFile);
+   await app.close();
+   assert.equal((await request(gate.port,'/app',{cookie})).status,502);
+   const healed=await watchdog.tick();
+   assert.equal(healed.quarantined,0);assert.equal(healed.externalContacts,0);
+   assert.ok(healed.services.some(s=>s.family===app.family&&s.id===app.id&&
+      s.status==='healthy'&&s.successfulRestarts===1));
+   const live=fleet.apps.find(v=>v.family===app.family&&v.id===app.id);
+   assert.equal(live.digest,pinnedDigest);
+   assert.deepEqual(fs.readFileSync(live.privateCredentialFile),pinnedCredentials);
+   assert.equal((await request(gate.port,'/app',{cookie})).status,200);
+   if(app.family==='document'){
+    // Browser cookies are not reused across a process restart; the original
+    // operator credential can establish a fresh app-native session.
+    const relog=await request(gate.port,'/app/api/session',{cookie,method:'POST',origin:ORIGIN,
+     headers:{'content-type':'application/json'},
+     body:JSON.stringify({credential:credentials.operator})});
+    assert.equal(relog.status,200);
+   }else{
+    const endpoint=app.family==='quote'?'/v1/recipe':'/v1/context';
+    const authed=await request(gate.port,endpoint,
+      {cookie,headers:{Authorization:'Bearer '+credentials.operator}});
+    assert.equal(authed.status,200);
+   }
   }finally{await gate.close();}
  }
+ assert.equal(watchdog.report().verifiedRecoveries,3);
+ assert.equal(watchdog.report().recoveryAttempts,3);
+ assert.equal(watchdog.report().externalContacts,0);
 });
