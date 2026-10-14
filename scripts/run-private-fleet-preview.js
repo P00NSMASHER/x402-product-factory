@@ -1,12 +1,12 @@
 'use strict';
 // Run independently accepted SaaS candidates as one local synthetic operator preview.
 const path=require('node:path');
-const {launchPrivateFleet}=require('../packages/application-factory/deploy/fleet-preview');
+const {launchPrivateFleet,resumePrivateFleet}=require('../packages/application-factory/deploy/fleet-preview');
 const {createPrivateFleetSupervisor}=require('../packages/application-factory/deploy/private-supervisor');
 const fs=require('node:fs'),crypto=require('node:crypto');
 const fail=c=>{throw Error(c);};
 function parse(argv){
- if(!Array.isArray(argv)||argv.length<9||!['--exercise','--serve'].includes(argv[0])||(argv.length-1)%2)
+ if(!Array.isArray(argv)||argv.length<9||!['--exercise','--serve','--resume'].includes(argv[0])||(argv.length-1)%2)
   fail('USAGE_INVALID');
  const mode=argv[0],opts=Object.create(null);
  for(let i=1;i<argv.length;i+=2){
@@ -18,7 +18,7 @@ function parse(argv){
  for(const flag of ['--document','--quote','--inventory','--state-root'])
   if(typeof opts[flag]!=='string'||!path.isAbsolute(opts[flag]))fail('USAGE_INVALID');
  if(mode==='--exercise'&&opts['--port']!==undefined)fail('USAGE_INVALID');
- if(mode==='--serve'&&opts['--port']!==undefined&&
+ if(mode!=='--exercise'&&opts['--port']!==undefined&&
   (!/^\d{1,5}$/.test(opts['--port'])||Number(opts['--port'])>65535))fail('USAGE_INVALID');
  return {mode,sources:{document:opts['--document'],quote:opts['--quote'],inventory:opts['--inventory']},
   stateRoot:opts['--state-root'],portalPort:opts['--port']===undefined?0:Number(opts['--port'])};
@@ -64,7 +64,8 @@ async function exercise(fleet){
   publicHostingEnabled:false,releaseApproved:false};
 }
 async function main(argv=process.argv.slice(2)){
- const input=parse(argv),fleet=await launchPrivateFleet(input);
+ const input=parse(argv),fleet=input.mode==='--resume'?
+  await resumePrivateFleet(input):await launchPrivateFleet(input);
  if(input.mode==='--exercise'){
   try{return await exercise(fleet);}finally{await fleet.stop();}
  }
@@ -72,6 +73,8 @@ async function main(argv=process.argv.slice(2)){
  supervisor.start();
  process.stdout.write(JSON.stringify({kind:'local-private-app-portal',origin:fleet.origin,
   appCount:fleet.apps.length,stateDirectory:fleet.stateRoot,
+  resumed:input.mode==='--resume',
+  applications:fleet.apps.map(a=>({family:a.family,id:a.id,origin:a.origin})),
   credentialFiles:fleet.apps.map(a=>({family:a.family,id:a.id,file:a.privateCredentialFile})),
   publicHostingEnabled:false,releaseApproved:false,watchdogActive:true,
   automaticLocalRecovery:true,externalContacts:0})+'\n');

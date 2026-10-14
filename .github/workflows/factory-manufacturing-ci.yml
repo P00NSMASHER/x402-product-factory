@@ -61,6 +61,15 @@ jobs:
           cp "$RUNNER_TEMP/baseline-preview-proof.json" "$RUNNER_TEMP/private-fleet-evidence/baseline.json"
           cp "$RUNNER_TEMP/research-preview-proof.json" "$RUNNER_TEMP/private-fleet-evidence/research.json"
           chmod 600 "$RUNNER_TEMP/private-fleet-evidence/"*.json
+      - name: Crash entire private host process and resume all 9 plus 11 accepted applications
+        run: |
+          set -euo pipefail
+          node scripts/supervise-private-fleet.js --exercise-crash --document "$RUNNER_TEMP/manufactured-applications" --quote "$RUNNER_TEMP/quote-to-order-apps" --inventory "$RUNNER_TEMP/inventory-apps" --state-root "$RUNNER_TEMP/baseline-crash-session" > "$RUNNER_TEMP/baseline-crash-proof.json"
+          node scripts/supervise-private-fleet.js --exercise-crash --document "$RUNNER_TEMP/manufactured-applications" --quote "$RUNNER_TEMP/research-quote-apps" --inventory "$RUNNER_TEMP/research-inventory-apps" --state-root "$RUNNER_TEMP/research-crash-session" > "$RUNNER_TEMP/research-crash-proof.json"
+          node -e 'const fs=require("fs"),path=require("path");for(const [name,count] of [["baseline",9],["research",11]]){const p=JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP,name+"-crash-proof.json"),"utf8"));if(p.kind!=="unattended-private-host-crash-recovery"||p.apps!==count||p.killedLauncher!==true||p.newLauncherBooted!==true||p.sqliteRecordStatePreserved!==true||p.syntheticCredentialHashesPreserved!==true||p.sourcePackageIdentitiesUnchanged!==true||p.tenantApiBoundariesVerified!==true||p.privateLoopbackOnly!==true||p.externalContacts!==0||p.paymentsSent!==0||p.releaseApproved!==false||p.realCustomers!==null||p.collectedRevenue!==null)throw Error("HOST_CRASH_GATE_FAILED");}'
+          cp "$RUNNER_TEMP/baseline-crash-proof.json" "$RUNNER_TEMP/private-fleet-evidence/host-crash-baseline.json"
+          cp "$RUNNER_TEMP/research-crash-proof.json" "$RUNNER_TEMP/private-fleet-evidence/host-crash-research.json"
+          chmod 600 "$RUNNER_TEMP/private-fleet-evidence/"host-crash-*.json
       - name: Install isolated browser-test dependency
         run: npm install --prefix "$RUNNER_TEMP/manufacturing-browser" --no-save --ignore-scripts playwright@1.64.0
       - name: Install Chromium
