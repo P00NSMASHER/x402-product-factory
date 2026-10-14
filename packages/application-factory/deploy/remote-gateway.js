@@ -96,10 +96,41 @@ async function createRemoteGateway({fleet,family,id,externalOrigin,listenPort=0,
    !Number.isSafeInteger(listenPort)||listenPort<0||listenPort>65535||typeof clock!=='function')deny('REMOTE_APP_INVALID');
  const matches=fleet.apps.filter(x=>x.family===family&&x.id===id);
  if(matches.length!==1)deny('REMOTE_APP_INVALID');
- const app=matches[0],target=new URL(app.origin);
- if(target.protocol!=='http:'||target.hostname!=='127.0.0.1'||target.pathname!=='/'||
-    !Number.isSafeInteger(app.port)||String(app.port)!==target.port)deny('REMOTE_APP_INVALID');
+ // Pin the independently accepted candidate identity, NOT its ephemeral listener port.
+ // The fleet's local watchdog may replace the app object after a crash.
+ const initial=matches[0],pinnedDigest=initial.digest,pinnedCredentialFile=initial.privateCredentialFile;
+ if(typeof pinnedDigest!=='string'||!/^[a-f0-9]{64}$/.test(pinnedDigest)||
+    typeof pinnedCredentialFile!=='string'||!path.isAbsolute(pinnedCredentialFile))
+  deny('REMOTE_APP_INVALID');
  gateRoot(fleet.stateRoot);
+ const relative=path.relative(fleet.stateRoot,pinnedCredentialFile);
+ if(!relative||relative==='..'||relative.startsWith('..'+path.sep)||path.isAbsolute(relative)||
+    path.basename(pinnedCredentialFile)!=='credentials.json')deny('REMOTE_APP_INVALID');
+ function selectedApp(){
+  const found=fleet.apps.filter(v=>v&&v.family===family&&v.id===id);
+  if(found.length!==1)deny('REMOTE_APP_UNAVAILABLE');
+  const app=found[0];
+  if(app.digest!==pinnedDigest||app.privateCredentialFile!==pinnedCredentialFile)
+   deny('REMOTE_APP_SOURCE_DRIFT');
+  let target;
+  try{target=new URL(app.origin);}catch{deny('REMOTE_APP_UNAVAILABLE');}
+  if(target.protocol!=='http:'||target.hostname!=='127.0.0.1'||
+     target.pathname!=='/'||target.search||target.hash||
+     target.username||target.password||
+     !Number.isSafeInteger(app.port)||app.port<1||app.port>65535||
+     String(app.port)!==target.port||target.origin!==app.origin)
+   deny('REMOTE_APP_UNAVAILABLE');
+  // Credential continuity is a file-ownership boundary, not authorization to
+  // read or leak the private tokens to this gateway.
+  let stat;
+  try{stat=fs.lstatSync(pinnedCredentialFile);}catch{deny('REMOTE_APP_CREDENTIAL_UNAVAILABLE');}
+  if(!stat.isFile()||stat.isSymbolicLink()||
+    (process.platform!=='win32'&&((stat.mode&0o077)!==0||
+     (typeof process.getuid==='function'&&stat.uid!==process.getuid()))))
+   deny('REMOTE_APP_CREDENTIAL_UNAVAILABLE');
+  return {app,target};
+ }
+ selectedApp(); // Gate launch before creating any access code or listener.
  const code=crypto.randomBytes(18).toString('base64url'),digest=sha(code);
  const credentialFile=path.join(fleet.stateRoot,'remote-demo-access-'+family+'-'+id+'.json');
  const file=fs.openSync(credentialFile,'wx',0o600);
@@ -163,6 +194,13 @@ async function createRemoteGateway({fleet,family,id,externalOrigin,listenPort=0,
    requestBody=checked.body;
    if(length!==undefined&&Number(length)!==requestBody.length){rejectBody(req,res,400);return;}
   }
+  // Follow only the current *same-source* localhost service; refuse source or
+  // private credential identity drift instead of forwarding to a different app.
+  let selection;
+  try{selection=selectedApp();}catch{
+   respond(res,503,'Verified private app unavailable');return;
+  }
+  const {app,target}=selection;
   const forwarded={host:target.host};
   for(const key of ['accept','accept-language','user-agent','content-type','content-length','authorization',
     'sec-fetch-site','sec-fetch-mode','sec-fetch-dest','idempotency-key','x-csrf-token']){
