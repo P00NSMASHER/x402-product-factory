@@ -34,7 +34,9 @@ test('an isolated staged deployment truly boots, probes and restarts each assemb
  assert.equal(manifest.localLoopbackVerified,true);
  assert.equal(manifest.approvedDeploymentTarget,null);assert.equal(manifest.tlsValidated,false);
  assert.equal(manifest.rollbackExecuted,false);assert.equal(manifest.realCustomerReady,false);
- for(const row of manifest.results){assert.equal(row.webProbesPassed,2);assert.equal(row.integrityVerified,true);}
+ assert.equal(manifest.privateCanaryFailoverVerified,true);assert.equal(manifest.localCanaryFailovers,3);
+ for(const row of manifest.results){assert.equal(row.webProbesPassed,2);assert.equal(row.integrityVerified,true);
+  assert.equal(row.sameSourceCanaryFailoverPassed,true);assert.equal(row.productionRollbackExecuted,false);}
  assert.throws(()=>rehearsePrivateDeployments({sources:f.sources,outputRoot}),/DEPLOYMENT_OUTPUT_EXISTS/);
 });
 test('corrupted accepted proof cannot be promoted into a staging-ready receipt',t=>{
