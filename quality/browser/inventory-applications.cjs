@@ -52,9 +52,9 @@ async function main(){
      assert.equal(await page.locator('#reviewer-actions').isVisible(),false);
      assert.equal(await page.evaluate(()=>localStorage.length+sessionStorage.length),0);
      assert.equal((await context.cookies()).length,0);
-     await page.locator('#quantity').fill('4');
+     await page.locator('#quantity').fill('2');
      await page.locator('[data-action="receive"]').click();
-     await eventually(async()=>await page.locator('#detail-onhand').textContent()==='4','received stock');
+     await eventually(async()=>await page.locator('#detail-onhand').textContent()==='2','received stock');
      await page.getByRole('button',{name:'Request internal replenishment'}).click();
      await eventually(async()=>(await page.locator('#proposal-note').textContent()).includes('pending review'),'reorder requested');
      await logout();
@@ -70,7 +70,7 @@ async function main(){
      await page.getByRole('button',{name:'Record reviewed stock arrival'}).click();
      await eventually(async()=>{
       const val=await page.locator('#detail-onhand').textContent(),onOrder=await page.locator('#detail-onorder').textContent();
-      return Number(val)>4&&onOrder==='0';
+      return Number(val)>2&&onOrder==='0';
      },'internal receipt recorded');
      assert.match(await page.locator('#proposal-note').textContent(),/received internal/);
      report.nonBindingReplenishments++;
