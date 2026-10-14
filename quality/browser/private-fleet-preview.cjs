@@ -52,7 +52,7 @@ async function main(args=process.argv.slice(2)){
      const item=fleet.apps.find(a=>a.family===family);
      const link=page.locator('a[href="'+item.origin+'/app"]');
      assert.equal(await link.count(),1);
-     await link.click({waitFor:'domcontentloaded'});
+     await Promise.all([page.waitForURL(item.origin+'/app'),link.click()]);
      assert.equal(new URL(page.url()).origin,item.origin);
      assert.ok(await page.locator('body').isVisible());
      assert.ok((await page.locator('body').innerText()).length>75);
