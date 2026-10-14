@@ -22,8 +22,18 @@ function createBrowserRoutes({runtime,readBody,send,evidence,readBinary,sendDown
     async handle(req,res,origin){
       const url=req.url||'';
       if(url!=='/app'&&!url.startsWith('/app/'))return false;
+      // Distinct loopback ports are same-site but different origins. The read-only
+      // login document may be reached via the local operator portal's normal link.
+      // Do NOT extend this to API reads, assets, writes, cross-site requests or
+      // navigations carrying Origin. Authenticated mutations still require CSRF.
+      const site=req.headers['sec-fetch-site'];
+      const portalNavigation=site==='same-site'&&req.method==='GET'&&
+        (url==='/app'||url==='/app/')&&
+        req.headers['sec-fetch-mode']==='navigate'&&
+        req.headers['sec-fetch-dest']==='document'&&
+        req.headers.origin===undefined;
       if((req.headers.origin!==undefined&&req.headers.origin!==origin)||
-         ['cross-site','same-site'].includes(req.headers['sec-fetch-site']))fail('FORBIDDEN');
+         site==='cross-site'||(site==='same-site'&&!portalNavigation))fail('FORBIDDEN');
       const preview=/^\/app\/pilots\/([a-z][a-z0-9-]{0,59})$/.exec(url);
       if(req.method==='GET'&&preview){
         const recipe=runtime.recipeCatalog().find(r=>r.id===preview[1]);if(!recipe)fail('NOT_FOUND');

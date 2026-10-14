@@ -15,3 +15,7 @@ The factory additionally derives four quote-to-internal-order and four inventory
 ## Distinct-version local traffic rollback
 
 CI now also assembles meaningful alternative versions of the original document, quote and inventory apps, revalidates the original and candidate source-hashed packages/acceptance receipts, and tests local routing and fallback on a forced canary outage. With both versions stopped, the proxy must return 503. The stable version restarts with its original isolated synthetic SQLite state. The private, source-hashed report is retained for seven days. This is not a production version migration or live rollback; customer-state transfer, public hosting, financial activation and independent security review remain blocked. See [VERSIONED_ROLLBACK.md](VERSIONED_ROLLBACK.md).
+
+## Run and inspect all apps from one local portal
+
+An independent private launcher starts every accepted SaaS package with isolated synthetic SQLite data, a separate localhost-only service and its own owner-private credentials. A responsive static portal links to the apps without displaying keys. CI executes both the original 9-app and researched 11-app fleets and performs native desktop/mobile portal navigation. The only retained CI reports and screenshots are sanitized; private credentials are **not uploaded**. See [FLEET_PREVIEW.md](FLEET_PREVIEW.md). This is local synthetic access, not a public deployment or security release approval.

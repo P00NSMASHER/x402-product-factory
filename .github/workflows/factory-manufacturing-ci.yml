@@ -9,6 +9,7 @@ on:
       - 'quality/browser/autonomous-fleet.cjs'
       - 'quality/browser/quote-applications.cjs'
       - 'quality/browser/inventory-applications.cjs'
+      - 'quality/browser/private-fleet-preview.cjs'
       - '.github/workflows/factory-manufacturing-ci.yml'
   workflow_dispatch:
 permissions:
@@ -50,6 +51,16 @@ jobs:
       - name: Validate distinct-version synthetic rollback against accepted packages
         run: |
           node scripts/rehearse-versioned-rollout.js --document "$RUNNER_TEMP/manufactured-applications" --quote "$RUNNER_TEMP/quote-to-order-apps" --inventory "$RUNNER_TEMP/inventory-apps" --output "$RUNNER_TEMP/versioned-rollback-rehearsal"
+      - name: Run real private localhost portals for all baseline and research applications
+        run: |
+          set -euo pipefail
+          node scripts/run-private-fleet-preview.js --exercise --document "$RUNNER_TEMP/manufactured-applications" --quote "$RUNNER_TEMP/quote-to-order-apps" --inventory "$RUNNER_TEMP/inventory-apps" --state-root "$RUNNER_TEMP/private-baseline-fleet" > "$RUNNER_TEMP/baseline-preview-proof.json"
+          node scripts/run-private-fleet-preview.js --exercise --document "$RUNNER_TEMP/manufactured-applications" --quote "$RUNNER_TEMP/research-quote-apps" --inventory "$RUNNER_TEMP/research-inventory-apps" --state-root "$RUNNER_TEMP/private-research-fleet" > "$RUNNER_TEMP/research-preview-proof.json"
+          node -e 'const fs=require("fs"),path=require("path");for(const [name,count] of [["baseline",9],["research",11]]){const p=JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP,name+"-preview-proof.json"),"utf8"));if(p.kind!=="executed-private-fleet-preview"||p.passed!==true||p.apps!==count||p.portalLoopbackOnly!==true||p.sourceDigestsVerified!==true||p.distinctLocalServiceOrigins!==true||p.publicHostingEnabled!==false||p.releaseApproved!==false||p.externalMessagesSent!==0||p.paymentsSent!==0||p.realCustomers!==null||p.collectedRevenue!==null)throw Error("PRIVATE_FLEET_GATE_FAILED");}'
+          mkdir -m 700 "$RUNNER_TEMP/private-fleet-evidence"
+          cp "$RUNNER_TEMP/baseline-preview-proof.json" "$RUNNER_TEMP/private-fleet-evidence/baseline.json"
+          cp "$RUNNER_TEMP/research-preview-proof.json" "$RUNNER_TEMP/private-fleet-evidence/research.json"
+          chmod 600 "$RUNNER_TEMP/private-fleet-evidence/"*.json
       - name: Install isolated browser-test dependency
         run: npm install --prefix "$RUNNER_TEMP/manufacturing-browser" --no-save --ignore-scripts playwright@1.64.0
       - name: Install Chromium
@@ -58,6 +69,9 @@ jobs:
         run: |
           NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/manufactured-applications.cjs "$RUNNER_TEMP/manufactured-applications"
           NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/private-pilots.cjs "$RUNNER_TEMP/manufactured-applications"
+      - name: Native private fleet portal on desktop and mobile
+        run: |
+          FACTORY_PRIVATE_FLEET_SCREENSHOT_DIR="$RUNNER_TEMP/private-fleet-screenshots" NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/private-fleet-preview.cjs --document "$RUNNER_TEMP/manufactured-applications" --quote "$RUNNER_TEMP/research-quote-apps" --inventory "$RUNNER_TEMP/research-inventory-apps" --state-root "$RUNNER_TEMP/native-fleet-synthetic"
       - name: Native sales board acceptance (review-only)
         run: NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/sales-command-center.cjs
       - name: Native fleet dashboard desktop/mobile acceptance
@@ -68,6 +82,22 @@ jobs:
       - name: Native six quote-to-order journeys on desktop and mobile
         run: |
           FACTORY_QUOTE_BROWSER_ARTIFACT_DIR="$RUNNER_TEMP/quote-browser-screenshots" NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/quote-applications.cjs "$RUNNER_TEMP/quote-to-order-apps"
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: private-runnable-fleet-acceptance
+          path: ${{ runner.temp }}/private-fleet-evidence
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: private-fleet-phone-desktop-screenshots
+          path: ${{ runner.temp }}/private-fleet-screenshots
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
       - uses: actions/upload-artifact@v4
         if: success()
         with:
