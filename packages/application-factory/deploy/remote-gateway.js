@@ -31,7 +31,7 @@ function allowed(family,method,url){
  return false;
 }
 const LOGIN_HTML=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Private synthetic app demo</title></head><body><main><h1>Private synthetic app demonstration</h1><p>Authorized operator only. No real customers or production data.</p><form method="post" action="/_preview/login"><label>Operator access code <input name="code" type="password" autocomplete="off" required></label><button type="submit">Open demo</button></form></main></body></html>`;
-const BASE={'cache-control':'no-store','x-content-type-options':'nosniff','x-frame-options':'DENY','referrer-policy':'no-referrer','permissions-policy':'camera=(),microphone=(),geolocation=()',
+const BASE={'cache-control':'no-store','x-content-type-options':'nosniff','x-frame-options':'DENY','referrer-policy':'same-origin','permissions-policy':'camera=(),microphone=(),geolocation=()',
  'content-security-policy':"default-src 'none'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"};
 function respond(res,status,body,headers={}){
  res.writeHead(status,{...BASE,'content-type':'text/plain; charset=utf-8',...headers});res.end(body);
