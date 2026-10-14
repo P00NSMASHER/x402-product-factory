@@ -18,7 +18,7 @@ function safeFolder(input,{existing=false}={}){
  const parent=path.dirname(target);
  let stat;try{stat=fs.lstatSync(parent);}catch{fail('PREVIEW_PATH_UNSAFE');}
  if(!stat.isDirectory()||stat.isSymbolicLink()||fs.realpathSync(parent)!==parent||
-  (process.platform!=='win32'&&(stat.mode&0o002)!==0))fail('PREVIEW_PATH_UNSAFE');
+  (process.platform!=='win32'&&(stat.mode&0o002)!==0&&(stat.mode&0o1000)===0))fail('PREVIEW_PATH_UNSAFE');
  if(existing){
   const s=fs.lstatSync(target);
   if(!s.isDirectory()||s.isSymbolicLink()||fs.realpathSync(target)!==target||
