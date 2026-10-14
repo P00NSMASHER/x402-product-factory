@@ -14,7 +14,9 @@ function safeDir(p){const st=fs.lstatSync(p);if(!st.isDirectory()||st.isSymbolic
 function compileInventoryPackage(raw,{sourceRoot=SOURCE}={}){
  const recipe=validateRecipe(raw);
  if(typeof sourceRoot!=='string'||!path.isAbsolute(sourceRoot))fail('SOURCE_INVALID');
- safeDir(sourceRoot);
+ const sourceInfo=fs.lstatSync(sourceRoot);
+ if(!sourceInfo.isDirectory()||sourceInfo.isSymbolicLink()||
+    normalized(fs.realpathSync(sourceRoot))!==normalized(path.resolve(sourceRoot)))fail('SOURCE_INVALID');
  const files={};
  for(const name of NAMES){
   const file=path.join(sourceRoot,name),st=fs.lstatSync(file);

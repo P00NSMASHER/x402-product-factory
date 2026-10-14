@@ -18,8 +18,13 @@ test('server is loopback-only, authenticated, and rejects forged host or origin'
  assert.equal(data.releaseApproved,false);
  const forged=await fetch(url+'/v1/context',{headers:{Authorization:'Bearer '+x.tenant.operatorKey,Origin:'https://bad.invalid'}});
  assert.equal(forged.status,403);
- const host=await fetch(url+'/v1/context',{headers:{Host:'malicious.example.org',Authorization:'Bearer '+x.tenant.operatorKey}});
- assert.equal(host.status,403);
+ const http=require('node:http');
+ const status=await new Promise(resolve=>{
+  http.get({hostname:'127.0.0.1',port:x.server.address().port,path:'/v1/context',
+   headers:{Host:'malicious.example.org',Authorization:'Bearer '+x.tenant.operatorKey}},
+   response=>{response.resume();resolve(response.statusCode);});
+ });
+ assert.equal(status,403);
 });
 test('role separation and idempotence protect replenishment decisions over real HTTP',async t=>{
  const x=setup(t);await x.server.listen({port:0});const url='http://127.0.0.1:'+x.server.address().port;
@@ -28,7 +33,7 @@ test('role separation and idempotence protect replenishment decisions over real 
   const res=await fetch(url+'/v1/command',{method:'POST',headers:{Authorization:'Bearer '+key,Origin:url,'Content-Type':'application/json','Idempotency-Key':k},body:JSON.stringify(body)});
   return {status:res.status,body:await res.json()};
  }
- const initial={sku,command:{type:'receive',quantity:8},expectedRevision:1};
+ const initial={sku,command:{type:'receive',quantity:4},expectedRevision:1};
  const first=await command(x.tenant.operatorKey,initial);
  assert.equal(first.status,200);
  const again=await command(x.tenant.operatorKey,initial);
