@@ -65,11 +65,19 @@ test('runtime serves connected HTML and allowlisted assets with restrictive brow
 });
 test('local operator portal may navigate to anonymous login only, never bypass cross-site API safeguards',async t=>{
  const x=await setup(t);
+ // Node fetch deliberately forces Sec-Fetch-Mode:cors, so emulate real
+ // Chromium navigation metadata with raw HTTP instead of undici fetch.
+ const raw=(url,headers)=>new Promise((resolve,reject)=>{
+  const req=http.get({hostname:'127.0.0.1',port:x.server.address().port,path:url,headers},res=>{
+   const chunks=[];res.on('data',v=>chunks.push(v));
+   res.on('end',()=>resolve({status:res.statusCode,body:Buffer.concat(chunks).toString('utf8')}));
+  });req.on('error',reject);
+ });
  const navigation={'Sec-Fetch-Site':'same-site','Sec-Fetch-Mode':'navigate','Sec-Fetch-Dest':'document'};
  for(const page of ['/app','/app/']){
-  const res=await x.request(page,{headers:navigation});
+  const res=await raw(page,navigation);
   assert.equal(res.status,200);
-  assert.match(await res.text(),/Workspace access/);
+  assert.match(res.body,/Workspace access/);
  }
  for(const [url,headers] of [
   ['/app',{'Sec-Fetch-Site':'same-site'}],
@@ -82,9 +90,9 @@ test('local operator portal may navigate to anonymous login only, never bypass c
   ['/app/api/workspaces',navigation],
   ['/app/api/session',navigation]
  ]){
-  assert.equal((await x.request(url,{headers})).status,403,'same-site navigation must not expand '+url);
+  assert.equal((await raw(url,headers)).status,403,'same-site navigation must not expand '+url);
  }
- assert.equal((await x.request('/app/api/workspaces',{headers:{'Sec-Fetch-Site':'same-origin'}})).status,401);
+ assert.equal((await raw('/app/api/workspaces',{'Sec-Fetch-Site':'same-origin'})).status,401);
 });
 test('login uses HttpOnly Strict cookie without returning the credential',async t=>{
   const x=await setup(t),s=await x.login();assert.match(s.attributes,/HttpOnly/);assert.match(s.attributes,/SameSite=Strict/);assert.match(s.attributes,/Path=\/app/);
