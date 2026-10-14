@@ -1,6 +1,6 @@
 'use strict';
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
-const COOKIE='__Host-factory_preview',SESSION_MS=30*60*1000;
+const COOKIE='__Host-factory_preview',SESSION_MS=30*60*1000,MAX_PROXY_BODY=65536;
 const deny=code=>{throw Error(code);},sha=s=>crypto.createHash('sha256').update(s).digest();
 const safeId=s=>typeof s==='string'&&s.length<=60&&/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(s);
 function externalURL(input){
@@ -55,6 +55,34 @@ async function readLogin(req){
  const body=new URLSearchParams(Buffer.concat(chunks).toString('utf8'));
  if([...body.keys()].length!==1||!body.has('code'))return null;
  return body.get('code');
+}
+// API mutations must be bounded by ACTUAL streamed bytes, not merely a caller-
+// controlled Content-Length header. Buffer before opening an upstream connection
+// so an oversized chunked upload cannot partially commit an action or receipt.
+function readBoundedRequest(req){
+ return new Promise(resolve=>{
+  const chunks=[];let size=0,finished=false;
+  const finish=result=>{
+   if(finished)return;finished=true;
+   req.off('data',onData);req.off('end',onEnd);
+   req.off('aborted',onAbort);req.off('error',onAbort);
+   resolve(result);
+  };
+  const onData=chunk=>{
+   size+=chunk.length;
+   if(size>MAX_PROXY_BODY){req.pause();finish({status:413});return;}
+   chunks.push(chunk);
+  };
+  const onEnd=()=>finish({body:Buffer.concat(chunks,size)});
+  const onAbort=()=>finish({status:400});
+  req.on('data',onData);req.once('end',onEnd);
+  req.once('aborted',onAbort);req.once('error',onAbort);
+ });
+}
+function rejectBody(req,res,status){
+ res.shouldKeepAlive=false;
+ respond(res,status,status===413?'Request too large':'Invalid request',{'connection':'close'});
+ res.once('finish',()=>req.destroy());
 }
 function gateRoot(root){
  if(typeof root!=='string'||!path.isAbsolute(root))deny('REMOTE_STATE_INVALID');
@@ -121,12 +149,26 @@ async function createRemoteGateway({fleet,family,id,externalOrigin,listenPort=0,
   }
   if(req.method==='POST'&&req.headers.origin!==u.origin){respond(res,403,'Forbidden');return;}
   if(!allowed(family,req.method,req.url)){respond(res,404,'Not found');return;}
-  if(Number(req.headers['content-length'])>65536){respond(res,413,'Too large');return;}
+  // Do not forward a write until its complete body has passed a hard byte cap.
+  const length=req.headers['content-length'];
+  if(length!==undefined&&(!/^(0|[1-9][0-9]*)$/.test(length)||
+     !Number.isSafeInteger(Number(length)))){rejectBody(req,res,400);return;}
+  if(length!==undefined&&Number(length)>MAX_PROXY_BODY){rejectBody(req,res,413);return;}
+  if(req.method==='GET'&&((length!==undefined&&Number(length)!==0)||
+     req.headers['transfer-encoding']!==undefined)){rejectBody(req,res,400);return;}
+  let requestBody;
+  if(req.method==='POST'){
+   const checked=await readBoundedRequest(req);
+   if(checked.status){rejectBody(req,res,checked.status);return;}
+   requestBody=checked.body;
+   if(length!==undefined&&Number(length)!==requestBody.length){rejectBody(req,res,400);return;}
+  }
   const forwarded={host:target.host};
   for(const key of ['accept','accept-language','user-agent','content-type','content-length','authorization',
     'sec-fetch-site','sec-fetch-mode','sec-fetch-dest','idempotency-key','x-csrf-token']){
    if(req.headers[key]!==undefined)forwarded[key]=req.headers[key];
   }
+  if(req.method==='POST')forwarded['content-length']=String(requestBody.length);
   const appCookie=stripGateCookie(req.headers.cookie);if(appCookie)forwarded.cookie=appCookie;
   if(req.headers.origin!==undefined)forwarded.origin=app.origin;
   const proxy=http.request({hostname:'127.0.0.1',port:app.port,path:req.url,method:req.method,
@@ -143,7 +185,7 @@ async function createRemoteGateway({fleet,family,id,externalOrigin,listenPort=0,
   proxy.on('error',()=>{if(!res.headersSent)respond(res,502,'Preview origin unavailable');else res.destroy();});
   proxy.on('timeout',()=>proxy.destroy(Error('timeout')));
   req.on('aborted',()=>proxy.destroy());
-  req.pipe(proxy);
+  proxy.end(requestBody);
  });
  server.requestTimeout=10000;server.headersTimeout=10000;server.keepAliveTimeout=1000;
  try{
