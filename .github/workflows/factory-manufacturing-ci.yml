@@ -47,6 +47,9 @@ jobs:
       - name: Probe all eleven expanded private research and baseline document applications
         run: |
           node scripts/rehearse-private-deployments.js --document "$RUNNER_TEMP/manufactured-applications" --quote "$RUNNER_TEMP/research-quote-apps" --inventory "$RUNNER_TEMP/research-inventory-apps" --output "$RUNNER_TEMP/research-deployment-rehearsal"
+      - name: Validate distinct-version synthetic rollback against accepted packages
+        run: |
+          node scripts/rehearse-versioned-rollout.js --document "$RUNNER_TEMP/manufactured-applications" --quote "$RUNNER_TEMP/quote-to-order-apps" --inventory "$RUNNER_TEMP/inventory-apps" --output "$RUNNER_TEMP/versioned-rollback-rehearsal"
       - name: Install isolated browser-test dependency
         run: npm install --prefix "$RUNNER_TEMP/manufacturing-browser" --no-save --ignore-scripts playwright@1.64.0
       - name: Install Chromium
@@ -86,6 +89,14 @@ jobs:
         with:
           name: researched-inventory-applications
           path: ${{ runner.temp }}/research-inventory-apps
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: versioned-rollback-rehearsal
+          path: ${{ runner.temp }}/versioned-rollback-rehearsal
           retention-days: 7
           if-no-files-found: error
           include-hidden-files: false
