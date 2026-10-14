@@ -115,6 +115,33 @@ function runPair(pair){
    out.collectedRevenue!==null||out.paymentsSent!==0||
    out.transmittedMessages!==0||out.releaseApproved!==false)
    fail('VERSION_TRAFFIC_INVALID');
+  // A separate clean child verifies real committed synthetic SQLite data from the
+  // baseline can be read safely or explicitly rejected by the new version.
+  const state=spawnSync(process.execPath,[path.join(__dirname,'state-compatibility.cjs'),
+   pair.family,pair.baseline.folder,pair.candidate.folder,path.join(scratch,'state-check')],
+   {encoding:'utf8',env,timeout:18000,killSignal:'SIGKILL',maxBuffer:128*1024,windowsHide:true});
+  if(state.error||state.status!==0)fail('VERSION_STATE_COMPAT_REJECTED');
+  let assessment;try{assessment=JSON.parse(state.stdout);}catch{fail('VERSION_STATE_COMPAT_REJECTED');}
+  const permittedModes={document:'old_workspace_still_bound_to_old_recipe',
+   quote:'quote_receipts_replay_under_new_validity_policy',
+   inventory:'rejects_changed_inventory_recipe'};
+  if(assessment.kind!=='isolated-state-version-compatibility'||assessment.passed!==true||
+   assessment.family!==pair.family||assessment.id!==pair.id||
+   assessment.baselinePreserved!==true||assessment.syntheticTenantsIsolated!==true||
+   assessment.idempotentReceiptsPreserved!==true||
+   assessment.candidateReadOnlyProbe!==(pair.family!=='inventory')||
+   assessment.changeGate!==permittedModes[pair.family]||
+   assessment.unknownVersionRejected!==true||assessment.foreignApplicationRejected!==true||
+   assessment.oldVersionReadbackVerified!==true||
+   assessment.sqliteApplicationIdentityVerified!==true||
+   assessment.snapshotFromCommittedWal!==true||
+   assessment.schemaUpgradeApplied!==false||
+   assessment.automaticSharedStateMigrationApproved!==false||
+   assessment.productionCustomerStateMigrated!==false||
+   assessment.sourceReadOnly!==true||assessment.externalMessagesSent!==0||
+   assessment.paymentsSent!==0||assessment.realCustomers!==null||
+   assessment.collectedRevenue!==null||assessment.releaseApproved!==false)
+   fail('VERSION_STATE_COMPAT_INVALID');
   // Independent source-integrity recheck after the running binaries have been exercised.
   const spec=configs[pair.family];
   try{spec.manifest(pair.baseline.folder,pair.baseline.digest);
@@ -122,7 +149,10 @@ function runPair(pair){
   return {family:pair.family,id:pair.id,baselineDigest:pair.baseline.digest,
    candidateDigest:pair.candidate.digest,privateCanarySwitches:2,unhealthyResponsesFailClosed:true,
    sourceVerifiedBeforeAndAfter:true,isolatedVersionState:true,
-   localTrafficRollbackPassed:true,productionRollbackExecuted:false};
+   localTrafficRollbackPassed:true,productionRollbackExecuted:false,
+   persistedStateIntegrityVerified:true,unsupportedSchemaRejected:true,
+   sourceIdentityMismatchRejected:true,sharedStateMigrationApproved:false,
+   stateCompatibilityOutcome:assessment.changeGate};
  }finally{fs.rmSync(scratch,{recursive:true,force:true});}
 }
 const delta=(value,max)=>value<max?value+1:value-1;
@@ -157,6 +187,8 @@ function rehearseSyntheticVersions({baselineRoots,outputRoot}={}){
   const report={kind:'private-distinct-version-rollback-rehearsal',schemaVersion:1,
    testedFamilies:3,testedVersionPairs:3,verifiedTrafficFallbacks:3,failed:0,
    results,changes:'behavioral-parameter-and-source-digest-changes',
+   persistedStateFamiliesChecked:3,unsafeAutomaticStateMigrationsBlocked:3,
+   observedSchemaDriftDenied:true,sharedStateMigrationApproved:false,
    releaseState:'commercial-hold',approvedDeploymentTarget:null,publicHostingEnabled:false,
    productionStateMigrationTested:false,productionRollbackExecuted:false,
    customerDataUsed:false,independentMarketValidation:false,realCustomers:null,
@@ -174,7 +206,7 @@ function rehearseSyntheticVersions({baselineRoots,outputRoot}={}){
    const files={
     'versioned-report.json':JSON.stringify(report,null,2)+'\n',
     'RELEASE-HOLD.md':'# Distinct-version private routing acceptance\n\n'+
-    'Three real alternate packaged versions ran on separate synthetic SQLite databases. A local-only canary outage triggered an observed fallback to each prior version. Source integrity and independent full packaged lifecycle receipts were checked. Both-lane outage returned 503, never a false OK.\n\n'+
+    'Three real alternate packaged versions ran on separate synthetic SQLite databases. A local-only canary outage triggered an observed fallback to each prior version. Source integrity and independent full packaged lifecycle receipts were checked. Both-lane outage returned 503, never a false OK. A separate compatibility gate filled each baseline SQLite database with synthetic tenant activity, cloned a consistent WAL-backed snapshot, checked preexisting receipts and tenant isolation on candidate reopen, and rejected unsupported schema and foreign application identities. Changed inventory recipes refuse shared-state reopening, while document workspaces remain bound to their prior recipe; automatic migration remains disallowed.\n\n'+
     'Not a public deployment or production rollback. NO shared customer state migration, live database schema upgrade, TLS, externally reachable service, payment, buyer, version-compatibility approval or independent security review. Real promotion requires separate governed review.\n'
    };
    for(const [name,body] of Object.entries(files)){
@@ -185,6 +217,7 @@ function rehearseSyntheticVersions({baselineRoots,outputRoot}={}){
    fs.renameSync(temp,target);
   }finally{if(fs.existsSync(temp))fs.rmSync(temp,{recursive:true,force:true});}
   return {kind:report.kind,testedVersionPairs:3,verifiedTrafficFallbacks:3,
+   persistedStateFamiliesChecked:3,unsafeAutomaticStateMigrationsBlocked:3,
    failed:0,digest:report.digest,publicHostingEnabled:false,productionRollbackExecuted:false,
    realCustomers:null,collectedRevenue:null,paymentsSent:0,transmittedMessages:0,releaseApproved:false};
  }finally{fs.rmSync(stageRoot,{recursive:true,force:true});}

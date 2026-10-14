@@ -24,6 +24,8 @@ test('three true semantic versions switch and fail back with independent SQLite 
  assert.equal(report.kind,'private-distinct-version-rollback-rehearsal');
  assert.equal(report.testedVersionPairs,3);
  assert.equal(report.verifiedTrafficFallbacks,3);
+ assert.equal(report.persistedStateFamiliesChecked,3);
+ assert.equal(report.unsafeAutomaticStateMigrationsBlocked,3);
  assert.equal(report.failed,0);
  assert.equal(report.releaseApproved,false);assert.equal(report.realCustomers,null);
  assert.equal(report.collectedRevenue,null);assert.equal(report.paymentsSent,0);
@@ -33,6 +35,9 @@ test('three true semantic versions switch and fail back with independent SQLite 
  assert.equal(saved.testedFamilies,3);assert.equal(saved.results.length,3);
  assert.equal(saved.publicHostingEnabled,false);assert.equal(saved.productionStateMigrationTested,false);
  assert.equal(saved.productionRollbackExecuted,false);assert.equal(saved.failed,0);
+ assert.equal(saved.sharedStateMigrationApproved,false);
+ assert.equal(saved.observedSchemaDriftDenied,true);
+ assert.equal(saved.persistedStateFamiliesChecked,3);
  for(const row of saved.results){
   assert.notEqual(row.baselineDigest,row.candidateDigest);
   assert.equal(row.localTrafficRollbackPassed,true);
@@ -40,7 +45,18 @@ test('three true semantic versions switch and fail back with independent SQLite 
   assert.equal(row.sourceVerifiedBeforeAndAfter,true);
   assert.equal(row.productionRollbackExecuted,false);
   assert.equal(row.isolatedVersionState,true);
+  assert.equal(row.persistedStateIntegrityVerified,true);
+  assert.equal(row.unsupportedSchemaRejected,true);
+  assert.equal(row.sourceIdentityMismatchRejected,true);
+  assert.equal(row.sharedStateMigrationApproved,false);
+  assert.equal(typeof row.stateCompatibilityOutcome,'string');
  }
+ const modes=Object.fromEntries(saved.results.map(x=>[x.family,x.stateCompatibilityOutcome]));
+ assert.deepEqual(modes,{
+  document:'old_workspace_still_bound_to_old_recipe',
+  quote:'quote_receipts_replay_under_new_validity_policy',
+  inventory:'rejects_changed_inventory_recipe'
+ });
  assert.throws(()=>rehearseSyntheticVersions({baselineRoots,outputRoot}),/VERSION_OUTPUT_EXISTS/);
 });
 test('same version or superficial title-only edit cannot qualify as a distinct rollout',t=>{
