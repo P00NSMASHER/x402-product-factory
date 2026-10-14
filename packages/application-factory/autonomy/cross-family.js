@@ -85,6 +85,7 @@ function loadOpportunities({sourceFile=SOURCE}={}){
   const technicalFitScore=Math.min(100,25+inputs.length*7+diversity*8+sourceDiversity*5+6);
   const digest=crypto.createHash('sha256').update(JSON.stringify(proposal)).digest('hex');
   recipes.push({key:name,family:proposal.family,recipe,technicalFitScore,proposalDigest:digest,
+   proposedProblem:proposal.problem,proposalTrigger:proposal.trigger,
    references,sourceVerification:'operator_provided_unverified',buyerDemandValidated:false,
    realCustomers:null,collectedRevenue:null,releaseApproved:false});
  }
