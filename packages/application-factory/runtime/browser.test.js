@@ -63,6 +63,29 @@ test('runtime serves connected HTML and allowlisted assets with restrictive brow
   for(const name of ['browser-client.js','browser.css'])assert.equal((await x.request('/app/assets/'+name)).status,200);
   for(const name of ['runtime.js','browser-sessions.js','recipes.json'])assert.equal((await x.request('/app/assets/'+name)).status,404);
 });
+test('local operator portal may navigate to anonymous login only, never bypass cross-site API safeguards',async t=>{
+ const x=await setup(t);
+ const navigation={'Sec-Fetch-Site':'same-site','Sec-Fetch-Mode':'navigate','Sec-Fetch-Dest':'document'};
+ for(const page of ['/app','/app/']){
+  const res=await x.request(page,{headers:navigation});
+  assert.equal(res.status,200);
+  assert.match(await res.text(),/Workspace access/);
+ }
+ for(const [url,headers] of [
+  ['/app',{'Sec-Fetch-Site':'same-site'}],
+  ['/app',{'Sec-Fetch-Site':'same-site','Sec-Fetch-Mode':'cors','Sec-Fetch-Dest':'document'}],
+  ['/app',{'Sec-Fetch-Site':'same-site','Sec-Fetch-Mode':'navigate','Sec-Fetch-Dest':'empty'}],
+  ['/app',{'Sec-Fetch-Site':'cross-site','Sec-Fetch-Mode':'navigate','Sec-Fetch-Dest':'document'}],
+  ['/app',{...navigation,Origin:'http://127.0.0.1:9999'}],
+  ['/app/assets/browser-client.js',navigation],
+  ['/app/assets/browser.css',navigation],
+  ['/app/api/workspaces',navigation],
+  ['/app/api/session',navigation]
+ ]){
+  assert.equal((await x.request(url,{headers})).status,403,'same-site navigation must not expand '+url);
+ }
+ assert.equal((await x.request('/app/api/workspaces',{headers:{'Sec-Fetch-Site':'same-origin'}})).status,401);
+});
 test('login uses HttpOnly Strict cookie without returning the credential',async t=>{
   const x=await setup(t),s=await x.login();assert.match(s.attributes,/HttpOnly/);assert.match(s.attributes,/SameSite=Strict/);assert.match(s.attributes,/Path=\/app/);
   assert.equal(JSON.stringify(s.body).includes(x.a),false);assert.notEqual(s.cookie.split('=')[1],x.a);
