@@ -49,3 +49,13 @@ test('invalid tokens, ids and long idempotency keys do not expose state',t=>{
  assert.throws(()=>x.store.command(a.operatorKey,'unknown',{type:'receive',quantity:1},'k',1),/ITEM_UNKNOWN/);
  assert.throws(()=>x.store.command(a.operatorKey,recipe.items[0].id,{type:'receive',quantity:1},'k'.repeat(160),1),/KEY_INVALID/);
 });
+
+test('background sweep creates internal reorder proposals exactly once with no supplier contact',t=>{
+ const x=setup(t),a=x.store.provision('synthetic-a');
+ const first=x.store.sweep(),second=x.store.sweep();
+ assert.equal(first.proposed,recipe.items.length);assert.equal(second.proposed,0);
+ assert.equal(first.emailsSent,0);assert.equal(first.paymentsSent,0);
+ const context=x.store.context(a.operatorKey);
+ assert.ok(context.items.every(item=>item.proposals[0].status==='pending_review'));
+ assert.ok(context.items.every(item=>item.proposals[0].orderPlaced===false));
+});
