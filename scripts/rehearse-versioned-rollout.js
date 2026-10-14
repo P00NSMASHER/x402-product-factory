@@ -17,6 +17,6 @@ function main(args=process.argv.slice(2)){
 }
 if(require.main===module){
  try{console.log(JSON.stringify(main(),null,2));}
- catch{console.error('Versioned rollout rehearsal failed a private source, receipt, isolation or traffic gate. Nothing was deployed.');process.exitCode=1;}
+ catch(error){const code=typeof error?.message==='string'&&/^VERSION_[A-Z_]+$/.test(error.message)?error.message:'VERSION_UNKNOWN';console.error('Versioned local rehearsal blocked: '+code+'. No external deployment.');process.exitCode=1;}
 }
 module.exports={main};
