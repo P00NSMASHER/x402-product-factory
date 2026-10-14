@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Inventory Readiness / Factory</title>
+<link rel="stylesheet" href="/assets/style.css"><script defer src="/assets/client.js"></script></head>
+<body>
+<div id="notice" role="status" aria-live="polite"></div><div id="error" role="alert" hidden></div>
+<section id="login-panel" class="login-wrap">
+ <div class="login-aside"><div class="mark">F<span>↗</span></div><div class="hero-copy"><p class="eyebrow">PRODUCT FACTORY / INVENTORY CONTROL</p><h1>Keep the next job moving.</h1><p>Know what's on hand. Protect committed stock. Review replenishment needs before anything is ordered.</p></div><div class="aside-foot">INTERNAL SANDBOX · NO PURCHASES · NO PAYMENTS</div></div>
+ <div class="login-content"><div class="login-card"><p class="eyebrow">PRIVATE LOCAL WORKSPACE</p><h2>Inventory access</h2><p class="subtle">Enter the operator or independent reviewer key issued by your local administrator.</p>
+  <form id="login-form"><label for="access-key">Workspace access key</label><input id="access-key" type="password" required minlength="43" maxlength="43" autocomplete="off" spellcheck="false" aria-label="Workspace access key"><button id="sign-in" type="submit">Open inventory</button></form>
+  <p class="disclaimer">Use synthetic records only. No external purchase orders, suppliers, invoices or buyer data are connected.</p>
+ </div></div>
+</section>
+<div id="app-shell" class="shell" hidden>
+ <aside class="rail"><div class="logo">F<span>↗</span> <small>PRODUCT FACTORY</small></div><p class="rail-title">INVENTORY OPERATIONS</p>
+ <nav><a href="#overview">Overview</a><a href="#stock">Stock positions</a><a href="#item-panel">Replenishment review</a></nav>
+ <div class="rail-spacer"></div><div class="rail-note"><span class="dot"></span><strong>Local engine</strong><p>Automated internal requests. No supplier contact or spending.</p></div>
+ <button class="ghost" id="sign-out" type="button">Sign out</button></aside>
+ <main class="main" id="overview"><header class="top">
+  <div><p class="eyebrow">STOCK READINESS / INTERNAL REVIEW</p><h1 id="title">Inventory</h1><p id="outcome" class="muted"></p></div>
+  <div class="identity"><span id="role" class="role-tag">Operator</span><span id="tenant-label" class="tenant-label">Workspace</span></div>
+ </header>
+ <section class="banner"><div><span class="signal"><span class="signal-dot"></span> CONTROLLED REPLENISHMENT</span><h2>Know what needs attention.</h2><p>Availability is calculated from physical stock, reservations and internally approved arrivals. Sample costs are not vendor quotations.</p></div><div class="banner-art" aria-hidden="true"><div class="art-a"></div><div class="art-b"></div><div class="art-c"></div></div></section>
+ <section class="metrics" aria-label="Inventory totals">
+  <div><span>TRACKED ITEMS</span><strong id="metric-items">0</strong></div>
+  <div><span>BELOW REORDER POINT</span><strong id="metric-low">0</strong></div>
+  <div><span>AWAITING REVIEW</span><strong id="metric-review">0</strong></div>
+  <div><span>APPROVED INTERNALLY</span><strong id="metric-approved">0</strong></div>
+ </section>
+ <section id="stock" class="panel"><div class="panel-heading"><div><p class="eyebrow">LIVE LOCAL COUNTS</p><h2>Stock positions</h2><p class="muted">Reserve stock before allocation; recorded inventory is not third-party verified.</p></div><div class="actions"><button id="refresh" class="secondary" type="button">Refresh</button><button id="retry-action" class="secondary" type="button" hidden>Retry pending action</button></div></div>
+  <div class="table-wrap"><table><thead><tr><th>ITEM</th><th>ON HAND</th><th>RESERVED</th><th>AVAILABLE</th><th>STATUS</th><th>VIEW</th></tr></thead><tbody id="item-rows"></tbody></table></div></section>
+ <section id="item-panel" class="panel detail" hidden><div class="panel-heading"><div><p class="eyebrow">INTERNAL DECISION WORKFLOW</p><h2 id="selected-title"></h2><p class="muted" id="selected-subtitle"></p></div><span id="selected-status" class="badge">STOCK</span></div>
+ <div class="item-grid"><div class="inventory-figures"><div><small>PHYSICAL STOCK</small><strong id="detail-onhand">0</strong></div><div><small>RESERVED</small><strong id="detail-reserved">0</strong></div><div><small>ON ORDER (INTERNAL)</small><strong id="detail-onorder">0</strong></div><div><small>AVAILABLE</small><strong id="detail-available">0</strong></div></div>
+ <div class="recommendation"><p class="eyebrow">REPLENISHMENT ESTIMATE</p><h3 id="recommended-quantity">0 units</h3><p id="recommended-cost" class="estimate"></p><p class="muted">Sample costs only. A reviewer can approve an internal plan; this app never places a purchase.</p><p id="proposal-note" class="proposal-note">No active proposal.</p></div></div>
+ <div id="operator-actions" hidden><div class="stock-action"><label for="quantity">Stock quantity</label><input id="quantity" type="number" min="1" max="100000" step="1" value="1">
+ <div class="actions"><button type="button" data-action="receive">Receive stock</button><button type="button" data-action="reserve" class="secondary">Reserve</button><button type="button" data-action="consume" class="secondary">Consume reservation</button><button type="button" data-action="release" class="secondary">Release reservation</button></div></div>
+ <div class="actions"><button type="button" data-action="request_reorder" class="accent" id="request-reorder">Request internal replenishment</button>
+ <button type="button" data-action="fulfill" class="secondary" id="mark-arrival">Record reviewed stock arrival</button></div></div>
+ <div id="reviewer-actions" hidden><p class="muted">Independent review. Operators cannot approve their own replenishment plans.</p>
+ <div class="actions"><button type="button" data-action="approve" class="accent" id="approve-reorder">Approve internal proposal</button><button type="button" data-action="reject" class="secondary" id="reject-reorder">Reject proposal</button></div></div>
+ <section class="history"><h3>Internal activity</h3><div id="activity" class="activity"></div></section>
+ </section>
+ <footer><span>Saved locally · No external supplier, bank or customer integration</span><span id="saved-at"></span></footer>
+ </main>
+</div>
+</body></html>
