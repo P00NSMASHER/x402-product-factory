@@ -14,3 +14,22 @@ node scripts/scout-app-ideas.js --build --output /absolute/private/build-output
 The second command assembles, independently runs, and verifies each available candidate as a synthetic local app before reporting a pass. A readiness score describes **technical workflow fit only**, never buyer demand, market validation, security certification, or commercial approval. Honest states distinguish reviewed exact-cycle overrides from independently unverified app ideas.
 
 Automatic research extension is limited to credible source records added by the existing authorized research workflow; no unsupervised model API or indefinite discovery is claimed. Public hosted deployment, emails, paid services, financial activation, signing legally required paperwork, compliance certification and new numbered Product 025+ remain disabled.
+
+## Buyer-evidence review queue (manual, no outreach)
+
+The source-pinned scout can generate an **operator review** packet for every
+admitted idea:
+
+```sh
+node scripts/scout-app-ideas.js --review
+```
+
+Each packet contains the existing specific buyer role, trigger, source idea
+digest, discovery question, proposed differentiation, suggested *initial*
+three-consented-conversation falsification exercise, and a disconfirmation
+criterion. Three conversations are a planning minimum, not a statistically
+representative sample or proof of demand. Verified buyer pain, commitments,
+market validation and collected revenue remain unknown/false, not zero
+successes. The report has no identities, buyer contact lists, email delivery,
+payments, deployment, storage mutations, API calls or permission changes.
+The original build schedule and evidence-honesty rules remain untouched.

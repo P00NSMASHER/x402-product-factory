@@ -48,6 +48,46 @@ function loadScoutedLeads({sourceFile=SOURCE,blueprintDirectory=path.join(__dirn
  }
  return selected;
 }
+function buyerReviewQueue(args={}){
+ // Scope is operator-reviewed hypotheses, NOT sourced buyer interviews.
+ // Source digest pins each problem statement; no network, contact or mutation.
+ const rows=loadScoutedLeads(args).filter(x=>x.status==='admitted-unverified');
+ const packets=rows.map(row=>({
+  cycle:row.cycle,id:row.recipe.id,
+  sourceIdeaDigest:row.digest,
+  sourceVerification:'operator_provided_unverified',
+  audienceHypothesis:row.recipe.buyer,
+  proposedProblem:row.hypothesis.customerProblem,
+  buyerTrigger:row.hypothesis.buyerTrigger,
+  proposedDiscoveryQuestion:row.hypothesis.discoveryQuestion,
+  differentiatorHypothesis:row.hypothesis.differentiator,
+  suggestedMinimumConversations:3,
+  minimumMeaning:'EARLY_FALSIFICATION_ONLY_NOT_STATISTICALLY_REPRESENTATIVE',
+  disconfirmationCheck:'Look for existing costly workflow and current workaround; if not observed, revise or reject the hypothesis.',
+  evidenceToCollect:'Consented, independently sourced buyer job-and-outcome accounts without storing identity or contact fields in this queue.',
+  actualConsentedConversations:null,
+  independentlyVerifiedBuyerPain:null,
+  independentlyVerifiedDemand:false,
+  marketValidated:false,
+  publicLaunchApproved:false,
+  outboundMessagesSent:0,
+ }));
+ return {
+  kind:'operator-buyer-validation-review',
+  source:'unverified-scout-leads',
+  reviewPackets:packets,
+  reviewCount:packets.length,
+  qualifiedExternalBuyers:null,
+  validatedDemandSignals:null,
+  independentlyVerifiedDemand:false,
+  marketValidated:false,
+  realCustomers:null,
+  collectedRevenue:null,
+  userContactOrPaymentAuthority:false,
+  outboundMessagesSent:0,
+  releaseApproved:false,
+ };
+}
 function inspectScout(args={}){
  const rows=loadScoutedLeads(args);
  return {kind:'autonomous-research-scout',reservedCycles:rows.map(x=>x.cycle),
@@ -59,4 +99,4 @@ function inspectScout(args={}){
   realCustomers:null,collectedRevenue:null,transmittedMessages:0,paymentsSent:0,
   publicDeploymentEnabled:false,releaseApproved:false};
 }
-module.exports={loadScoutedLeads,inspectScout,FIRST_CYCLE};
+module.exports={loadScoutedLeads,inspectScout,buyerReviewQueue,FIRST_CYCLE};

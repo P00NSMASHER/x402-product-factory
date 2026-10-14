@@ -1,11 +1,12 @@
 'use strict';
 // Source-controlled leads -> auto-reserved exact future UTC slots -> full independent packaged tests.
 const path=require('node:path');
-const {loadScoutedLeads,inspectScout}=require('../packages/application-factory/autonomy/scout');
+const {loadScoutedLeads,inspectScout,buyerReviewQueue}=require('../packages/application-factory/autonomy/scout');
 const {runCycle}=require('../packages/application-factory/autonomy/loop');
 const EPOCH=Date.parse('2026-10-13T00:00:00Z'),SLOT=21600000;
 function main(args=process.argv.slice(2)){
  if(args.length===0||(args.length===1&&args[0]==='--check'))return inspectScout();
+ if(args.length===1&&args[0]==='--review')return buyerReviewQueue();
  if(args.length!==3||args[0]!=='--build'||args[1]!=='--output'||
     !path.isAbsolute(args[2]))throw Error('USAGE_INVALID');
  const rows=loadScoutedLeads().filter(x=>x.status==='admitted-unverified');

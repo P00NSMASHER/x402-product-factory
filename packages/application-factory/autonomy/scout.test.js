@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
-const {loadScoutedLeads,inspectScout}=require('./scout');
+const {loadScoutedLeads,inspectScout,buyerReviewQueue}=require('./scout');
 const {planCycle,runCycle}=require('./loop');
 const SOURCE=path.join(__dirname,'scout','leads.json');
 const EPOCH=Date.parse('2026-10-13T00:00:00Z'),SLOT=21600000;
@@ -24,6 +24,34 @@ test('three freshly researched leads generate distinct future apps without slot-
  assert.equal(summary.eligible,3);assert.equal(summary.independentMarketEvidence,false);
  assert.equal(summary.marketValidated,false);assert.equal(summary.collectedRevenue,null);
  assert.equal(planCycle({at:at(78)}).exhausted,true);
+});
+test('buyer review packets make unverified demand gaps and disconfirmation explicit',()=>{
+ const original=loadScoutedLeads();
+ const report=buyerReviewQueue();
+ assert.equal(report.kind,'operator-buyer-validation-review');
+ assert.equal(report.reviewCount,3);
+ assert.equal(report.reviewPackets.length,3);
+ assert.equal(report.marketValidated,false);
+ assert.equal(report.independentlyVerifiedDemand,false);
+ assert.equal(report.qualifiedExternalBuyers,null);
+ assert.equal(report.validatedDemandSignals,null);
+ assert.equal(report.realCustomers,null);
+ assert.equal(report.collectedRevenue,null);
+ assert.equal(report.userContactOrPaymentAuthority,false);
+ assert.equal(report.outboundMessagesSent,0);
+ assert.equal(report.releaseApproved,false);
+ for(const row of report.reviewPackets){
+  const originalRow=original.find(x=>x.cycle===row.cycle);
+  assert.ok(originalRow);
+  assert.equal(row.sourceIdeaDigest,originalRow.digest);
+  assert.equal(row.proposedDiscoveryQuestion,originalRow.hypothesis.discoveryQuestion);
+  assert.equal(row.sourceVerification,'operator_provided_unverified');
+  assert.equal(row.suggestedMinimumConversations,3);
+  assert.equal(row.actualConsentedConversations,null);
+  assert.equal(row.independentlyVerifiedBuyerPain,null);
+  assert.equal(row.publicLaunchApproved,false);
+  assert.ok(row.disconfirmationCheck.includes('reject'));
+ }
 });
 test('original reviewed exact-cycle idea keeps precedence without reordering future leads',t=>{
  const root=temp(t),folder=path.join(root,'ideas');fs.mkdirSync(folder);
