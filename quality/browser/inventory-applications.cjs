@@ -30,10 +30,10 @@ async function main(){
    const server=createServer({store,automation:false});
    let url;
    try{
-    const a=store.provision('synthetic-a'),b=store.provision('synthetic-b');
     await server.listen({port:0});
     url='http://127.0.0.1:'+server.address().port;
     for(const width of [1440,390]){
+     const a=store.provision('synthetic-a-'+width),b=store.provision('synthetic-b-'+width);
      const context=await browser.newContext({viewport:{width,height:width===390?844:920}});
      const page=await context.newPage();page.setDefaultTimeout(8000);
      page.on('pageerror',err=>report.pageErrors.push(String(err)));
