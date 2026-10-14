@@ -11,7 +11,7 @@
 
 ## Fastest private external-device option: Tailscale Serve
 
-Preconditions: an **owner-controlled computer/VM**, Node.js 22.13+, Tailscale installed and signed in on both that machine and the iPhone, an explicitly approved tailnet-only access rule, and HTTPS/MagicDNS enabled for the node. None of these devices are currently connected to this agent's environment. **Use Tailscale Serve, never Funnel**.
+Preconditions: an **owner-controlled computer/VM**, Node.js 24 (verified in GitHub CI; older runtime compatibility not established), Tailscale installed and signed in on both that machine and the iPhone, an explicitly approved tailnet-only access rule, and HTTPS/MagicDNS enabled for the node. None of these devices are currently connected to this agent's environment. **Use Tailscale Serve, never Funnel**.
 
 From a checkout including [PR #48](https://github.com/P00NSMASHER/x402-product-factory/pull/48) and this follow-up branch, on the authorized computer:
 
