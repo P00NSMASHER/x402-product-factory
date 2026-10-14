@@ -61,14 +61,18 @@ async function main(args=process.argv.slice(2)){
      const link=page.locator('a[href="'+item.origin+'/app"]');
      assert.equal(await link.count(),1);
      phase='app-click-'+family+'-'+width;
-     await Promise.all([page.waitForURL(item.origin+'/app'),link.click()]);
+     const [navigation]=await Promise.all([page.waitForNavigation({waitUntil:'domcontentloaded'}),link.click()]);
+     phase='app-http-status-'+family+'-'+width;
+     assert.equal(navigation.status(),200);
      phase='app-origin-'+family+'-'+width;
      assert.equal(new URL(page.url()).origin,item.origin);
      phase='app-visible-'+family+'-'+width;
      assert.ok(await page.locator('body').isVisible());
      phase='app-copy-'+family+'-'+width;
      // Some valid unauthenticated app shells contain only short login copy.
+     phase='app-input-'+family+'-'+width;
      assert.ok(await page.locator('input').count()>0);
+     phase='app-readable-copy-'+family+'-'+width;
      assert.ok((await page.locator('body').innerText()).trim().length>10);
      report.appFamilyLinksVerified++;
      seen.add(family);
