@@ -7,6 +7,7 @@ const {manufactureInventoryBatch}=require('../inventory-family/manufacturing');
 const docs=require('../recipes.json'),quotes=require('../quote-family/recipes.json'),inventory=require('../inventory-family/recipes.json');
 const {launchPrivateFleet}=require('./fleet-preview');
 const {createRemoteGateway}=require('./remote-gateway');
+const {createPrivateFleetSupervisor}=require('./private-supervisor');
 const ORIGIN='https://private-demo.example.ts.net';
 function request(port,route,{method='GET',cookie,origin,headers={},body}={}){
  return new Promise((resolve,reject)=>{
@@ -26,7 +27,10 @@ test('all three manufactured app families operate behind authenticated loopback 
  assert.equal(manufactureInventoryBatch({catalog:[inventory[0]],outputRoot:sources.inventory}).accepted,1);
  const fleet=await launchPrivateFleet({sources,stateRoot:path.join(dir,'session')});
  t.after(()=>fleet.stop());
- for(const app of fleet.apps){
+ const watchdog=createPrivateFleetSupervisor({fleet,maxRestarts:2});
+ t.after(()=>watchdog.stop());
+ const initial=await watchdog.tick();assert.equal(initial.healthy,3);
+ for(const app of [...fleet.apps]){
   const gate=await createRemoteGateway({fleet,family:app.family,id:app.id,externalOrigin:ORIGIN});
   try{
    assert.equal((await request(gate.port,'/app')).status,401);
@@ -63,8 +67,10 @@ test('all three manufactured app families operate behind authenticated loopback 
    const pinnedDigest=app.digest,pinnedCredentials=fs.readFileSync(app.privateCredentialFile);
    await app.close();
    assert.equal((await request(gate.port,'/app',{cookie})).status,502);
-   const recovered=await fleet.recover(app.family,app.id);
-   assert.equal(recovered.recovered,true);assert.equal(recovered.statePreserved,true);
+   const healed=await watchdog.tick();
+   assert.equal(healed.quarantined,0);assert.equal(healed.externalContacts,0);
+   assert.ok(healed.services.some(s=>s.family===app.family&&s.id===app.id&&
+      s.status==='healthy'&&s.successfulRestarts===1));
    const live=fleet.apps.find(v=>v.family===app.family&&v.id===app.id);
    assert.equal(live.digest,pinnedDigest);
    assert.deepEqual(fs.readFileSync(live.privateCredentialFile),pinnedCredentials);
@@ -84,4 +90,7 @@ test('all three manufactured app families operate behind authenticated loopback 
    }
   }finally{await gate.close();}
  }
+ assert.equal(watchdog.report().verifiedRecoveries,3);
+ assert.equal(watchdog.report().recoveryAttempts,3);
+ assert.equal(watchdog.report().externalContacts,0);
 });

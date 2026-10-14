@@ -3,6 +3,7 @@
 const path=require('node:path');
 const {launchPrivateFleet}=require('../packages/application-factory/deploy/fleet-preview');
 const {createRemoteGateway,externalURL}=require('../packages/application-factory/deploy/remote-gateway');
+const {createPrivateFleetSupervisor}=require('../packages/application-factory/deploy/private-supervisor');
 function parse(argv){
  if(!Array.isArray(argv)||argv[0]!=='--serve'||argv.length!==19)throw Error('USAGE_INVALID');
  const opts=Object.create(null);
@@ -24,20 +25,28 @@ function parse(argv){
 }
 async function main(argv=process.argv.slice(2)){
  const options=parse(argv),fleet=await launchPrivateFleet({sources:options.sources,stateRoot:options.stateRoot});
- let gateway;
- try{gateway=await createRemoteGateway({fleet,family:options.family,id:options.id,externalOrigin:options.externalOrigin,listenPort:options.port});}
- catch(error){await fleet.stop();throw error;}
+ let gateway,watchdog;
+ try{
+  gateway=await createRemoteGateway({fleet,family:options.family,id:options.id,externalOrigin:options.externalOrigin,listenPort:options.port});
+  watchdog=createPrivateFleetSupervisor({fleet,maxRestarts:2,intervalMs:5000});
+  const initial=await watchdog.tick();
+  if(initial.healthy!==fleet.apps.length||initial.quarantined!==0||
+    initial.externalContacts!==0||initial.releaseApproved!==false)
+   throw Error('REMOTE_WATCHDOG_INVALID');
+  watchdog.start();
+ }catch(error){watchdog?.stop();await gateway?.close();await fleet.stop();throw error;}
  process.stdout.write(JSON.stringify({kind:'owner-local-remote-gateway',
   gatewayLoopbackOrigin:gateway.origin,configuredExternalOrigin:gateway.externalOrigin,
   remoteReachabilityVerified:false,requiresPrivateTlsIngress:true,
   app:{family:gateway.family,id:gateway.id},
   selectedAppCredentialFile:fleet.apps.find(app=>app.family===gateway.family&&app.id===gateway.id).privateCredentialFile,
   gatewayLoginCodeFile:gateway.loginCodeFile,sessionMinutes:30,maximumServiceMinutes:options.minutes,
-  syntheticOnly:true,releaseApproved:false,customerActivationEnabled:false,paymentsEnabled:false})+'\n');
+  syntheticOnly:true,releaseApproved:false,customerActivationEnabled:false,paymentsEnabled:false,
+  watchdogActive:true,automaticLocalRecovery:true,externalContacts:0})+'\n');
  await new Promise((resolve,reject)=>{
   let done=false;const timer=setTimeout(end,options.minutes*60*1000);
   async function end(){if(done)return;done=true;clearTimeout(timer);
-   try{await gateway.close();await fleet.stop();resolve();}catch(error){reject(error);}}
+   try{watchdog.stop();await gateway.close();await fleet.stop();resolve();}catch(error){reject(error);}}
   process.once('SIGINT',end);process.once('SIGTERM',end);
  });
  return {kind:'owner-local-remote-gateway-stopped',syntheticOnly:true};
