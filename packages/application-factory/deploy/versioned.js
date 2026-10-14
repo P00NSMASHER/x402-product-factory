@@ -165,8 +165,10 @@ function rehearseSyntheticVersions({baselineRoots,outputRoot}={}){
   const parent=path.dirname(target);
   fs.mkdirSync(parent,{recursive:true,mode:0o700});
   const ps=fs.lstatSync(parent);
+  // GitHub RUNNER_TEMP may be group-readable. Private stage itself is created 0700.
   if(!ps.isDirectory()||ps.isSymbolicLink()||fs.realpathSync(parent)!==parent||
-    (process.platform!=='win32'&&(ps.mode&0o077)!==0))fail('VERSION_PATH_UNSAFE');
+    (process.platform!=='win32'&&((ps.mode&0o002)!==0||
+      (typeof process.getuid==='function'&&ps.uid!==process.getuid()))))fail('VERSION_PATH_UNSAFE');
   const temp=fs.mkdtempSync(path.join(parent,'.private-version-rehearsal-'));
   try{
    const files={
