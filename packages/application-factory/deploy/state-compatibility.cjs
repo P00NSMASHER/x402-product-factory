@@ -62,6 +62,8 @@ function clone(source,dest){
   // VACUUM INTO makes one consistent SQLite snapshot and includes committed WAL records.
   db.exec("VACUUM INTO '"+dest.replaceAll("'","''")+"'");
  }finally{db.close();}
+ // SQLite VACUUM INTO uses filesystem defaults; constrain the offline clone before any reopen.
+ if(process.platform!=='win32')fs.chmodSync(dest,0o600);
  assert.equal(snapshot(source).digest,snapshot(dest).digest);
 }
 function withEngine(root,file,callback){
