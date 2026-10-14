@@ -3,6 +3,7 @@
 // No public bind, user data, billing, purchase, email, token logging, or live deployments.
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),crypto=require('node:crypto');
 const {verifyInputs}=require('./preview');
+const {acquireSession}=require('./session-lock');
 const ROOT=path.resolve(__dirname,'../../..');
 const fail=code=>{throw Error(code);};
 const inside=(parent,item)=>{const r=path.relative(parent,item);
@@ -189,6 +190,67 @@ function portalServer(apps){
   if(server.listening)await new Promise((resolve,reject)=>server.close(err=>err?reject(err):resolve()));
  }};
 }
+function recoverAction(groups,apps,root,isStopped){
+ return async(family,id)=>{
+  if(isStopped()||!['document','quote','inventory'].includes(family)||!safeName(id))
+   fail('PREVIEW_RECOVERY_INVALID');
+  const index=apps.findIndex(a=>a.family===family&&a.id===id);
+  if(index<0)fail('PREVIEW_RECOVERY_INVALID');
+  const group=groups.find(g=>g.family===family&&g.id===id);
+  if(!group)fail('PREVIEW_RECOVERY_INVALID');
+  await apps[index].close();
+  const restored=await openGroup(group,root,{recover:true});
+  apps[index]=restored;
+  return {family,id,sourceDigest:group.digest,recovered:true,localOnly:true,
+   statePreserved:true,releaseApproved:false};
+ };
+}
+function verifiedResume(root,groups){
+ const file=path.join(root,'preview-report.json'),stat=fs.lstatSync(file);
+ if(!stat.isFile()||stat.isSymbolicLink()||stat.size<120||stat.size>65536||
+    (process.platform!=='win32'&&(stat.mode&0o077)!==0))fail('PREVIEW_RESUME_RECEIPT_INVALID');
+ let row;try{row=JSON.parse(fs.readFileSync(file,'utf8'));}
+ catch{fail('PREVIEW_RESUME_RECEIPT_INVALID');}
+ if(!row||typeof row!=='object'||Array.isArray(row)||
+    !/^[a-f0-9]{64}$/.test(row.digest||''))fail('PREVIEW_RESUME_RECEIPT_INVALID');
+ const {digest,...original}=row;
+ if(sha(JSON.stringify(original))!==digest||
+    row.kind!=='private-runnable-fleet'||row.schemaVersion!==1||
+    row.appCount!==groups.length||!Array.isArray(row.apps)||row.apps.length!==groups.length||
+    row.portalBoundToLoopback!==true||row.sourceVerifiedBeforeAndAfter!==true||
+    row.separatePrivateSQLiteState!==true||row.operatorKeysAbsentFromReport!==true||
+    row.realCustomers!==null||row.collectedRevenue!==null||
+    row.externalMessagesSent!==0||row.paymentsSent!==0||
+    row.publicHostingEnabled!==false||row.checkoutEnabled!==false||row.releaseApproved!==false)
+    fail('PREVIEW_RESUME_RECEIPT_INVALID');
+ for(let i=0;i<groups.length;i++){
+  const group=groups[i],entry=row.apps[i],roles=group.family==='document'?['operator']:['operator','reviewer'];
+  if(!entry||entry.family!==group.family||entry.id!==group.id||
+     entry.sourceDigest!==group.digest||!Array.isArray(entry.roles)||
+     entry.roles.join(',')!==roles.join(',')||
+     entry.healthVerified!==true||entry.uiVerified!==true||
+     entry.unauthenticatedApiDenied!==true)fail('PREVIEW_RESUME_SOURCE_DRIFT');
+  const place=path.join(root,group.family+'-'+group.id);
+  recoveredCredentials(group,place); // Verify all credentials before touching any DB.
+  const db=path.join(place,group.family==='document'?'runtime.sqlite':
+    group.family==='quote'?'quotes.sqlite':'inventory.sqlite');
+  for(const name of [db,db+'-wal',db+'-shm']){
+   if(!fs.existsSync(name))continue;
+   const stat=fs.lstatSync(name);
+   if(!stat.isFile()||stat.isSymbolicLink()||
+      (process.platform!=='win32'&&((stat.mode&0o077)!==0||
+       (typeof process.getuid==='function'&&stat.uid!==process.getuid()))))
+    fail('PREVIEW_RESUME_DATABASE_UNSAFE');
+  }
+  if(!fs.existsSync(db))fail('PREVIEW_RESUME_DATABASE_MISSING');
+ }
+ const expected=Object.fromEntries(['document','quote','inventory'].map(
+  family=>[family,groups.filter(g=>g.family===family).length]));
+ if(!row.families||Object.keys(row.families).length!==3||
+   Object.keys(expected).some(k=>row.families[k]!==expected[k]))fail('PREVIEW_RESUME_RECEIPT_INVALID');
+ return row;
+}
+
 async function launchPrivateFleet({sources,stateRoot,portalPort=0}={}){
  if(!sources||!exact(sources,['document','quote','inventory'])||
    !Number.isSafeInteger(portalPort)||portalPort<0||portalPort>65535)fail('PREVIEW_INPUT_INVALID');
@@ -201,14 +263,16 @@ async function launchPrivateFleet({sources,stateRoot,portalPort=0}={}){
   ids.add(key);
  }
  const root=createRoot(stateRoot,sources),apps=[];
- let portal=null,stopped=false;
+ let portal=null,stopped=false,owner=null;
  async function stop(){
   if(stopped)return;stopped=true;
   try{await portal?.close();}finally{
-   for(const app of [...apps].reverse())try{await app.close();}catch{}
+   try{for(const app of [...apps].reverse())try{await app.close();}catch{}}
+   finally{owner?.release();}
   }
  }
  try{
+  owner=acquireSession(root);
   for(const group of groups)apps.push(await openGroup(group,root));
   portal=portalServer(apps);
   const port=await portal.listen({port:portalPort});
@@ -222,23 +286,40 @@ async function launchPrivateFleet({sources,stateRoot,portalPort=0}={}){
    publicHostingEnabled:false,checkoutEnabled:false,releaseApproved:false};
   report.digest=sha(JSON.stringify(report));
   writeSecret(path.join(root,'preview-report.json'),report);
-  async function recover(family,id){
-   if(stopped||!['document','quote','inventory'].includes(family)||!safeName(id))fail('PREVIEW_RECOVERY_INVALID');
-   const index=apps.findIndex(a=>a.family===family&&a.id===id);
-   if(index<0)fail('PREVIEW_RECOVERY_INVALID');
-   const group=groups.find(g=>g.family===family&&g.id===id);
-   if(!group)fail('PREVIEW_RECOVERY_INVALID');
-   const previous=apps[index];
-   await previous.close();
-   const restored=await openGroup(group,root,{recover:true});
-   apps[index]=restored; // Portal requests now receive the new local port.
-   return {family,id,sourceDigest:group.digest,recovered:true,localOnly:true,
-    statePreserved:true,releaseApproved:false};
-  }
+  const recover=recoverAction(groups,apps,root,()=>stopped);
   return {origin:'http://127.0.0.1:'+port,port,stateRoot:root,apps,report,stop,recover};
  }catch(error){
   await stop();
   fs.rmSync(root,{force:true,recursive:true});throw error;
  }
 }
-module.exports={launchPrivateFleet,portalHTML,CSP};
+async function resumePrivateFleet({sources,stateRoot,portalPort=0}={}){
+ if(!sources||!exact(sources,['document','quote','inventory'])||
+   !Number.isSafeInteger(portalPort)||portalPort<0||portalPort>65535)
+  fail('PREVIEW_INPUT_INVALID');
+ // Full manufactured package and independent receipts are checked BEFORE reopening state.
+ const groups=verifyInputs(sources);
+ if(groups.length<3||groups.length>30)fail('PREVIEW_INPUT_INVALID');
+ const root=safeFolder(stateRoot,{existing:true}),report=verifiedResume(root,groups);
+ const apps=[];let portal=null,owner=null,stopped=false;
+ async function stop(){
+  if(stopped)return;stopped=true;
+  try{await portal?.close();}finally{
+   try{for(const app of [...apps].reverse())try{await app.close();}catch{}}
+   finally{owner?.release();}
+  }
+ }
+ try{
+  owner=acquireSession(root);
+  for(const group of groups)apps.push(await openGroup(group,root,{recover:true}));
+  portal=portalServer(apps);
+  const port=await portal.listen({port:portalPort});
+  // Never overwrite historical accepted bytes, previous state or credentials.
+  return {origin:'http://127.0.0.1:'+port,port,stateRoot:root,apps,report,
+   stop,recover:recoverAction(groups,apps,root,()=>stopped),resumed:true};
+ }catch(error){
+  await stop(); // Preserve the original session for audit and further safe repair.
+  throw error;
+ }
+}
+module.exports={launchPrivateFleet,resumePrivateFleet,portalHTML,CSP};
