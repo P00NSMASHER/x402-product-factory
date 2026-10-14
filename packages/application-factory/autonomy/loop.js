@@ -2,6 +2,7 @@
 // Bounded unattended local candidate manufacturing. No charge, publish, contact or model API use.
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const {buildCandidateCatalog}=require('./catalog');
+const {loadIdeaBacklog}=require('./ideas');
 const {compileApplication}=require('../manufacturing/assembler');
 const {manufactureBatch}=require('../manufacturing/line');
 const ROOT=path.resolve(__dirname,'../../..');
@@ -11,14 +12,21 @@ const hash=value=>crypto.createHash('sha256').update(value).digest('hex');
 const canonicalDate=value=>typeof value==='string'&&/^20\d\d-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{3})?Z$/.test(value)&&
  Number.isFinite(Date.parse(value))&&new Date(Date.parse(value)).toISOString().slice(0,10)===value.slice(0,10)&&
  new Date(value).getUTCFullYear()<=2099;
-function planCycle({at=new Date().toISOString(),batchSize=1}={}){
+function planCycle({at=new Date().toISOString(),batchSize=1,blueprintDirectory=path.join(__dirname,'ideas')}={}){
  if(!canonicalDate(at)||!Number.isSafeInteger(batchSize)||batchSize<1||batchSize>2)fail('CYCLE_INVALID');
  const time=Date.parse(at),cycle=Math.floor((time-EPOCH)/INTERVAL);
  if(time<EPOCH||!Number.isSafeInteger(cycle))fail('CYCLE_INVALID');
  const catalog=buildCandidateCatalog();
  const start=cycle*batchSize;
- const recipes=start>=catalog.length?[]:catalog.slice(start,Math.min(catalog.length,start+batchSize));
- return {kind:'autonomous-candidate-cycle',cycle,scheduleHours:6,batchSize,
+ let recipes,ideaDigest=null;
+ if(start<catalog.length)recipes=catalog.slice(start,Math.min(catalog.length,start+batchSize));
+ else{
+   const match=loadIdeaBacklog({directory:blueprintDirectory,existingRecipes:catalog})
+     .find(row=>row.cycle===cycle);
+   recipes=match?[match.recipe]:[];
+   ideaDigest=match?.digest||null;
+ }
+ return {kind:'autonomous-candidate-cycle',cycle,scheduleHours:6,batchSize,ideaDigest,
    recipes,exhausted:recipes.length===0,nextAction:recipes.length?'manufacture_and_verify':'catalog_refresh_required',
    mode:'synthetic-candidate-only',marketValidated:false,releaseApproved:false,
    realCustomers:null,collectedRevenue:null,paymentsSent:0,transmittedMessages:0};
@@ -56,8 +64,8 @@ function persistReceipt(filename,data){
   fs.renameSync(tmp,filename);
  }finally{if(fs.existsSync(tmp))fs.unlinkSync(tmp);}
 }
-function runCycle({at=new Date().toISOString(),batchSize=1,outputRoot,accept}={}){
- const plan=planCycle({at,batchSize}),output=safeOutput(outputRoot);
+function runCycle({at=new Date().toISOString(),batchSize=1,outputRoot,accept,blueprintDirectory}={}){
+ const plan=planCycle({at,batchSize,blueprintDirectory}),output=safeOutput(outputRoot);
  const stateDir=path.join(output,'autonomy');
  fs.mkdirSync(stateDir,{recursive:true,mode:0o700});
  const stateStat=fs.lstatSync(stateDir);
@@ -68,7 +76,8 @@ function runCycle({at=new Date().toISOString(),batchSize=1,outputRoot,accept}={}
  try{
   const identities=plan.recipes.map(r=>({id:r.id,digest:compileApplication(r).digest}));
   const prior=savedReceipt(receipt,plan);
-  if(prior&&prior.identities.some((x,i)=>x.digest!==identities[i].digest))fail('CYCLE_SOURCE_DRIFT');
+  if(prior&&(prior.identities.some((x,i)=>x.digest!==identities[i].digest)||
+     (prior.ideaDigest!==undefined&&prior.ideaDigest!==plan.ideaDigest)))fail('CYCLE_SOURCE_DRIFT');
   const result=plan.exhausted?{accepted:0,failed:0,reused:0,results:[],
      verification:'catalog-exhausted-no-run'}:
      manufactureBatch({...{
@@ -76,7 +85,7 @@ function runCycle({at=new Date().toISOString(),batchSize=1,outputRoot,accept}={}
        ...(accept?{accept}:{} )
      });
   const report={schemaVersion:1,kind:'autonomous-factory-cycle',cycle:plan.cycle,
-    scheduleHours:6,batchSize,planned:plan.recipes.length,
+    scheduleHours:6,batchSize,planned:plan.recipes.length,ideaDigest:plan.ideaDigest,
     accepted:result.accepted,failed:result.failed,reused:result.reused,
     exhausted:plan.exhausted,nextAction:result.failed?'inspect_quarantined_candidate':plan.nextAction,
     identities,artifacts:result.results,verification:result.verification,

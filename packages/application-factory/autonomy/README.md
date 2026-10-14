@@ -25,7 +25,16 @@ Each cycle produces a private autonomy/cycle-N.json receipt, application directo
 
 IMPORTANT: GitHub scheduled Actions run ONLY on the DEFAULT BRANCH. The initial implementation is in a stacked DRAFT PR; its cron does not run until the reviewed workflow is merged into the default branch. Do not call it an active unattended schedule before that happens. A separately authorized ChatGPT automation can provide a bounded interim workflow while the draft remains unmerged.
 
-After 72 cycles (18 days at one every six hours) all curated editions are exhausted. Instead of recycling clones and falsely claiming more value, the runner produces catalog_refresh_required and accepts no new app. This is deliberate; enduring novelty requires actual customer problems and separately reviewed new blueprints, not a perpetual rename loop.
+## Continuing beyond the first 72 editions
+
+After the original 72 cycles, the factory checks an append-only, machine-validated idea inbox at packages/application-factory/autonomy/ideas. Ideas must describe genuinely different buyer document-workflows with two dated public-source references, at least four document requirements, and an explicit unverified commercial status. Unsafe or cosmetic clones fail. A missing slot reports catalog_refresh_required, but a future slot with a newly researched blueprint can still build normally. Changing a blueprint after a cycle was verified fails the source-integrity gate.
+
+The existing six-hour ChatGPT automation has been updated to research another specific workflow hypothesis and commit it on the draft branch when credible sources and mechanical differentiation are available. Draft-branch GitHub CI then immediately runs real packaged-service acceptance for up to the latest three new blueprints, even while the default-branch cron is inactive.
+
+    node scripts/validate-autonomy-ideas.js --check
+    node scripts/validate-autonomy-ideas.js --build-pending --output /absolute/private/blueprint-previews
+
+This is an open-ended input mechanism, not a claim of infinitely many profitable ideas. If credible differentiated opportunities are unavailable, the factory does not invent more buyers, revenue, or title-only products.
 
 ## Acceptance and limits
 

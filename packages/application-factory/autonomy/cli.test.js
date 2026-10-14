@@ -21,7 +21,7 @@ test('CLI requires an explicit private output directory for actual manufacturing
 });
 test('CLI exit status and output are honest when source catalog exhausted',t=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'factory-autonomy-cli-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
- const time=new Date(Date.parse('2026-10-13T00:00:00Z')+72*21600000).toISOString();
+ const time=new Date(Date.parse('2026-10-13T00:00:00Z')+99999*21600000).toISOString();
  const r=spawnSync(process.execPath,[script,'--output',dir,'--at',time],{encoding:'utf8',timeout:10000});
  assert.equal(r.status,0,r.stderr);const result=JSON.parse(r.stdout);
  assert.equal(result.exhausted,true);assert.equal(result.accepted,0);assert.equal(result.nextAction,'catalog_refresh_required');

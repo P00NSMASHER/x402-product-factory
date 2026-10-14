@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "cycle": 75,
+  "hypothesis": {
+    "customerProblem": "Commercial refrigeration service coordinators may lose the connection between repair records, refrigerant additions, and verification test evidence.",
+    "buyerTrigger": "A refrigeration equipment service visit closes and the owner requests a complete equipment service file.",
+    "expensiveFailure": "Scattered paperwork can slow equipment history reviews and obscure follow-up tasks for the service coordinator.",
+    "discoveryQuestion": "How does the service coordinator reconcile invoice, refrigerant charge and verification evidence for each appliance?",
+    "differentiator": "Collect four independent service evidence references and schedule a dated internal file reconciliation review.",
+    "status": "unverified"
+  },
+  "sources": [
+    {
+      "url": "https://www.epa.gov/section608/recordkeeping-and-reporting-requirements-stationary-refrigeration",
+      "observedOn": "2026-10-14"
+    },
+    {
+      "url": "https://www.epa.gov/section608/regulatory-updates-section-608-refrigerant-management-regulations",
+      "observedOn": "2026-10-14"
+    }
+  ],
+  "recipe": {
+    "version": 1,
+    "family": "document-workflow",
+    "id": "refrigeration-service-evidence-75",
+    "title": "Refrigeration Service Evidence Desk",
+    "buyer": "Commercial refrigeration owners and independent service coordinators",
+    "outcome": "Coordinate internal documentation without regulatory determination, certification or refrigerant-work authorization.",
+    "recordLabel": "Refrigeration service file",
+    "defaultDueDays": 10,
+    "reminderEveryDays": 3,
+    "renewalWindowDays": 45,
+    "requirements": [
+      {
+        "id": "appliance-identity-reference",
+        "label": "Appliance identity and refrigerant type reference",
+        "renewable": false
+      },
+      {
+        "id": "technician-service-invoice",
+        "label": "Technician service invoice reference",
+        "renewable": false
+      },
+      {
+        "id": "refrigerant-charge-history",
+        "label": "Refrigerant addition service record",
+        "renewable": false
+      },
+      {
+        "id": "leak-verification-evidence",
+        "label": "Leak inspection and verification reference",
+        "renewable": false
+      },
+      {
+        "id": "equipment-record-audit",
+        "label": "Periodic equipment file reconciliation review",
+        "renewable": true
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+# Continuous idea supply for the autonomous candidate factory
+
+Owner outcome: run an application factory without requesting a new prompt for every candidate. The initial product factory has 72 supported document-workflow variants, then stops. The new source-controlled idea inbox accepts differentiated, researched workflow hypotheses from the existing six-hour ChatGPT automation, validates their behavior, and packages real runnable candidates through GitHub CI without user prompts.
+
+Alternatives rejected: unrestricted execution of web-sourced code or paid LLM APIs (unbounded cost and security risk); and infinite renamed clones (no functional novelty). Selected: safe JSON-only input, mechanical uniqueness gate, deterministic cycle assignment, versioned provenance and independently tested local packaging.
+
+Input contract: one append-only JSON per UTC slot in packages/application-factory/autonomy/ideas/cycle-N.json, N at least 72. Strict schema v1 includes one supported full recipe, substantive hypothetical customer problem, trigger, cost, discovery question and differentiation, exact unverified research status, and two distinct recent public HTTPS source references. Source URL format and date checks do not verify website truth or commercial demand. No buyer names, personal contacts, executable instructions, proven-profit claims or real customer state.
+
+Quality: reject directory symlinks, oversized files, mismatched slot IDs, duplicate machinery/required-document identifiers, fake verification, unsafe URLs, future/old dates, source rewrite after acceptance, duplicate app IDs and existing product overlap. Keep any accepted idea source digest in the per-slot receipt. Existing 72 slots remain unchanged. Missing future slots may remain empty while later explicitly assigned ideas still build.
+
+Execution: scripts/validate-autonomy-ideas.js --check validates research; --build-pending --output /absolute/private/path independently tests and packages up to three newest research ideas immediately. The existing read-only factory-autonomy-ci workflow will run these steps on draft PR changes, while the main scheduled six-hour GitHub Actions cron still requires reviewed merging into the default branch. The already enabled scheduled ChatGPT task can discover public sources and commit valid new idea files directly via GitHub even when the owner's computer is unavailable; no separate paid API keys are needed.
+
+Three initial cited-background hypotheses describe food-lot handoffs, shift inspection handoffs and industrial shipment manifest exceptions. Official public source pages provide context only. These local software candidates do not perform or certify regulatory compliance.
+
+Hard boundaries: no automatic public deployment, business registration, real users, real documents, external messages, contacts, checkout, payments, spending, altered user tasks or numbered paid Product 025+ unlock. No promise of infinite valuable businesses; absent high-quality evidence, stop rather than manufacture cosmetic variants. Human review remains required for commercial and security release.

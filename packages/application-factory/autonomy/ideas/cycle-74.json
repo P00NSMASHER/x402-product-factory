@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "cycle": 74,
+  "hypothesis": {
+    "customerProblem": "Small industrial waste coordinators may find it difficult to reconcile shipment references and correction follow-up notes.",
+    "buyerTrigger": "A waste shipment record is received for internal follow-up or a manifest correction is requested.",
+    "expensiveFailure": "Missing correction references can prolong internal reconciliation of shipment documentation between handlers.",
+    "discoveryQuestion": "How does the operations team trace open manifest correction requests and the associated shipment files today?",
+    "differentiator": "Separate manifest reference, correction follow-up, handler response and final internal review into one traceable queue.",
+    "status": "unverified"
+  },
+  "sources": [
+    {
+      "url": "https://www.epa.gov/e-manifest",
+      "observedOn": "2026-10-13"
+    },
+    {
+      "url": "https://www.epa.gov/e-manifest/frequent-questions-about-e-manifest",
+      "observedOn": "2026-10-13"
+    }
+  ],
+  "recipe": {
+    "version": 1,
+    "family": "document-workflow",
+    "id": "manifest-exception-review-74",
+    "title": "Manifest Exception Review Desk",
+    "buyer": "Industrial service coordinators organizing hazardous-waste shipment paperwork",
+    "outcome": "Organize local manifest follow-up evidence; this does not create, sign or certify EPA manifests.",
+    "recordLabel": "Shipment exception",
+    "defaultDueDays": 4,
+    "reminderEveryDays": 2,
+    "renewalWindowDays": 21,
+    "requirements": [
+      {
+        "id": "manifest-tracking-reference",
+        "label": "Manifest tracking reference",
+        "renewable": false
+      },
+      {
+        "id": "correction-request-note",
+        "label": "Correction request note",
+        "renewable": false
+      },
+      {
+        "id": "handler-response-reference",
+        "label": "Handler response reference",
+        "renewable": false
+      },
+      {
+        "id": "exception-review-window",
+        "label": "Internal exception review window",
+        "renewable": true
+      }
+    ]
+  }
+}
