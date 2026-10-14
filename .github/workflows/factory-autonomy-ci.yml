@@ -4,10 +4,12 @@ on:
     paths:
       - 'packages/application-factory/autonomy/**'
       - 'packages/application-factory/quote-family/**'
+      - 'packages/application-factory/inventory-family/**'
       - 'packages/application-factory/manufacturing/**'
       - 'packages/application-factory/recipes.json'
       - 'scripts/run-autonomous-factory.js'
       - 'scripts/manufacture-quote-apps.js'
+      - 'scripts/manufacture-inventory-apps.js'
       - 'scripts/validate-autonomy-ideas.js'
       - 'scripts/restore-autonomous-checkpoint.js'
       - 'scripts/export-autonomous-fleet.js'
@@ -63,6 +65,10 @@ jobs:
         run: |
           node --test packages/application-factory/quote-family/*.test.js
           node scripts/manufacture-quote-apps.js --output "$RUNNER_TEMP/quote-to-order-apps"
+      - name: Verify third SaaS family and manufacture three inventory apps
+        run: |
+          node --test packages/application-factory/inventory-family/*.test.js
+          node scripts/manufacture-inventory-apps.js --output "$RUNNER_TEMP/inventory-apps"
       - name: Export private verified fleet ledger
         run: |
           node scripts/export-autonomous-fleet.js --state-dir "$RUNNER_TEMP/autonomous-apps" --output-dir "$RUNNER_TEMP/autonomous-apps/portfolio" --lookback 24
@@ -80,6 +86,14 @@ jobs:
         with:
           name: quote-to-order-autonomy-${{ github.run_id }}
           path: ${{ runner.temp }}/quote-to-order-apps
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: inventory-control-autonomy-${{ github.run_id }}
+          path: ${{ runner.temp }}/inventory-apps
           retention-days: 7
           if-no-files-found: error
           include-hidden-files: false

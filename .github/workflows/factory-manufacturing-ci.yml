@@ -8,6 +8,7 @@ on:
       - 'quality/browser/sales-command-center.cjs'
       - 'quality/browser/autonomous-fleet.cjs'
       - 'quality/browser/quote-applications.cjs'
+      - 'quality/browser/inventory-applications.cjs'
       - '.github/workflows/factory-manufacturing-ci.yml'
   workflow_dispatch:
 permissions:
@@ -32,6 +33,8 @@ jobs:
         run: node scripts/manufacture-applications.js --output "$RUNNER_TEMP/manufactured-applications"
       - name: Manufacture three complete quote-to-order applications
         run: node scripts/manufacture-quote-apps.js --output "$RUNNER_TEMP/quote-to-order-apps"
+      - name: Manufacture three independent inventory planning applications
+        run: node scripts/manufacture-inventory-apps.js --output "$RUNNER_TEMP/inventory-apps"
       - name: Install isolated browser-test dependency
         run: npm install --prefix "$RUNNER_TEMP/manufacturing-browser" --no-save --ignore-scripts playwright@1.64.0
       - name: Install Chromium
@@ -44,6 +47,9 @@ jobs:
         run: NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/sales-command-center.cjs
       - name: Native fleet dashboard desktop/mobile acceptance
         run: NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/autonomous-fleet.cjs
+      - name: Native six inventory replenishment journeys on desktop and mobile
+        run: |
+          FACTORY_INVENTORY_BROWSER_ARTIFACT_DIR="$RUNNER_TEMP/inventory-browser-screenshots" NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/inventory-applications.cjs
       - name: Native six quote-to-order journeys on desktop and mobile
         run: |
           FACTORY_QUOTE_BROWSER_ARTIFACT_DIR="$RUNNER_TEMP/quote-browser-screenshots" NODE_PATH="$RUNNER_TEMP/manufacturing-browser/node_modules" node quality/browser/quote-applications.cjs "$RUNNER_TEMP/quote-to-order-apps"
@@ -68,6 +74,22 @@ jobs:
         with:
           name: quote-to-order-native-browser-screenshots
           path: ${{ runner.temp }}/quote-browser-screenshots
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: inventory-control-manufactured-applications
+          path: ${{ runner.temp }}/inventory-apps
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: inventory-control-native-browser-screenshots
+          path: ${{ runner.temp }}/inventory-browser-screenshots
           retention-days: 7
           if-no-files-found: error
           include-hidden-files: false
