@@ -3,6 +3,7 @@
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const {buildCandidateCatalog}=require('./catalog');
 const {loadIdeaBacklog}=require('./ideas');
+const {loadScoutedLeads}=require('./scout');
 const {compileApplication}=require('../manufacturing/assembler');
 const {manufactureBatch}=require('../manufacturing/line');
 const ROOT=path.resolve(__dirname,'../../..');
@@ -22,7 +23,9 @@ function planCycle({at=new Date().toISOString(),batchSize=1,blueprintDirectory=p
  if(start<catalog.length)recipes=catalog.slice(start,Math.min(catalog.length,start+batchSize));
  else{
    const match=loadIdeaBacklog({directory:blueprintDirectory,existingRecipes:catalog})
-     .find(row=>row.cycle===cycle);
+     .find(row=>row.cycle===cycle)||
+     loadScoutedLeads({blueprintDirectory,existingRecipes:catalog})
+       .find(row=>row.cycle===cycle&&row.status==='admitted-unverified');
    recipes=match?[match.recipe]:[];
    ideaDigest=match?.digest||null;
  }

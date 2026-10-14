@@ -46,6 +46,10 @@ The already declared factory workflow validates and builds the **current** six-h
 
 A private JSON report distinguishes verified recovered cycles, unbuilt cycles still due, quarantines, research gaps, and history older than the bounded window. "No due work in bounded window" does not certify older history, customers, security, or revenue. CI preserves no more than the existing seven-day artifact retention. This upgrade adds **no new schedule, runner credentials, network transport, merge authority, payment, outreach or public deployment**, and remains inactive as a GitHub cron while the stacked PRs are drafts.
 
+## Evidence-backed automatic research scout
+
+Future cycle selection also consumes an append-only, source-backed scout queue, automatically assigning independently differentiated workflows to cycles 75 onward. Three NIST/EPA/DOE leads are admitted and independently packaged by CI, without making up paying buyers, source-level demand evidence or external service permissions. Exact reviewed idea files always override matching scout slots; later slots never reorder. See [scout/README.md](scout/README.md).
+
 ## Acceptance and limits
 
     node --test packages/application-factory/autonomy/*.test.js

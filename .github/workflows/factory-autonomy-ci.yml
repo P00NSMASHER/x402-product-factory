@@ -64,6 +64,10 @@ jobs:
         run: |
           node scripts/validate-autonomy-ideas.js --check
           node scripts/validate-autonomy-ideas.js --build-pending --output "$RUNNER_TEMP/autonomous-apps"
+      - name: Independently manufacture source-backed future scout ideas
+        run: |
+          node scripts/scout-app-ideas.js --check
+          node scripts/scout-app-ideas.js --build --output "$RUNNER_TEMP/autonomous-apps"
       - name: Verify second SaaS family and independently manufacture three quote apps
         run: |
           node --test packages/application-factory/quote-family/*.test.js
