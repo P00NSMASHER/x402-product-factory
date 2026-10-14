@@ -139,6 +139,9 @@ function runPair(pair){
    assessment.oldVersionReadbackVerified!==true||
    assessment.sqliteApplicationIdentityVerified!==true||
    assessment.snapshotFromCommittedWal!==true||
+   assessment.uncheckpointedCommittedWalVerified!==true||
+   assessment.mainFileOnlyMissesCommittedReceipts!==true||
+   assessment.walCommittedReceipts!==1||
    assessment.schemaUpgradeApplied!==false||
    assessment.automaticSharedStateMigrationApproved!==false||
    assessment.productionCustomerStateMigrated!==false||
@@ -154,7 +157,9 @@ function runPair(pair){
    candidateDigest:pair.candidate.digest,privateCanarySwitches:2,unhealthyResponsesFailClosed:true,
    sourceVerifiedBeforeAndAfter:true,isolatedVersionState:true,
    localTrafficRollbackPassed:true,productionRollbackExecuted:false,
-   persistedStateIntegrityVerified:true,unsupportedSchemaRejected:true,
+   persistedStateIntegrityVerified:true,uncheckpointedWalSnapshotVerified:true,
+   mainFileOnlyRecoveryDenied:true,walCommittedReceipts:assessment.walCommittedReceipts,
+   unsupportedSchemaRejected:true,
    sourceIdentityMismatchRejected:true,sharedStateMigrationApproved:false,
    stateCompatibilityOutcome:assessment.changeGate};
  }finally{fs.rmSync(scratch,{recursive:true,force:true});}
@@ -192,6 +197,7 @@ function rehearseSyntheticVersions({baselineRoots,outputRoot}={}){
    testedFamilies:3,testedVersionPairs:3,verifiedTrafficFallbacks:3,failed:0,
    results,changes:'behavioral-parameter-and-source-digest-changes',
    persistedStateFamiliesChecked:3,unsafeAutomaticStateMigrationsBlocked:3,
+   uncheckpointedWalSnapshotsVerified:3,mainFileOnlyRecoveryDenied:3,
    observedSchemaDriftDenied:true,sharedStateMigrationApproved:false,
    releaseState:'commercial-hold',approvedDeploymentTarget:null,publicHostingEnabled:false,
    productionStateMigrationTested:false,productionRollbackExecuted:false,
@@ -210,7 +216,7 @@ function rehearseSyntheticVersions({baselineRoots,outputRoot}={}){
    const files={
     'versioned-report.json':JSON.stringify(report,null,2)+'\n',
     'RELEASE-HOLD.md':'# Distinct-version private routing acceptance\n\n'+
-    'Three real alternate packaged versions ran on separate synthetic SQLite databases. A local-only canary outage triggered an observed fallback to each prior version. Source integrity and independent full packaged lifecycle receipts were checked. Both-lane outage returned 503, never a false OK. A separate compatibility gate filled each baseline SQLite database with synthetic tenant activity, cloned a consistent WAL-backed snapshot, checked preexisting receipts and tenant isolation on candidate reopen, and rejected unsupported schema and foreign application identities. Changed inventory recipes refuse shared-state reopening, while document workspaces remain bound to their prior recipe; automatic migration remains disallowed.\n\n'+
+    'Three real alternate packaged versions ran on separate synthetic SQLite databases. A local-only canary outage triggered an observed fallback to each prior version. Source integrity and independent full packaged lifecycle receipts were checked. Both-lane outage returned 503, never a false OK. A separate compatibility gate pinned a read transaction before baseline writes, verified a committed WAL-only receipt missing from the bare main database, included it in a VACUUM INTO snapshot, checked idempotent receipts and tenant isolation on candidate reopen, and rejected unsupported schema and foreign application identities. Changed inventory recipes refuse shared-state reopening, while document workspaces remain bound to their prior recipe; automatic migration remains disallowed.\n\n'+
     'Not a public deployment or production rollback. NO shared customer state migration, live database schema upgrade, TLS, externally reachable service, payment, buyer, version-compatibility approval or independent security review. Real promotion requires separate governed review.\n'
    };
    for(const [name,body] of Object.entries(files)){
@@ -222,6 +228,7 @@ function rehearseSyntheticVersions({baselineRoots,outputRoot}={}){
   }finally{if(fs.existsSync(temp))fs.rmSync(temp,{recursive:true,force:true});}
   return {kind:report.kind,testedVersionPairs:3,verifiedTrafficFallbacks:3,
    persistedStateFamiliesChecked:3,unsafeAutomaticStateMigrationsBlocked:3,
+   uncheckpointedWalSnapshotsVerified:3,mainFileOnlyRecoveryDenied:3,
    failed:0,digest:report.digest,publicHostingEnabled:false,productionRollbackExecuted:false,
    realCustomers:null,collectedRevenue:null,paymentsSent:0,transmittedMessages:0,releaseApproved:false};
  }finally{fs.rmSync(stageRoot,{recursive:true,force:true});}
