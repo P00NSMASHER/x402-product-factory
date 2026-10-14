@@ -42,14 +42,18 @@ async function main(){
   browser=await chromium.launch({headless:true});
   for(const width of [390,1440]){
    const ctx=await browser.newContext({viewport:{width,height:844},ignoreHTTPSErrors:true});
-   const page=await ctx.newPage(),failures=[],external=[];
+   const page=await ctx.newPage(),failures=[],external=[],phases=[];
+   page.on('response',r=>{const u=new URL(r.url());if(u.pathname==='/app'||u.pathname==='/_preview/login')phases.push({path:u.pathname,status:r.status()});});
    page.on('pageerror',e=>failures.push(e.message));
    page.on('request',req=>{if(new URL(req.url()).origin!==origin)external.push(req.url());});
    const initial=await page.goto(origin+'/app',{waitUntil:'domcontentloaded'});
    assert.equal(initial.status(),401);
    await page.locator('input[name="code"]').fill(code);
    await page.getByRole('button',{name:'Open demo'}).click();
-   await page.locator('#login-form').waitFor({state:'visible'});
+   await page.locator('#login-form').waitFor({state:'visible',timeout:7000}).catch(async()=>{
+    const names=(await ctx.cookies(origin)).map(c=>c.name);
+    throw Error('Gateway browser transition failed: '+JSON.stringify({path:new URL(page.url()).pathname,phases,cookieNames:names}));
+   });
    assert.equal(new URL(page.url()).origin,origin);
    await page.locator('#token').fill(token);
    await page.locator('#login-form button[type=submit]').click();
