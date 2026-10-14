@@ -19,3 +19,7 @@ CI now also assembles meaningful alternative versions of the original document, 
 ## Run and inspect all apps from one local portal
 
 An independent private launcher starts every accepted SaaS package with isolated synthetic SQLite data, a separate localhost-only service and its own owner-private credentials. A responsive static portal links to the apps without displaying keys. CI executes both the original 9-app and researched 11-app fleets and performs native desktop/mobile portal navigation. The only retained CI reports and screenshots are sanitized; private credentials are **not uploaded**. See [FLEET_PREVIEW.md](FLEET_PREVIEW.md). This is local synthetic access, not a public deployment or security release approval.
+
+## Automatic private-service recovery
+
+The operator-local preview can now self-repair a failed app process without re-provisioning tenants or losing SQLite state. The bounded health watchdog restarts only the same verified package with the same credentials, dynamically repairs portal links and quarantines repeated or tampered failures. One-shot CI verifies this across all real running app families without external contact or payment. This is not recovery from a machine shutdown, hosted production incident or public SaaS outage; see [AUTONOMOUS_RECOVERY.md](AUTONOMOUS_RECOVERY.md).

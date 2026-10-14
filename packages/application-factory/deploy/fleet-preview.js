@@ -40,6 +40,27 @@ function writeSecret(file,value){
  try{fs.writeFileSync(fd,JSON.stringify(value,null,2)+'\n');fs.fsyncSync(fd);}
  finally{fs.closeSync(fd);}
 }
+function recoveredCredentials(group,location){
+ const stat=fs.lstatSync(location);
+ if(!stat.isDirectory()||stat.isSymbolicLink()||fs.realpathSync(location)!==path.resolve(location)||
+   (process.platform!=='win32'&&(stat.mode&0o077)!==0))fail('PREVIEW_RECOVERY_PATH_UNSAFE');
+ const file=path.join(location,'credentials.json'),st=fs.lstatSync(file);
+ if(!st.isFile()||st.isSymbolicLink()||st.size<80||st.size>2000||
+   (process.platform!=='win32'&&(st.mode&0o077)!==0))fail('PREVIEW_RECOVERY_PATH_UNSAFE');
+ let value;
+ try{value=JSON.parse(fs.readFileSync(file,'utf8'));}
+ catch{fail('PREVIEW_RECOVERY_CREDENTIAL_INVALID');}
+ if(!exact(value,['schemaVersion','syntheticOnly','family','id','sourceDigest','credentials'])||
+   value.schemaVersion!==1||value.syntheticOnly!==true||
+   value.family!==group.family||value.id!==group.id||value.sourceDigest!==group.digest)
+   fail('PREVIEW_RECOVERY_CREDENTIAL_INVALID');
+ const keys=group.family==='document'?['operator']:['operator','reviewer'];
+ if(!exact(value.credentials,keys)||!keys.every(k=>typeof value.credentials[k]==='string'&&
+   /^[A-Za-z0-9_-]{43}$/.test(value.credentials[k]))||
+   new Set(Object.values(value.credentials)).size!==keys.length)
+   fail('PREVIEW_RECOVERY_CREDENTIAL_INVALID');
+ return value.credentials;
+}
 function readRecipe(group){
  const filename=group.family==='document'?
   path.join(group.folder,'packages/application-factory/recipes.json'):
@@ -49,32 +70,52 @@ function readRecipe(group){
  if(!recipe||recipe.id!==group.id||!safeName(recipe.id)||typeof recipe.title!=='string')fail('PREVIEW_RECIPE_INVALID');
  return recipe;
 }
-async function openGroup(group,root){
+async function openGroup(group,root,{recover=false}={}){
  const recipe=readRecipe(group),location=path.join(root,group.family+'-'+group.id);
- fs.mkdirSync(location,{mode:0o700});
- let store=null,server=null,auth;
+ group.verify(group.folder,group.digest); // Never restart a package after source drift.
+ if(!recover)fs.mkdirSync(location,{mode:0o700});
+ let store=null,server=null,auth=recover?recoveredCredentials(group,location):null;
  try{
   if(group.family==='document'){
    const {openRuntime}=require(path.join(group.folder,'packages/application-factory/runtime/runtime.js'));
    const {createRuntimeServer}=require(path.join(group.folder,'packages/application-factory/runtime/http.js'));
    store=openRuntime({filename:path.join(location,'runtime.sqlite'),recipes:[recipe]});
-   const user=store.provisionTenant('synthetic-preview');
-   store.createWorkspace(user.token,{id:recipe.id,recipeId:recipe.id});
-   auth={operator:user.token};server=createRuntimeServer({runtime:store,automation:false});
+   if(recover){
+    const existing=store.workspace(auth.operator,recipe.id);
+    if(existing.recipe?.id!==recipe.id)fail('PREVIEW_RECOVERY_STATE_INVALID');
+   }else{
+    const user=store.provisionTenant('synthetic-preview');
+    store.createWorkspace(user.token,{id:recipe.id,recipeId:recipe.id});
+    auth={operator:user.token};
+   }
+   server=createRuntimeServer({runtime:store,automation:false});
    await server.listen({port:0});
   }else if(group.family==='quote'){
    const {openStore}=require(path.join(group.folder,'store.js'));
    const {createServer}=require(path.join(group.folder,'server.js'));
    store=openStore({filename:path.join(location,'quotes.sqlite'),recipe});
-   const user=store.provision('synthetic-preview');
-   auth={operator:user.operatorToken,reviewer:user.reviewerToken};
+   if(recover){
+    const operator=store.identity(auth.operator),reviewer=store.identity(auth.reviewer);
+    if(operator.role!=='operator'||reviewer.role!=='reviewer'||operator.tenant!==reviewer.tenant)
+     fail('PREVIEW_RECOVERY_STATE_INVALID');
+   }else{
+    const user=store.provision('synthetic-preview');
+    auth={operator:user.operatorToken,reviewer:user.reviewerToken};
+   }
    server=createServer({store,pollMs:60000});await server.listen(0);
   }else if(group.family==='inventory'){
    const {openStore}=require(path.join(group.folder,'store.js'));
    const {createServer}=require(path.join(group.folder,'server.js'));
    store=openStore({filename:path.join(location,'inventory.sqlite'),recipe});
-   const user=store.provision('synthetic-preview');
-   auth={operator:user.operatorKey,reviewer:user.reviewerKey};
+   if(recover){
+    const operator=store.identity(auth.operator),reviewer=store.identity(auth.reviewer);
+    if(operator.role!=='operator'||reviewer.role!=='reviewer'||
+       operator.tenantId!==reviewer.tenantId)fail('PREVIEW_RECOVERY_STATE_INVALID');
+    store.context(auth.operator);
+   }else{
+    const user=store.provision('synthetic-preview');
+    auth={operator:user.operatorKey,reviewer:user.reviewerKey};
+   }
    server=createServer({store,automation:false});await server.listen({port:0});
   }else fail('PREVIEW_FAMILY_INVALID');
   const port=group.family==='quote'?server.port():server.address()?.port;
@@ -91,12 +132,13 @@ async function openGroup(group,root){
   if(denied.status!==401)fail('PREVIEW_AUTH_FAILED');
   const stat=fs.statSync(location);
   if(process.platform!=='win32'&&(stat.mode&0o077)!==0)fail('PREVIEW_PATH_UNSAFE');
-  writeSecret(path.join(location,'credentials.json'),{schemaVersion:1,syntheticOnly:true,
+  if(!recover)writeSecret(path.join(location,'credentials.json'),{schemaVersion:1,syntheticOnly:true,
    family:group.family,id:group.id,sourceDigest:group.digest,credentials:auth});
   group.verify(group.folder,group.digest);
+  let closed=false;
   return {family:group.family,id:group.id,title:recipe.title,digest:group.digest,origin,
    port,roles:Object.keys(auth),privateCredentialFile:path.join(location,'credentials.json'),
-   async close(){await server.close();store.close();}};
+   async close(){if(closed)return;closed=true;try{await server.close();}finally{store.close();}}};
  }catch(error){
   try{await server?.close();}catch{}
   try{store?.close();}catch{}
@@ -119,7 +161,6 @@ function portalHTML(apps){
    '<div class="grid">'+sections+'</div></main></body></html>';
 }
 function portalServer(apps){
- const html=portalHTML(apps);
  const server=http.createServer({maxHeaderSize:8192},(req,res)=>{
   const port=server.address()?.port,host='127.0.0.1:'+port;
   if(req.headers.host!==host||req.headers.origin!==undefined||req.method!=='GET'){
@@ -128,7 +169,7 @@ function portalServer(apps){
   const headers={'cache-control':'no-store','x-content-type-options':'nosniff','x-frame-options':'DENY',
     'referrer-policy':'no-referrer','cross-origin-resource-policy':'same-origin',
     'content-security-policy':CSP,'permissions-policy':'camera=(),microphone=(),geolocation=()'};
-  if(req.url==='/'){res.writeHead(200,{...headers,'content-type':'text/html; charset=utf-8'});res.end(html);return;}
+  if(req.url==='/'){res.writeHead(200,{...headers,'content-type':'text/html; charset=utf-8'});res.end(portalHTML(apps));return;}
   if(req.url==='/health'){
    res.writeHead(200,{...headers,'content-type':'application/json'});
    res.end(JSON.stringify({status:'ok',mode:'synthetic-private-only',appCount:apps.length,
@@ -181,7 +222,20 @@ async function launchPrivateFleet({sources,stateRoot,portalPort=0}={}){
    publicHostingEnabled:false,checkoutEnabled:false,releaseApproved:false};
   report.digest=sha(JSON.stringify(report));
   writeSecret(path.join(root,'preview-report.json'),report);
-  return {origin:'http://127.0.0.1:'+port,port,stateRoot:root,apps,report,stop};
+  async function recover(family,id){
+   if(stopped||!['document','quote','inventory'].includes(family)||!safeName(id))fail('PREVIEW_RECOVERY_INVALID');
+   const index=apps.findIndex(a=>a.family===family&&a.id===id);
+   if(index<0)fail('PREVIEW_RECOVERY_INVALID');
+   const group=groups.find(g=>g.family===family&&g.id===id);
+   if(!group)fail('PREVIEW_RECOVERY_INVALID');
+   const previous=apps[index];
+   await previous.close();
+   const restored=await openGroup(group,root,{recover:true});
+   apps[index]=restored; // Portal requests now receive the new local port.
+   return {family,id,sourceDigest:group.digest,recovered:true,localOnly:true,
+    statePreserved:true,releaseApproved:false};
+  }
+  return {origin:'http://127.0.0.1:'+port,port,stateRoot:root,apps,report,stop,recover};
  }catch(error){
   await stop();
   fs.rmSync(root,{force:true,recursive:true});throw error;
