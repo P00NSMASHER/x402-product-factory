@@ -8,6 +8,7 @@ on:
       - 'packages/application-factory/manufacturing/**'
       - 'packages/application-factory/recipes.json'
       - 'scripts/run-autonomous-factory.js'
+      - 'scripts/backfill-autonomous-factory.js'
       - 'scripts/manufacture-quote-apps.js'
       - 'scripts/manufacture-inventory-apps.js'
       - 'scripts/validate-autonomy-ideas.js'
@@ -57,6 +58,8 @@ jobs:
           at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           node scripts/run-autonomous-factory.js --output "$RUNNER_TEMP/autonomous-apps" --at "$at" > "$RUNNER_TEMP/current-autonomous-cycle.json"
           node -e 'const fs=require("fs"),path=require("path"),crypto=require("crypto");const at=process.argv[1],root=path.join(process.env.RUNNER_TEMP,"autonomous-apps","autonomy"),r=JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP,"current-autonomous-cycle.json"),"utf8"));const expectedCycle=Math.floor((Date.parse(at)-Date.parse("2026-10-13T00:00:00Z"))/21600000);if(r.cycle!==expectedCycle)throw Error("WRONG_CYCLE");const receipt=JSON.parse(fs.readFileSync(path.join(root,"cycle-"+r.cycle+".json"),"utf8"));const hash=crypto.createHash("sha256").update(JSON.stringify({...receipt,digest:undefined})).digest("hex");if(receipt.digest!==hash||receipt.cycle!==r.cycle||receipt.accepted!==r.accepted||receipt.failed!==r.failed||receipt.verification!==r.verification)throw Error("CYCLE_RECEIPT_INVALID");if(!r.exhausted&&(r.planned!==1||r.failed!==0||r.accepted!==1||r.verification!=="executed-packaged-workflow"))throw Error("AUTONOMY_ACCEPTANCE_FAILED");if(r.releaseApproved!==false||r.marketValidated!==false||r.paymentsSent!==0||r.transmittedMessages!==0)throw Error("UNSAFE_RELEASE_STATE");console.log(JSON.stringify({cycle:r.cycle,accepted:r.accepted,reused:r.reused,exhausted:r.exhausted,releaseApproved:false}));' "$at"
+          node scripts/backfill-autonomous-factory.js --output "$RUNNER_TEMP/autonomous-apps" --at "$at" --max-builds 2 --window-cycles 8 > "$RUNNER_TEMP/missed-cycle-backfill.json"
+          node -e 'const fs=require("fs"),r=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(r.kind!=="autonomous-missed-cycle-run"||r.verifiedRecovered!==r.recoveredCycles.length||r.recoveredCycles.length>2||r.recoveredCycles.some(cycle=>cycle>=r.currentCycle)||r.releaseApproved!==false||r.marketValidated!==false||r.realCustomers!==null||r.collectedRevenue!==null||r.transmittedMessages!==0||r.paymentsSent!==0)throw Error("BACKFILL_RECEIPT_INVALID");console.log(JSON.stringify({recovered:r.recoveredCycles,moreDue:r.moreDue,blocked:r.blockedCyclesBeforeNext,outsideWindow:r.historyOutsideWindow}));' "$RUNNER_TEMP/missed-cycle-backfill.json"
       - name: Admit researched app blueprints and independently execute newest candidates
         run: |
           node scripts/validate-autonomy-ideas.js --check
