@@ -1,0 +1,37 @@
+name: Third Application Family - Inventory Replenishment
+on:
+  pull_request:
+    paths:
+      - 'packages/application-factory/inventory-family/**'
+      - 'scripts/manufacture-inventory-apps.js'
+      - 'quality/browser/inventory-applications.cjs'
+      - '.github/workflows/factory-inventory-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: factory-inventory-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Validate inventory stock and role-separated approval contracts
+        run: node --test packages/application-factory/inventory-family/*.test.js
+      - name: Independently package and execute three inventory apps
+        run: |
+          node scripts/manufacture-inventory-apps.js --output "$RUNNER_TEMP/inventory-apps"
+          node -e 'const r=require(process.argv[1]);if(r.accepted!==3||r.failed!==0||r.verification!=="executed-packaged-inventory-lifecycle"||r.releaseApproved!==false||r.paymentsSent!==0||r.realCustomers!==null||r.collectedRevenue!==null)throw Error("INVENTORY_ACCEPTANCE_INVALID");console.log(JSON.stringify({accepted:r.accepted,releaseApproved:false}));' "$RUNNER_TEMP/inventory-apps/manufacturing-report.json"
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: inventory-family-runnable-applications
+          path: ${{ runner.temp }}/inventory-apps
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
