@@ -82,7 +82,9 @@ async function rehearseCanary(){
   const changed=await request(routerPort,'/app',host);
   assert.equal(changed.status,200);assert.equal(changed.headers['x-private-lane'],'canary');
   assert.match(changed.body,/<!doctype html|<html/i);
-  phase='canary-outage';await canary.close();canary=null;
+  phase='canary-outage';const failedPort=canary.port;await canary.close();
+  // Retain the dead socket target to test transport failure and automatic fallback.
+  canary={port:failedPort,async close(){}};
   phase='fallback-health';const rolledBack=await request(routerPort,'/health',host);
   assert.equal(rolledBack.status,200);assert.equal(rolledBack.headers['x-private-lane'],'stable');
   assert.equal(JSON.parse(rolledBack.body).releaseApproved,false);
