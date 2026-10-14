@@ -3,6 +3,7 @@
 // No public socket, payment processor, external HTTP source, buyer, or production credentials.
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),assert=require('node:assert/strict');
 const family=process.argv[2],app=process.argv[3],scratch=process.argv[4],digest=process.argv[5];
+let phase='initial-boot';
 const route={document:'/v1/workspaces',quote:'/v1/quotes',inventory:'/v1/context'};
 if(!['document','quote','inventory'].includes(family)||!path.isAbsolute(app)||!path.isAbsolute(scratch)||
    !/^[a-f0-9]{64}$/.test(digest))throw Error('REHEARSAL_INPUT_INVALID');
@@ -42,8 +43,9 @@ async function boot(lane='state'){
 // synthetic service lanes. This validates routing fault recovery, NOT live-version migration.
 async function rehearseCanary(){
  let stable=null,canary=null,router=null,active='stable',routerPort=null;
+ phase='stable-boot';
  try{
-  stable=await boot('stable');canary=await boot('canary');
+  stable=await boot('stable');phase='canary-boot';canary=await boot('canary');phase='router-create';
   assert.notEqual(stable.port,canary.port);
   router=http.createServer((req,res)=>{
    const host='127.0.0.1:'+router.address()?.port;
@@ -69,22 +71,23 @@ async function rehearseCanary(){
    };
    forward();
   });
+  phase='router-listen';
   await new Promise((resolve,reject)=>{router.once('error',reject);
    router.listen(0,'127.0.0.1',()=>{router.off('error',reject);resolve();});});
   assert.equal(router.address().address,'127.0.0.1');routerPort=router.address().port;
   const host={Host:'127.0.0.1:'+routerPort};
-  const initial=await request(routerPort,'/health',host);
+  phase='stable-health';const initial=await request(routerPort,'/health',host);
   assert.equal(initial.status,200);assert.equal(initial.headers['x-private-lane'],'stable');
-  active='canary';
+  phase='canary-traffic';active='canary';
   const changed=await request(routerPort,'/app',host);
   assert.equal(changed.status,200);assert.equal(changed.headers['x-private-lane'],'canary');
   assert.match(changed.body,/<!doctype html|<html/i);
-  await canary.close();canary=null;
-  const rolledBack=await request(routerPort,'/health',host);
+  phase='canary-outage';await canary.close();canary=null;
+  phase='fallback-health';const rolledBack=await request(routerPort,'/health',host);
   assert.equal(rolledBack.status,200);assert.equal(rolledBack.headers['x-private-lane'],'stable');
   assert.equal(JSON.parse(rolledBack.body).releaseApproved,false);
-  assert.equal((await request(routerPort,'/v1/quotes',host)).status,403);
-  return {localCanaryFailoverVerified:true,laneSwitches:2,trafficBoundToLoopback:true,
+  phase='route-rejection';assert.equal((await request(routerPort,'/v1/quotes',host)).status,403);
+  phase='canary-complete';return {localCanaryFailoverVerified:true,laneSwitches:2,trafficBoundToLoopback:true,
    laneSourceIdentity:'same-hash-synthetic',productionRollbackExecuted:false};
  }finally{
   if(router){router.closeAllConnections();if(router.listening)
@@ -126,4 +129,4 @@ async function main(){
   unauthorizedApiDenied:true,productionApproved:false,externalRequestsMadeByHarness:0,
   transmittedMessages:0,paymentsSent:0,realCustomers:null,collectedRevenue:null,releaseApproved:false};
 }
-main().then(x=>console.log(JSON.stringify(x))).catch(()=>{console.error('Private application staging or source-integrity probe failed.');process.exitCode=1;});
+main().then(x=>console.log(JSON.stringify(x))).catch(error=>{console.error('PRIVATE_PROBE_FAILURE:'+phase+':'+(error?.code||'UNCLASSIFIED'));process.exitCode=1;});
