@@ -81,6 +81,16 @@ jobs:
         run: |
           node --test packages/application-factory/inventory-family/*.test.js
           node scripts/manufacture-inventory-apps.js --output "$RUNNER_TEMP/inventory-apps"
+      - name: Export read-only buyer-evidence agenda
+        run: node scripts/review-factory-opportunities.js --check > "$RUNNER_TEMP/factory-buyer-review.json"
+      - name: Preserve eleven unverified buyer research packets
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: buyer-review-agenda-${{ github.run_id }}
+          path: ${{ runner.temp }}/factory-buyer-review.json
+          retention-days: 14
+          if-no-files-found: error
       - name: Export private verified fleet ledger
         run: |
           node scripts/export-autonomous-fleet.js --state-dir "$RUNNER_TEMP/autonomous-apps" --output-dir "$RUNNER_TEMP/autonomous-apps/portfolio" --lookback 24
