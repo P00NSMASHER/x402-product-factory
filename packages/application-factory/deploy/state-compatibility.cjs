@@ -66,6 +66,49 @@ function clone(source,dest){
  if(process.platform!=='win32')fs.chmodSync(dest,0o600);
  assert.equal(snapshot(source).digest,snapshot(dest).digest);
 }
+function pinUncheckpointedWal(file){
+ const fd=fs.openSync(file,'wx',0o600);fs.closeSync(fd);
+ const reader=new DatabaseSync(file);
+ try{
+  assert.equal(reader.prepare('PRAGMA journal_mode=WAL').get().journal_mode,'wal');
+  // A pre-write read snapshot prevents the baseline from auto-checkpointing
+  // when its application handle closes. Without this, WAL evidence is illusory.
+  reader.exec('BEGIN');
+  reader.prepare('SELECT COUNT(*) AS n FROM sqlite_master').get();
+  return reader;
+ }catch(error){reader.close();throw error;}
+}
+function verifyUncheckpointedWal(file){
+ const stat=fs.lstatSync(file+'-wal');
+ assert.ok(stat.isFile()&&!stat.isSymbolicLink()&&stat.size>=32+24+512&&stat.size<8*1024*1024,
+  'A nonempty, bounded WAL must exist while the reader snapshot is pinned');
+ const wal=fs.readFileSync(file+'-wal');
+ const magic=wal.readUInt32BE(0),rawPageSize=wal.readUInt32BE(8);
+ const pageSize=rawPageSize===1?65536:rawPageSize,frameBytes=24+pageSize;
+ assert.ok([0x377f0682,0x377f0683].includes(magic));
+ assert.ok(pageSize>=512&&pageSize<=65536&&(pageSize&(pageSize-1))===0);
+ assert.equal((wal.length-32)%frameBytes,0);
+ const frames=(wal.length-32)/frameBytes;
+ let commitFrames=0;
+ for(let i=0;i<frames;i++)if(wal.readUInt32BE(32+i*frameBytes+4)!==0)commitFrames++;
+ assert.ok(commitFrames>0,'WAL must contain a committed frame');
+ const live=new DatabaseSync(file);let committedReceipts;
+ try{committedReceipts=live.prepare('SELECT COUNT(*) AS n FROM receipts').get().n;}
+ finally{live.close();}
+ assert.equal(committedReceipts,1,'Committed command receipt must be visible with WAL');
+ // Deliberately copy ONLY the SQLite main file, not its -wal/-shm sidecars.
+ // This file must be stale: it cannot contain the just-committed receipt.
+ const mainOnly=createPrivate('main-file-only');
+ fs.copyFileSync(file,mainOnly,fs.constants.COPYFILE_EXCL);
+ const offline=new DatabaseSync(mainOnly);let mainOnlyReceipts=0;
+ try{
+  if(offline.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='receipts'").get())
+   mainOnlyReceipts=offline.prepare('SELECT COUNT(*) AS n FROM receipts').get().n;
+ }finally{offline.close();}
+ assert.equal(mainOnlyReceipts,0,
+  'Main SQLite file alone must not recover the WAL-only committed receipt');
+ return {frames,commitFrames,committedReceipts};
+}
 function withEngine(root,file,callback){
  const service=engine(root,file);
  try{return callback(service);}finally{service.close();}
@@ -164,13 +207,19 @@ function main(){
  assert.equal(first.id,second.id);assert.equal(first.family,second.family);
  assert.notDeepEqual(first,second);
  const original=createPrivate('baseline');
+ const pinned=pinUncheckpointedWal(original);
+ try{
  phase='seed-baseline';seedOld(original);
+ phase='prove-uncheckpointed-wal';const walProof=verifyUncheckpointedWal(original);
  phase='snapshot-baseline';const expected=snapshot(original);
  assert.equal(expected.appId,config.appId);
  assert.ok(family!=='document'?expected.schemaVersion===1:[1,2].includes(expected.schemaVersion));
  const copied=createPrivate('candidate');
  phase='clone-candidate';clone(original,copied);
  const before=snapshot(copied);
+ const copiedDb=new DatabaseSync(copied);
+ try{assert.equal(copiedDb.prepare('SELECT COUNT(*) AS n FROM receipts').get().n,walProof.committedReceipts);}
+ finally{copiedDb.close();}
  phase='candidate-open';const assessment=candidateCompatibility(copied);
  assert.equal(snapshot(copied).digest,before.digest,'Candidate must not silently mutate copied business state');
  phase='reject-unknown-version';rejectWrongSchema(original,'version');
@@ -180,13 +229,16 @@ function main(){
  assert.equal(snapshot(original).digest,expected.digest,'Read and retry must remain idempotent');
  return {kind:'isolated-state-version-compatibility',family,id:first.id,passed:true,
   baselineUserVersion:expected.schemaVersion,sqliteApplicationIdentityVerified:true,
-  snapshotFromCommittedWal:true,baselinePreserved:true,syntheticTenantsIsolated:true,
+  snapshotFromCommittedWal:true,uncheckpointedCommittedWalVerified:true,
+  mainFileOnlyMissesCommittedReceipts:true,walCommittedReceipts:walProof.committedReceipts,
+  baselinePreserved:true,syntheticTenantsIsolated:true,
   idempotentReceiptsPreserved:true,candidateReadOnlyProbe:assessment.readable,
   changeGate:assessment.mode,unknownVersionRejected:true,foreignApplicationRejected:true,
   oldVersionReadbackVerified:true,schemaUpgradeApplied:false,
   automaticSharedStateMigrationApproved:false,productionCustomerStateMigrated:false,
   sourceReadOnly:true,externalMessagesSent:0,paymentsSent:0,
   realCustomers:null,collectedRevenue:null,releaseApproved:false};
+ }finally{pinned.exec('ROLLBACK');pinned.close();}
 }
 try{console.log(JSON.stringify(main()));}
 catch(error){
