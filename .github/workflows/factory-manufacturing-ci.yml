@@ -95,6 +95,14 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: success()
         with:
+          name: versioned-rollback-rehearsal
+          path: ${{ runner.temp }}/versioned-rollback-rehearsal
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
           name: private-deployment-rehearsal
           path: ${{ runner.temp }}/deployment-rehearsal
           retention-days: 7
