@@ -36,6 +36,16 @@ The existing six-hour ChatGPT automation has been updated to research another sp
 
 This is an open-ended input mechanism, not a claim of infinitely many profitable ideas. If credible differentiated opportunities are unavailable, the factory does not invent more buyers, revenue, or title-only products.
 
+
+## Unattended missed-cycle recovery
+
+The already declared factory workflow validates and builds the **current** six-hour slot first, then automatically inspects up to eight **prior** slots and recovers up to two oldest unbuilt editions per execution. It uses the existing supervisor and genuinely executes each packaged app; replay only reuses independently reverified source-hashed packages and receipts. A corrupt older receipt, artifact or source fails closed. A quarantined candidate stays quarantined pending review; later healthy slots can still proceed. The current slot is never replayed by catch-up.
+
+    node scripts/backfill-autonomous-factory.js --plan-only --output /absolute/private/candidates --at 2026-10-13T18:00:00Z
+    node scripts/backfill-autonomous-factory.js --output /absolute/private/candidates --at 2026-10-13T18:00:00Z --max-builds 2 --window-cycles 8
+
+A private JSON report distinguishes verified recovered cycles, unbuilt cycles still due, quarantines, research gaps, and history older than the bounded window. "No due work in bounded window" does not certify older history, customers, security, or revenue. CI preserves no more than the existing seven-day artifact retention. This upgrade adds **no new schedule, runner credentials, network transport, merge authority, payment, outreach or public deployment**, and remains inactive as a GitHub cron while the stacked PRs are drafts.
+
 ## Acceptance and limits
 
     node --test packages/application-factory/autonomy/*.test.js
