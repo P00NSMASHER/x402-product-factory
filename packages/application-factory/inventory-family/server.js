@@ -22,7 +22,7 @@ function createServer({store,pollMs=60000,automation=true}={}){
  const assets=new Map([['/app',['index.html','text/html; charset=utf-8']],
   ['/',['index.html','text/html; charset=utf-8']],
   ['/assets/client.js',['client.js','text/javascript; charset=utf-8']],
-  ['/assets/style.css',['style.css','text/css; charset=utf-8']]]
+  ['/assets/style.css',['style.css','text/css; charset=utf-8']]
  ].map(([url,[filename,type]])=>[url,{body:fs.readFileSync(path.join(__dirname,filename)),type}]));
  const send=(res,status,data,headers={})=>{
   res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store',

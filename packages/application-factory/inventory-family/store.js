@@ -4,7 +4,7 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const {DatabaseSync}=require('node:sqlite'),Kernel=require('./engine');
 const fail=c=>{throw Error(c);},clone=v=>JSON.parse(JSON.stringify(v));
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
-const keyRe=/^[a-zA-Z0-9_-]{8,100}$/;
+const keyRe=/^[a-zA-Z0-9_-]{1,100}$/;
 const nameRe=/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 function privatePath(file){
  if(typeof file!=='string'||!path.isAbsolute(file))fail('STATE_PATH_UNSAFE');
