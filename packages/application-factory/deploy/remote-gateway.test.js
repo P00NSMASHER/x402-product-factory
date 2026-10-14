@@ -33,7 +33,8 @@ async function setup(t,{family='quote',clock=Date.now}={}){
 }
 test('unauthorized access, foreign Host, Origin and invalid login all fail closed',async t=>{
  const a=await setup(t);
- assert.equal((await a.request('/app')).status,401);
+ const challenge=await a.request('/app');assert.equal(challenge.status,401);
+ assert.equal(challenge.headers['referrer-policy'],'same-origin'); // Preserve Origin on browser form POST.
  assert.equal((await a.request('/v1/quotes')).status,401);
  assert.equal((await a.request('/app',{host:'evil.invalid'})).status,403);
  assert.equal((await a.request('/app',{origin:'https://evil.invalid'})).status,403);
