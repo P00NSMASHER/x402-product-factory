@@ -67,7 +67,9 @@ async function main(args=process.argv.slice(2)){
      phase='app-visible-'+family+'-'+width;
      assert.ok(await page.locator('body').isVisible());
      phase='app-copy-'+family+'-'+width;
-     assert.ok((await page.locator('body').innerText()).length>75);
+     // Some valid unauthenticated app shells contain only short login copy.
+     assert.ok(await page.locator('input').count()>0);
+     assert.ok((await page.locator('body').innerText()).trim().length>10);
      report.appFamilyLinksVerified++;
      seen.add(family);
      phase='app-portal-return-'+family+'-'+width;
