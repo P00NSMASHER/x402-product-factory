@@ -11,6 +11,7 @@ on:
       - 'scripts/backfill-autonomous-factory.js'
       - 'scripts/manufacture-quote-apps.js'
       - 'scripts/manufacture-inventory-apps.js'
+      - 'scripts/manufacture-cross-family-ideas.js'
       - 'scripts/validate-autonomy-ideas.js'
       - 'scripts/restore-autonomous-checkpoint.js'
       - 'scripts/export-autonomous-fleet.js'
@@ -68,6 +69,10 @@ jobs:
         run: |
           node scripts/scout-app-ideas.js --check
           node scripts/scout-app-ideas.js --build --output "$RUNNER_TEMP/autonomous-apps"
+      - name: Generate and independently exercise source-backed cross-family applications
+        run: |
+          node scripts/manufacture-cross-family-ideas.js --check
+          node scripts/manufacture-cross-family-ideas.js --build --quote-output "$RUNNER_TEMP/research-quote-apps" --inventory-output "$RUNNER_TEMP/research-inventory-apps"
       - name: Verify second SaaS family and independently manufacture three quote apps
         run: |
           node --test packages/application-factory/quote-family/*.test.js
@@ -79,6 +84,22 @@ jobs:
       - name: Export private verified fleet ledger
         run: |
           node scripts/export-autonomous-fleet.js --state-dir "$RUNNER_TEMP/autonomous-apps" --output-dir "$RUNNER_TEMP/autonomous-apps/portfolio" --lookback 24
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: cross-family-quote-autonomy-${{ github.run_id }}
+          path: ${{ runner.temp }}/research-quote-apps
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: cross-family-inventory-autonomy-${{ github.run_id }}
+          path: ${{ runner.temp }}/research-inventory-apps
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
       - name: Preserve bounded candidate artifacts and source-derived receipts
         uses: actions/upload-artifact@v4
         if: success()
