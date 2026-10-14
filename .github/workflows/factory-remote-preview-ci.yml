@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: '22.13.1'
+          node-version: '24'
       - name: Verify API abuse rejection, secret custody, expiry, rollback and real all-family packages
         run: |
           node --test packages/application-factory/deploy/remote-gateway.test.js packages/application-factory/deploy/remote-gateway.integration.test.js scripts/run-private-remote-demo.test.js
