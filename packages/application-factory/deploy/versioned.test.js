@@ -26,6 +26,8 @@ test('three true semantic versions switch and fail back with independent SQLite 
  assert.equal(report.verifiedTrafficFallbacks,3);
  assert.equal(report.persistedStateFamiliesChecked,3);
  assert.equal(report.unsafeAutomaticStateMigrationsBlocked,3);
+ assert.equal(report.uncheckpointedWalSnapshotsVerified,3);
+ assert.equal(report.mainFileOnlyRecoveryDenied,3);
  assert.equal(report.failed,0);
  assert.equal(report.releaseApproved,false);assert.equal(report.realCustomers,null);
  assert.equal(report.collectedRevenue,null);assert.equal(report.paymentsSent,0);
@@ -38,6 +40,8 @@ test('three true semantic versions switch and fail back with independent SQLite 
  assert.equal(saved.sharedStateMigrationApproved,false);
  assert.equal(saved.observedSchemaDriftDenied,true);
  assert.equal(saved.persistedStateFamiliesChecked,3);
+ assert.equal(saved.uncheckpointedWalSnapshotsVerified,3);
+ assert.equal(saved.mainFileOnlyRecoveryDenied,3);
  for(const row of saved.results){
   assert.notEqual(row.baselineDigest,row.candidateDigest);
   assert.equal(row.localTrafficRollbackPassed,true);
@@ -46,6 +50,9 @@ test('three true semantic versions switch and fail back with independent SQLite 
   assert.equal(row.productionRollbackExecuted,false);
   assert.equal(row.isolatedVersionState,true);
   assert.equal(row.persistedStateIntegrityVerified,true);
+  assert.equal(row.uncheckpointedWalSnapshotVerified,true);
+  assert.equal(row.mainFileOnlyRecoveryDenied,true);
+  assert.equal(row.walCommittedReceipts,1);
   assert.equal(row.unsupportedSchemaRejected,true);
   assert.equal(row.sourceIdentityMismatchRejected,true);
   assert.equal(row.sharedStateMigrationApproved,false);
