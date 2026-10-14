@@ -114,7 +114,7 @@
    token=$('access-key').value.trim();await refresh();
    $('access-key').value='';$('login-panel').hidden=true;$('app-shell').hidden=false;hideError();
   }catch(e){token=null;error('Could not authenticate. Verify the private operator/reviewer key.');}
-  finally{busy=false;}
+  finally{busy=false;if(context)drawDetail();}
  });
  $('sign-out').addEventListener('click',logout);
  $('refresh').addEventListener('click',()=>refresh().catch(e=>error('Refresh failed: '+e.message)));
