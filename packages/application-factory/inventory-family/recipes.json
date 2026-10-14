@@ -1,0 +1,113 @@
+[
+  {
+    "version": 1,
+    "family": "inventory-control",
+    "id": "mro-parts-replenishment",
+    "title": "MRO Parts Replenishment",
+    "buyer": "Maintenance service operators managing spare-parts availability",
+    "outcome": "Keep maintenance spare parts available and review replenishment requests without placing purchases.",
+    "currency": "USD",
+    "reviewWindowDays": 14,
+    "maxProposalCents": 1000000,
+    "items": [
+      {
+        "id": "belt-kits",
+        "label": "Drive belt kits",
+        "unit": "kit",
+        "reorderPoint": 6,
+        "targetLevel": 28,
+        "sampleUnitCostCents": 1400
+      },
+      {
+        "id": "motor-filters",
+        "label": "Motor filters",
+        "unit": "piece",
+        "reorderPoint": 10,
+        "targetLevel": 40,
+        "sampleUnitCostCents": 650
+      },
+      {
+        "id": "relay-packs",
+        "label": "Relay packs",
+        "unit": "pack",
+        "reorderPoint": 5,
+        "targetLevel": 24,
+        "sampleUnitCostCents": 2250
+      }
+    ]
+  },
+  {
+    "version": 1,
+    "family": "inventory-control",
+    "id": "rental-consumables",
+    "title": "Rental Consumables Control",
+    "buyer": "Equipment rental dispatch teams handling reusable and disposable supplies",
+    "outcome": "Track ready stock and control internal refill requests for rental preparation kits.",
+    "currency": "USD",
+    "reviewWindowDays": 10,
+    "maxProposalCents": 1000000,
+    "items": [
+      {
+        "id": "seal-kits",
+        "label": "Hydraulic seal kits",
+        "unit": "kit",
+        "reorderPoint": 4,
+        "targetLevel": 16,
+        "sampleUnitCostCents": 4250
+      },
+      {
+        "id": "strap-packs",
+        "label": "Cargo strap packs",
+        "unit": "pack",
+        "reorderPoint": 5,
+        "targetLevel": 26,
+        "sampleUnitCostCents": 1600
+      },
+      {
+        "id": "cleaning-cases",
+        "label": "Rental cleaning cases",
+        "unit": "case",
+        "reorderPoint": 3,
+        "targetLevel": 15,
+        "sampleUnitCostCents": 2400
+      }
+    ]
+  },
+  {
+    "version": 1,
+    "family": "inventory-control",
+    "id": "hospitality-supply-desk",
+    "title": "Hospitality Supply Desk",
+    "buyer": "Small hospitality operators coordinating housekeeping supplies",
+    "outcome": "Track available housekeeping supplies and separate replenishment review from external purchasing.",
+    "currency": "USD",
+    "reviewWindowDays": 21,
+    "maxProposalCents": 1000000,
+    "items": [
+      {
+        "id": "linen-packs",
+        "label": "Room linen packs",
+        "unit": "pack",
+        "reorderPoint": 9,
+        "targetLevel": 48,
+        "sampleUnitCostCents": 2200
+      },
+      {
+        "id": "amenity-cases",
+        "label": "Guest amenity cases",
+        "unit": "case",
+        "reorderPoint": 6,
+        "targetLevel": 36,
+        "sampleUnitCostCents": 1450
+      },
+      {
+        "id": "cleaner-kits",
+        "label": "Cleaning supply kits",
+        "unit": "kit",
+        "reorderPoint": 7,
+        "targetLevel": 32,
+        "sampleUnitCostCents": 1750
+      }
+    ]
+  }
+]
