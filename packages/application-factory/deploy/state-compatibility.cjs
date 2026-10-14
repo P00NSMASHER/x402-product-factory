@@ -107,9 +107,9 @@ function proveOriginalStillWorks(file){
    assert.deepEqual(store.command(credentials.a,'test-workspace',credentials.command,'seed-document-a-001'),
     credentials.first);
   }else if(family==='quote'){
-   assert.equal(store.list(credentials.a).length,1);
-   assert.equal(store.list(credentials.b).length,0);
-   assert.deepEqual(store.create(credentials.a,credentials.values,'seed-quote-a-001'),credentials.first);
+   phase='candidate-quote-list-a';assert.equal(store.list(credentials.a).length,1);
+   phase='candidate-quote-list-b';assert.equal(store.list(credentials.b).length,0);
+   phase='candidate-quote-replay';assert.deepEqual(store.create(credentials.a,credentials.values,'seed-quote-a-001'),credentials.first);
   }else{
    const item=store.context(credentials.a).items.find(v=>v.sku===credentials.sku);
    assert.equal(item.onHand,5);
@@ -139,8 +139,8 @@ function candidateCompatibility(copy){
   assert.equal(store.list(credentials.a).length,1);
   assert.equal(store.list(credentials.b).length,0);
   assert.deepEqual(store.create(credentials.a,credentials.values,'seed-quote-a-001'),credentials.first);
-  assert.throws(()=>store.create(credentials.reviewer,credentials.values,'reviewer-not-permitted'),/FORBIDDEN/);
-  assert.throws(()=>store.get(credentials.b,'q1'),/NOT_FOUND/);
+  phase='candidate-quote-reviewer';assert.throws(()=>store.create(credentials.reviewer,credentials.values,'reviewer-not-permitted'),/FORBIDDEN/);
+  phase='candidate-quote-crosstenant';assert.throws(()=>store.get(credentials.b,'q1'),/NOT_FOUND/);
   return {readable:true,mode:'quote_receipts_replay_under_new_validity_policy'};
  });
 }
