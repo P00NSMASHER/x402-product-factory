@@ -57,14 +57,20 @@ async function main(args=process.argv.slice(2)){
     for(const family of ['document','quote','inventory']){
      phase='app-navigation-'+family+'-'+width;
      const item=fleet.apps.find(a=>a.family===family);
+     phase='app-selector-'+family+'-'+width;
      const link=page.locator('a[href="'+item.origin+'/app"]');
      assert.equal(await link.count(),1);
+     phase='app-click-'+family+'-'+width;
      await Promise.all([page.waitForURL(item.origin+'/app'),link.click()]);
+     phase='app-origin-'+family+'-'+width;
      assert.equal(new URL(page.url()).origin,item.origin);
+     phase='app-visible-'+family+'-'+width;
      assert.ok(await page.locator('body').isVisible());
+     phase='app-copy-'+family+'-'+width;
      assert.ok((await page.locator('body').innerText()).length>75);
      report.appFamilyLinksVerified++;
      seen.add(family);
+     phase='app-portal-return-'+family+'-'+width;
      await page.goto(fleet.origin+'/',{waitUntil:'domcontentloaded'});
     }
     if(process.env.FACTORY_PRIVATE_FLEET_SCREENSHOT_DIR){
