@@ -58,6 +58,30 @@ test('all three manufactured app families operate behind authenticated loopback 
    }
    assert.equal((await request(gate.port,'/health',{cookie})).status,404);
    assert.equal((await request(gate.port,'/app',{cookie,origin:'https://attacker.invalid'})).status,403);
+   // Actual verified service is closed and reopened by the existing private
+   // fleet recovery mechanism while this exact authenticated gateway stays alive.
+   const pinnedDigest=app.digest,pinnedCredentials=fs.readFileSync(app.privateCredentialFile);
+   await app.close();
+   assert.equal((await request(gate.port,'/app',{cookie})).status,502);
+   const recovered=await fleet.recover(app.family,app.id);
+   assert.equal(recovered.recovered,true);assert.equal(recovered.statePreserved,true);
+   const live=fleet.apps.find(v=>v.family===app.family&&v.id===app.id);
+   assert.equal(live.digest,pinnedDigest);
+   assert.deepEqual(fs.readFileSync(live.privateCredentialFile),pinnedCredentials);
+   assert.equal((await request(gate.port,'/app',{cookie})).status,200);
+   if(app.family==='document'){
+    // Browser cookies are not reused across a process restart; the original
+    // operator credential can establish a fresh app-native session.
+    const relog=await request(gate.port,'/app/api/session',{cookie,method:'POST',origin:ORIGIN,
+     headers:{'content-type':'application/json'},
+     body:JSON.stringify({credential:credentials.operator})});
+    assert.equal(relog.status,200);
+   }else{
+    const endpoint=app.family==='quote'?'/v1/recipe':'/v1/context';
+    const authed=await request(gate.port,endpoint,
+      {cookie,headers:{Authorization:'Bearer '+credentials.operator}});
+    assert.equal(authed.status,200);
+   }
   }finally{await gate.close();}
  }
 });

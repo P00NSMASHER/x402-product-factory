@@ -17,7 +17,11 @@ async function setup(t,{family='quote',clock=Date.now}={}){
   res.writeHead(404);res.end('no route');
  });
  const port=await listen(backend);
- const fleet={apps:[{family,id:'sample-app',origin:`http://127.0.0.1:${port}`,port}],stateRoot};
+ const privateApp=path.join(stateRoot,'mock-app');fs.mkdirSync(privateApp,{mode:0o700});
+ const privateCredentialFile=path.join(privateApp,'credentials.json');
+ fs.writeFileSync(privateCredentialFile,JSON.stringify({synthetic:true})+'\n',{mode:0o600});
+ const fleet={apps:[{family,id:'sample-app',origin:`http://127.0.0.1:${port}`,port,
+   digest:'a'.repeat(64),privateCredentialFile}],stateRoot};
  const externalOrigin='https://factory-private.example.ts.net';
  const gateway=await createRemoteGateway({fleet,family,id:'sample-app',externalOrigin,clock});
  t.after(async()=>{await gateway.close();if(backend.listening)await close(backend);fs.rmSync(stateRoot,{recursive:true,force:true});});
@@ -29,7 +33,7 @@ async function setup(t,{family='quote',clock=Date.now}={}){
   });r.on('error',reject);r.on('timeout',()=>r.destroy(Error('timeout')));r.end(body);
  });
  const login=()=>request('/_preview/login',{method:'POST',origin:externalOrigin,headers:{'content-type':'application/x-www-form-urlencoded'},body:'code='+encodeURIComponent(code)});
- return {gateway,backend,port,request,login,code,externalOrigin,stateRoot};
+ return {gateway,backend,port,request,login,code,externalOrigin,stateRoot,fleet,privateCredentialFile};
 }
 test('unauthorized access, foreign Host, Origin and invalid login all fail closed',async t=>{
  const a=await setup(t);
@@ -83,4 +87,36 @@ test('unsafe external URL, disallowed routes and unknown app rejected',async t=>
  assert.equal(allowed('inventory','GET','/v1/context'),true);
  assert.throws(()=>externalURL('http://example.invalid'),/REMOTE_ORIGIN_INVALID/);
  await assert.rejects(createRemoteGateway({fleet:{apps:[],stateRoot:a.stateRoot},family:'quote',id:'sample-app',externalOrigin:a.externalOrigin}),/REMOTE_APP_INVALID/);
+});
+
+test('gateway follows safe recovered localhost port but fails closed on source or credential identity drift',async t=>{
+ const a=await setup(t);
+ const login=await a.login();assert.equal(login.status,303);
+ const cookie=login.headers['set-cookie'][0].split(';')[0];
+ assert.equal((await a.request('/app',{cookie})).status,200);
+ const pinned=a.fleet.apps[0];
+ await close(a.backend);assert.equal((await a.request('/app',{cookie})).status,502);
+ const newPort=await listen(a.backend);
+ assert.notEqual(newPort,a.port);
+ a.fleet.apps[0]={...pinned,port:newPort,origin:'http://127.0.0.1:'+newPort};
+ assert.equal((await a.request('/app',{cookie})).status,200);
+ const routed=await a.request('/v1/quotes',{cookie,headers:{Authorization:'Bearer test_access'}});
+ assert.equal(routed.status,200);
+ assert.equal(JSON.parse(routed.body).host,'127.0.0.1:'+newPort);
+ assert.equal((await a.request('/app',{cookie,origin:'https://attacker.invalid'})).status,403);
+ a.fleet.apps[0]={...a.fleet.apps[0],digest:'b'.repeat(64)};
+ assert.equal((await a.request('/app',{cookie})).status,503);
+ a.fleet.apps[0]={...pinned,port:newPort,origin:'http://127.0.0.1:'+newPort,
+  privateCredentialFile:'/tmp/forged-credentials.json'};
+ assert.equal((await a.request('/app',{cookie})).status,503);
+ a.fleet.apps[0]={...pinned,port:newPort,origin:'http://127.0.0.1:'+newPort};
+ fs.chmodSync(a.privateCredentialFile,0o644);
+ assert.equal((await a.request('/app',{cookie})).status,503);
+ fs.chmodSync(a.privateCredentialFile,0o600);
+ assert.equal((await a.request('/app',{cookie})).status,200);
+ a.fleet.apps.push({...a.fleet.apps[0]});
+ assert.equal((await a.request('/app',{cookie})).status,503);
+ a.fleet.apps.pop();
+ a.fleet.apps[0]={...a.fleet.apps[0],origin:'http://example.invalid'};
+ assert.equal((await a.request('/app',{cookie})).status,503);
 });
