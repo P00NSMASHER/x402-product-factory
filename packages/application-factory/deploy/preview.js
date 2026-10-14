@@ -47,7 +47,7 @@ function verifyInputs(sources){
   const def=definitions[family],report=safeJSON(path.join(d,'manufacturing-report.json'));
   if(report.kind!==def.kind||report.verification!==def.verification||report.failed!==0||
      report.releaseApproved!==false||report.realCustomers!==null||report.collectedRevenue!==null||
-     report.paymentsSent!==0||report.accepted<1||report.accepted>3)fail('DEPLOYMENT_REPORT_INVALID');
+     report.paymentsSent!==0||report.accepted<1||report.accepted>12)fail('DEPLOYMENT_REPORT_INVALID');
   const rows=def.rows(report);
   if(!Array.isArray(rows)||rows.length!==report.accepted||
      new Set(rows.map(row=>row?.id)).size!==rows.length)fail('DEPLOYMENT_REPORT_INVALID');
@@ -69,7 +69,7 @@ function verifyInputs(sources){
    groups.push({family,id:row.id,digest:row.digest,folder:pkg,verify:def.verify});
   }
  }
- if(groups.length<3||groups.length>9)fail('DEPLOYMENT_INPUT_INVALID');
+ if(groups.length<3||groups.length>30)fail('DEPLOYMENT_INPUT_INVALID');
  return groups;
 }
 function exercise(group){
@@ -85,6 +85,9 @@ function exercise(group){
   if(value.kind!=='isolated-private-deployment-probe'||value.family!==group.family||
      value.id!==group.id||value.digest!==group.digest||value.passed!==true||
      value.restartsProbed!==2||value.loopbackOnly!==true||value.healthy!==true||
+     value.localCanaryFailoverVerified!==true||value.laneSwitches!==2||
+     value.trafficBoundToLoopback!==true||value.laneSourceIdentity!=='same-hash-synthetic'||
+     value.productionRollbackExecuted!==false||
      value.hostGuard!==true||value.originGuard!==true||value.unauthorizedApiDenied!==true||
      value.productionApproved!==false||value.externalRequestsMadeByHarness!==0||
      value.transmittedMessages!==0||value.paymentsSent!==0||
@@ -93,6 +96,7 @@ function exercise(group){
   try{group.verify(group.folder,group.digest);}catch{fail('DEPLOYMENT_PACKAGE_INVALID');}
   return {family:group.family,id:group.id,sourceDigest:group.digest,
     webProbesPassed:2,authorizationProbed:true,privateLoopbackOnly:true,
+    sameSourceCanaryFailoverPassed:true,productionRollbackExecuted:false,
     integrityVerified:true,localPreviewReady:true,publicReleaseApproved:false};
  }finally{fs.rmSync(scratch,{recursive:true,force:true});}
 }
@@ -111,15 +115,17 @@ function rehearsePrivateDeployments({sources,outputRoot}={}){
   families:counts,stagedApps:outcomes.length,failed:0,results:outcomes,
   approvedDeploymentTarget:null,publicHostingEnabled:false,tlsValidated:false,
   realCustomerReady:false,rollbackExecuted:false,independentSecurityReview:false,
-  manifestIntegrityVerified:true,localLoopbackVerified:true,sourceEvidence:'executed-receipts-plus-real-http-probes',
+  manifestIntegrityVerified:true,localLoopbackVerified:true,
+  localCanaryFailovers:outcomes.filter(x=>x.sameSourceCanaryFailoverPassed===true).length,
+  privateCanaryFailoverVerified:true,sourceEvidence:'executed-receipts-plus-real-http-probes',
   realCustomers:null,collectedRevenue:null,marketValidated:false,
   outreachEnabled:false,transmittedMessages:0,paymentsSent:0,releaseApproved:false};
  report.digest=hash(JSON.stringify(report));
  const stage=fs.mkdtempSync(path.join(parent,'.private-deployment-stage-'));
  try{
   const summary='# Private synthetic deployment readiness\n\n'+
-   'Each app was executed from its independently verified built package twice against a local 127.0.0.1 HTTP listener. The same private SQLite state was reopened after shutdown. Host/Origin denial, unauthenticated API rejection, browser CSP and /health were checked.\n\n'+
-   'This is NOT a public deployment. No TLS, external hosting, uptime, remote backups, public ingress, customer consent, payment, security signoff, load testing or actual rollback across production versions is established. All promotion requires separate review and authorization.\n';
+   'Each app was executed from its independently verified built package twice against a local 127.0.0.1 HTTP listener. The same private SQLite state was reopened after shutdown. Host/Origin denial, unauthenticated API rejection, browser CSP and /health were checked. Separately, two fresh same-source isolated lanes were routed through a private loopback-only proxy; an injected canary outage caused an observed failback to the still healthy baseline.\n\n'+
+   'This is NOT a public deployment. A same-hash private lane fallback is NOT a tested production version rollback or a database migration. No TLS, external hosting, uptime, remote backups, public ingress, customer consent, payment, security signoff, load testing or actual rollback across production versions is established. All promotion requires separate review and authorization.\n';
   for(const [name,content] of Object.entries({'deployment-report.json':JSON.stringify(report,null,2)+'\n',
    'RELEASE-HOLD.md':summary})){
    const fd=fs.openSync(path.join(stage,name),'wx',0o600);
