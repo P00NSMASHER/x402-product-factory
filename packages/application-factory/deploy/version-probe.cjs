@@ -115,7 +115,7 @@ async function main(){
   assert.equal((await request(port,'/v1/context',host)).status,403);
   assert.equal((await request(port,'/app',{...host,Authorization:'Bearer fake'})).status,403);
   // No false-green: if baseline also goes down, the proxy must refuse availability.
-  await old.close();old=null;
+  const stoppedOldPort=old.port;await old.close();old={port:stoppedOldPort,async close(){}};
   const outage=await request(port,'/health',host);
   assert.equal(outage.status,503);
   old=await boot(oldDir,'baseline');
