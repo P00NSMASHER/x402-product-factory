@@ -53,7 +53,7 @@ test('source URLs, missing disclaimers, corrupt queue and symlinked sources fail
  const v=JSON.parse(fs.readFileSync(SOURCE,'utf8'));v.leads[0].recipe.outcome='This app certifies all safety requirements.';
  fs.writeFileSync(target,JSON.stringify(v));
  assert.throws(()=>loadScoutedLeads({sourceFile:target}),/SCOUT_RISK_DISCLOSURE_MISSING/);
- fs.writeFileSync(target,'{invalid-json');assert.throws(()=>loadScoutedLeads({sourceFile:target}),/SCOUT_INVALID/);
+ fs.writeFileSync(target,'{invalid-json'+ ' '.repeat(128));assert.throws(()=>loadScoutedLeads({sourceFile:target}),/SCOUT_INVALID/);
  fs.rmSync(target);fs.symlinkSync(SOURCE,target);
  assert.throws(()=>loadScoutedLeads({sourceFile:target}),/SCOUT_PATH_UNSAFE/);
 });
