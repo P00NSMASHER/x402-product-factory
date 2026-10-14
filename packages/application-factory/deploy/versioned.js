@@ -120,7 +120,11 @@ function runPair(pair){
   const state=spawnSync(process.execPath,[path.join(__dirname,'state-compatibility.cjs'),
    pair.family,pair.baseline.folder,pair.candidate.folder,path.join(scratch,'state-check')],
    {encoding:'utf8',env,timeout:18000,killSignal:'SIGKILL',maxBuffer:128*1024,windowsHide:true});
-  if(state.error||state.status!==0)fail('VERSION_STATE_COMPAT_REJECTED');
+  if(state.error||state.status!==0){
+   const match=String(state.stderr||'').match(/STATE_COMPAT_FAILED:(document|quote|inventory):[a-z-]+:[A-Z_]+/);
+   if(match)process.stderr.write('Synthetic QA '+match[0]+'\n');
+   fail('VERSION_STATE_COMPAT_REJECTED');
+  }
   let assessment;try{assessment=JSON.parse(state.stdout);}catch{fail('VERSION_STATE_COMPAT_REJECTED');}
   const permittedModes={document:'old_workspace_still_bound_to_old_recipe',
    quote:'quote_receipts_replay_under_new_validity_policy',

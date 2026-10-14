@@ -13,6 +13,7 @@ const CONFIG={
  quote:{db:'quotes.sqlite',appId:1178682202,wrongSchema:'STORE_SCHEMA_INVALID'},
  inventory:{db:'inventory.sqlite',appId:1195972672,wrongSchema:'SCHEMA_UNSUPPORTED'}
 };
+let phase='startup';
 const config=CONFIG[family],clock=()=>Date.parse('2026-10-13T12:00:00Z');
 const fail=code=>{throw Error(code);};
 const sha=x=>crypto.createHash('sha256').update(x).digest('hex');
@@ -156,23 +157,24 @@ function rejectWrongSchema(original,kind){
  assert.equal(snapshot(altered).digest,before.digest);
 }
 function main(){
+ phase='source-recipes';
  const first=recipeOf(baselinePackage),second=recipeOf(candidatePackage);
  assert.equal(first.id,second.id);assert.equal(first.family,second.family);
  assert.notDeepEqual(first,second);
  const original=createPrivate('baseline');
- seedOld(original);
- const expected=snapshot(original);
+ phase='seed-baseline';seedOld(original);
+ phase='snapshot-baseline';const expected=snapshot(original);
  assert.equal(expected.appId,config.appId);
  assert.ok(family!=='document'?expected.schemaVersion===1:[1,2].includes(expected.schemaVersion));
  const copied=createPrivate('candidate');
- clone(original,copied);
+ phase='clone-candidate';clone(original,copied);
  const before=snapshot(copied);
- const assessment=candidateCompatibility(copied);
+ phase='candidate-open';const assessment=candidateCompatibility(copied);
  assert.equal(snapshot(copied).digest,before.digest,'Candidate must not silently mutate copied business state');
- rejectWrongSchema(original,'version');
- rejectWrongSchema(original,'application');
+ phase='reject-unknown-version';rejectWrongSchema(original,'version');
+ phase='reject-foreign-application';rejectWrongSchema(original,'application');
  assert.equal(snapshot(original).digest,expected.digest,'Candidate must not alter original baseline');
- proveOriginalStillWorks(original);
+ phase='old-version-reopen';proveOriginalStillWorks(original);
  assert.equal(snapshot(original).digest,expected.digest,'Read and retry must remain idempotent');
  return {kind:'isolated-state-version-compatibility',family,id:first.id,passed:true,
   baselineUserVersion:expected.schemaVersion,sqliteApplicationIdentityVerified:true,
@@ -186,9 +188,9 @@ function main(){
 }
 try{console.log(JSON.stringify(main()));}
 catch(error){
- console.error('STATE_COMPAT_FAILED:'+(
- ['STATE_COMPAT_INPUT_INVALID','STATE_COMPAT_PATH_UNSAFE','RECIPE_MISMATCH',
-  'SCHEMA_UNSUPPORTED','STORE_SCHEMA_INVALID','WORKSPACE_CONFLICT'].includes(error?.message)?
-   error.message:'ASSERTION_OR_INTEGRITY_FAILURE'));
+ const safe=['STATE_COMPAT_INPUT_INVALID','STATE_COMPAT_PATH_UNSAFE','RECIPE_MISMATCH',
+  'SCHEMA_UNSUPPORTED','STORE_SCHEMA_INVALID','WORKSPACE_CONFLICT'];
+ const code=safe.includes(error?.message)?error.message:'ASSERTION_OR_INTEGRITY_FAILURE';
+ console.error('STATE_COMPAT_FAILED:'+family+':'+phase+':'+code);
  process.exitCode=1;
 }
