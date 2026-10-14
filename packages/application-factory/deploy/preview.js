@@ -82,6 +82,7 @@ function exercise(group){
     maxBuffer:128*1024,killSignal:'SIGKILL',windowsHide:true});
   if(child.error||child.status!==0){const match=String(child.stderr||'').match(/PRIVATE_PROBE_FAILURE:[a-z-]{3,35}:[A-Z_]+/);
    if(match)process.stderr.write('Synthetic private QA '+match[0]+'\n');
+   else process.stderr.write('Synthetic private QA failure '+String(child.error?.code||'EXIT_'+child.status)+' '+String(child.stderr||'').slice(-320).replace(/[\r\n]+/g,' ')+'\n');
    fail('DEPLOYMENT_BOOT_FAILED');}
   let value;try{value=JSON.parse(child.stdout);}catch{fail('DEPLOYMENT_BOOT_FAILED');}
   if(value.kind!=='isolated-private-deployment-probe'||value.family!==group.family||
