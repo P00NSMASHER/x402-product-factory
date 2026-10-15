@@ -11,6 +11,7 @@ const sha=shared.sha256;
 const tmp=t=>{const dir=fs.mkdtempSync(path.join(os.tmpdir(),'factory-shared-contract-'));
  t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));return dir;};
 function fixtureFiles(root,app){
+ fs.mkdirSync(root,{recursive:true,mode:0o700});
  const dir=path.join(root,'package');fs.mkdirSync(dir,{mode:0o700});
  for(const [name,content] of Object.entries(app.files))
   fs.writeFileSync(path.join(dir,name),content,{flag:'wx',mode:0o600});
