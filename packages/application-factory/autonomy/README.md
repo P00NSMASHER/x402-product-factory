@@ -71,3 +71,16 @@ To operate offline in a trusted private directory, use:
     node scripts/restore-cross-family-checkpoint.js --source /absolute/private/previous-run --output /absolute/private/auto-apps --max-slots 24
 
 This improves autonomous **safe engineering throughput**, not public deployment. All buyer demand, revenue, commercial readiness, registration and permission data remain unknown/held. The GitHub declared cron on this stacked DRAFT remains inactive until an independently reviewed merge; the existing ChatGPT six-hour coordinator has not been rescheduled. No person, supplier, customer or third party is contacted.
+
+## Bounded late-build reconstruction across quote and inventory
+
+After the current six-hour slot finishes independent acceptance, the existing workflow now checks up to **eight older six-hour slots** and manufactures at most **two previously unbuilt slots** per run. It uses the same source-pinned quote/inventory backlog and complete real packaged SQLite/HTTP/role/idempotency acceptance. It runs oldest-first, never replays or overwrites the current accepted slot, and never exceeds the original source queue. The previous runner's accepted files are restored and checked first. This adds **no new cron, ChatGPT task, token scope, third-party request, payments or customer outreach**.
+
+The director formerly refused earlier slots once a later slot had succeeded. Historical reconstruction now passes an explicit internal-only `historicalRepair` switch, while ordinary slot execution still refuses backdating. Every newly constructed past receipt is marked `recoveredLate: true` with an actual local `executedAt` timestamp **after** the slot ended. Such a receipt proves only that an old-numbered slot was manufactured now; it does **not** prove a historical scheduled run, market demand, or any sale.
+
+A private machine-readable report distinguishes **unbuilt slots inside the scanned window**, remaining source queue capacity, backlog still due, and older history **not examined**. If there is no genuinely differentiated source-backed candidate or a corrupt previous receipt/package, the system fails closed or truthfully reports source exhaustion. Later healthy work is not used to erase or forge failed historical evidence. Bounded recovery is a best-effort local engineering queue and is still inactive as a GitHub cron until an authorized default-branch merge.
+
+    node scripts/backfill-cross-family.js --plan --output /absolute/private/auto-apps/cross-family --window-cycles 8 --max-builds 2
+    node scripts/backfill-cross-family.js --run --output /absolute/private/auto-apps/cross-family --window-cycles 8 --max-builds 2
+
+The tested draft remains synthetic/private, never publicly hosted, not market validated, and makes no attempt to contact buyers, vendors, collaborators or any other person without approval.

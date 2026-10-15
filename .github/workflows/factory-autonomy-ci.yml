@@ -13,6 +13,7 @@ on:
       - 'scripts/manufacture-inventory-apps.js'
       - 'scripts/manufacture-cross-family-ideas.js'
       - 'scripts/run-cross-family-director.js'
+      - 'scripts/backfill-cross-family.js'
       - 'scripts/restore-cross-family-checkpoint.js'
       - 'scripts/validate-autonomy-ideas.js'
       - 'scripts/restore-autonomous-checkpoint.js'
@@ -82,6 +83,8 @@ jobs:
           at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           node scripts/run-cross-family-director.js --run --at "$at" --output "$RUNNER_TEMP/autonomous-apps/cross-family" > "$RUNNER_TEMP/cross-family-cycle.json"
           node -e 'const fs=require("fs"),r=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const e=Math.floor((Date.parse(process.argv[2])-Date.parse("2026-10-13T00:00:00Z"))/21600000);if(r.kind!=="cross-family-autonomous-plan"||r.cycle!==e||r.releaseApproved!==false||r.realCustomers!==null||r.collectedRevenue!==null||r.transmittedMessages!==0||r.paymentsSent!==0||r.failed!==0||r.accepted!==(r.exhausted?0:1)||(!r.exhausted&&(!r.verifiedSlot||r.verifiedSlot.cycle!==r.cycle||r.verifiedSlot.status!=="accepted"))||r.verification==="injected-test-only")throw Error("CROSS_FAMILY_CYCLE_INVALID");console.log(JSON.stringify({cycle:r.cycle,key:r.selected?.key||null,accepted:r.accepted,completed:r.completed,exhausted:r.exhausted,releaseApproved:false}));' "$RUNNER_TEMP/cross-family-cycle.json" "$at"
+          node scripts/backfill-cross-family.js --run --output "$RUNNER_TEMP/autonomous-apps/cross-family" --at "$at" --window-cycles 8 --max-builds 2 > "$RUNNER_TEMP/cross-family-history.json"
+          node -e 'const fs=require("fs"),r=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const e=Math.floor((Date.parse(process.argv[2])-Date.parse("2026-10-13T00:00:00Z"))/21600000);if(r.kind!=="cross-family-bounded-historical-build"||r.currentCycle!==e||r.verifiedLateBuilds!==r.lateBuiltSlots.length||r.verifiedLateBuilds>2||r.lateBuiltSlots.some(v=>v.cycle>=e||v.lateBuilt!==true||Date.parse(v.executedAt)<Date.parse("2026-10-13T00:00:00Z")+(v.cycle+1)*21600000)||r.releaseApproved!==false||r.originalScheduledRunProof!==false||r.realCustomers!==null||r.collectedRevenue!==null||r.transmittedMessages!==0||r.externalContacts!==0||r.paymentsSent!==0||r.historyOutsideWindowUnverified!==(e>8))throw Error("CROSS_FAMILY_LATE_BUILD_UNVERIFIED");console.log(JSON.stringify({currentCycle:r.currentCycle,lateBuilt:r.lateBuiltSlots.map(x=>x.cycle),moreDue:r.moreDue,olderHistoryUnverified:r.historyOutsideWindowUnverified,releaseApproved:false}));' "$RUNNER_TEMP/cross-family-history.json" "$at"
       - name: Verify second SaaS family and independently manufacture three quote apps
         run: |
           node --test packages/application-factory/quote-family/*.test.js
