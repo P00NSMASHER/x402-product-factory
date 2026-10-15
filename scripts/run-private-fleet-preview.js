@@ -90,5 +90,11 @@ async function main(argv=process.argv.slice(2)){
 }
 if(require.main===module)main().then(result=>{
  if(result?.kind==='executed-private-fleet-preview')console.log(JSON.stringify(result,null,2));
-}).catch(()=>{console.error('Private preview refused unsafe package, session or network request. Nothing was published.');process.exitCode=1;});
+}).catch(error=>{
+ // Retain diagnostic codes without ever echoing paths, credentials or request bodies.
+ const message=typeof error?.message==='string'?error.message:'';
+ const code=/^[A-Z][A-Z0-9_]{2,63}$/.test(message)?message:'UNCLASSIFIED_FAILURE';
+ console.error('Private preview refused unsafe package, session or network request. Nothing was published. Reason:',code);
+ process.exitCode=1;
+});
 module.exports={parse,exercise,main};
