@@ -1,0 +1,69 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {restoreCrossCheckpoint}=require('./cross-checkpoint');
+const {runCrossCycle,planCrossCycle}=require('./cross-cycle');
+const {main}=require('../../../scripts/restore-cross-family-checkpoint');
+const start=Date.parse('2026-10-13T00:00:00Z'),at=i=>new Date(start+i*21600000).toISOString();
+const env=t=>{const root=fs.mkdtempSync(path.join(os.tmpdir(),'factory-cross-checkpoint-'));
+ t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const source=path.join(root,'source'),output=path.join(root,'target');
+ fs.mkdirSync(source,{mode:0o700});fs.mkdirSync(output,{mode:0o700});return {source,output};};
+test('cross-family history really restores both isolated packaged SaaS families between runners',t=>{
+ if(process.platform==='win32')return t.skip('Linux independent manufacturing acceptance');
+ const x=env(t),origin=path.join(x.source,'cross-family'),
+  target=path.join(x.output,'cross-family');
+ const one=runCrossCycle({at:at(0),outputRoot:origin});
+ const two=runCrossCycle({at:at(1),outputRoot:origin});
+ assert.notEqual(one.selected.family,two.selected.family);
+ const first=restoreCrossCheckpoint({sourceRoot:x.source,outputRoot:x.output});
+ assert.equal(first.checked,2);assert.equal(first.imported,2);assert.equal(first.alreadyPresent,0);
+ assert.deepEqual(new Set(first.restoredKeys),new Set([one.selected.key,two.selected.key]));
+ assert.equal(planCrossCycle({at:at(2),outputRoot:target}).completed,2);
+ const second=restoreCrossCheckpoint({sourceRoot:x.source,outputRoot:x.output});
+ assert.equal(second.checked,2);assert.equal(second.imported,0);assert.equal(second.alreadyPresent,2);
+ const next=runCrossCycle({at:at(2),outputRoot:target});
+ assert.equal(next.accepted,1);assert.equal(next.reused,0);
+ assert.ok(!new Set([one.selected.key,two.selected.key]).has(next.selected.key));
+ assert.equal(next.transmittedMessages,0);assert.equal(next.paymentsSent,0);
+ assert.equal(next.realCustomers,null);assert.equal(next.releaseApproved,false);
+});
+test('a corrupt package or forged history is rejected without importing an accepted slot',t=>{
+ if(process.platform==='win32')return t.skip('Linux independent acceptance');
+ const x=env(t),origin=path.join(x.source,'cross-family');
+ const result=runCrossCycle({at:at(0),outputRoot:origin});
+ const report=path.join(origin,'receipts','cycle-0.json');
+ const bytes=fs.readFileSync(report);
+ const tampered=JSON.parse(bytes);tampered.status='accepted_with_billing';
+ fs.writeFileSync(report,JSON.stringify(tampered)+'\n');
+ assert.throws(()=>restoreCrossCheckpoint({sourceRoot:x.source,outputRoot:x.output}),/CROSS_RECEIPT_INVALID/);
+ assert.equal(fs.existsSync(path.join(x.output,'cross-family')),false);
+ fs.writeFileSync(report,bytes);
+ const packageFile=path.join(origin,'packages','cycle-0',
+  result.selected.key+'-'+result.selected.packageDigest,'client.js');
+ fs.appendFileSync(packageFile,'\n/* corrupted package */\n');
+ assert.throws(()=>restoreCrossCheckpoint({sourceRoot:x.source,outputRoot:x.output}),/CROSS_EVIDENCE_INVALID/);
+});
+test('no replacement of conflicting old receipts and no out-of-scope imports',t=>{
+ if(process.platform==='win32')return t.skip('Linux independent acceptance');
+ const x=env(t),origin=path.join(x.source,'cross-family'),target=path.join(x.output,'cross-family');
+ runCrossCycle({at:at(0),outputRoot:origin});
+ restoreCrossCheckpoint({sourceRoot:x.source,outputRoot:x.output});
+ const receipt=path.join(target,'receipts','cycle-0.json');
+ const original=fs.readFileSync(receipt);fs.appendFileSync(receipt,'\n');
+ assert.throws(()=>restoreCrossCheckpoint({sourceRoot:x.source,outputRoot:x.output}),/CROSS_RECEIPT_INVALID/);
+ fs.writeFileSync(receipt,original);
+ const extra=path.join(origin,'packages','cycle-0','exfiltrate.txt');
+ fs.writeFileSync(extra,'Not part of accepted package');
+ const out=restoreCrossCheckpoint({sourceRoot:x.source,outputRoot:x.output});
+ assert.equal(out.imported,0);assert.equal(out.alreadyPresent,1);
+ assert.equal(fs.existsSync(path.join(target,'packages','cycle-0','exfiltrate.txt')),false);
+});
+test('relative paths, public flags and oversized restore requests fail with no commerce',t=>{
+ const x=env(t);
+ assert.throws(()=>main(['--source',x.source,'--output','relative']),/USAGE_INVALID/);
+ assert.throws(()=>main(['--source',x.source,'--output',x.output,'--max-slots','33']),/USAGE_INVALID/);
+ assert.throws(()=>main(['--send-email','yes','--source',x.source,'--output',x.output]),/USAGE_INVALID/);
+ const report=main(['--source',x.source,'--output',x.output,'--max-slots','8']);
+ assert.equal(report.checked,0);assert.equal(report.externalContacts,0);
+ assert.equal(report.collectedRevenue,null);assert.equal(report.releaseApproved,false);
+});
