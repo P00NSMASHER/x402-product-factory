@@ -1,0 +1,48 @@
+name: App Factory private production integration preflight (read-only)
+
+on:
+  pull_request:
+    paths:
+      - 'quality/governance/application-production-*'
+      - 'scripts/audit-app-production-integration*'
+      - '.github/workflows/factory-production-integration-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+
+concurrency:
+  group: factory-private-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-integration-audit:
+    name: Check full draft ancestry and release holds (not production approval)
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify read-only audit source and adversarial release-gate tests
+        run: |
+          node --test quality/governance/application-production-audit.test.js scripts/audit-app-production-integration.test.js quality/governance/application-production-workflow.test.js
+      - name: Inspect LIVE upstream GitHub draft PRs, main divergence and exact-head CI
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -m 700 "$RUNNER_TEMP/private-integration-evidence"
+          node scripts/audit-app-production-integration.js --audit-live --output "$RUNNER_TEMP/private-integration-evidence/readonly-status.json"
+          node -e 'const fs=require("node:fs");const p=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(p.kind!=="private-readonly-app-integration-evidence"||p.productionAuthorization!==false||p.independentSignature!==false||p.report.kind!=="read-only-factory-production-integration-audit"||p.report.canonicalStackPrs!==33||p.report.candidateWorkflowCount!==9||p.report.productionReady!==false||p.report.releaseApproved!==false||p.report.externalContacts!==0||p.report.mergesPerformed!==0||p.report.deploymentsPerformed!==0||p.report.product025Unlocked!==false)throw Error("READONLY_INTEGRATION_REPORT_UNSAFE");console.log(JSON.stringify({mode:"GET_ONLY",stackPrs:p.report.canonicalStackChecked,exactHeadGreen:p.report.candidateWorkflowsPassed,missingIntegration:p.report.findings.length,mainBehind:p.report.candidateBehindBy,releaseStatus:p.report.releaseStatus,productionReady:false,contacts:0,merges:0}));' "$RUNNER_TEMP/private-integration-evidence/readonly-status.json"
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: private-production-integration-readonly-audit
+          path: ${{ runner.temp }}/private-integration-evidence/readonly-status.json
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false
