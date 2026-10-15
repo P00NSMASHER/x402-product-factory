@@ -319,12 +319,12 @@
         {
           "id": "fixture-flow-assessments",
           "label": "Fixture flow assessments",
-          "unit": "fixture"
+          "unit": "unit"
         },
         {
           "id": "walkthrough-leak-zones",
           "label": "Walkthrough leak zones",
-          "unit": "zone"
+          "unit": "unit"
         }
       ]
     },
@@ -350,12 +350,12 @@
         {
           "id": "acoustic-air-leak-zones",
           "label": "Acoustic air leak survey zones",
-          "unit": "zone"
+          "unit": "unit"
         },
         {
           "id": "pressure-trend-reviews",
           "label": "Pressure trend analysis reviews",
-          "unit": "review"
+          "unit": "job"
         },
         {
           "id": "pneumatic-valve-workhours",
@@ -396,7 +396,7 @@
         {
           "id": "panel-label-replacement-sets",
           "label": "Panel label replacement sets",
-          "unit": "set"
+          "unit": "item"
         }
       ]
     },
@@ -432,7 +432,7 @@
         {
           "id": "temperature-sensor-sets",
           "label": "Temperature sensor sets",
-          "unit": "set"
+          "unit": "kit"
         }
       ]
     },
@@ -463,7 +463,7 @@
         {
           "id": "flow-check-cup-sets",
           "label": "Flow check cup sets",
-          "unit": "set"
+          "unit": "kit"
         },
         {
           "id": "leak-survey-clipboard-kits",
@@ -504,7 +504,7 @@
         {
           "id": "filter-indicator-tag-sets",
           "label": "Filter indicator tag sets",
-          "unit": "set"
+          "unit": "kit"
         }
       ]
     }
