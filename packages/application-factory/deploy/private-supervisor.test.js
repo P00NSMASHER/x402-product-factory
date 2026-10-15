@@ -150,3 +150,44 @@ test('watchdog scheduling is in-process local-only and cleanly stops with previe
  assert.equal(watch.stop().externalContacts,0);
  await assert.rejects(watch.tick(),/SUPERVISOR_STOPPED/);
 });
+
+
+test('restart is durably consumed before asynchronous recovery can be interrupted', {timeout:15000}, async t=>{
+ if(process.platform==='win32')return t.skip('Linux private-checkpoint semantics');
+ const http=require('node:http');
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'supervisor-crash-window-'));
+ t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const server=http.createServer((_req,res)=>{
+  res.writeHead(503,{'content-type':'application/json','cache-control':'no-store'});
+  res.end('{"status":"down"}');
+ });
+ await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));});
+ let reached,release;
+ const recoveryEntered=new Promise(resolve=>{reached=resolve;});
+ const recoveryBlocked=new Promise(resolve=>{release=resolve;});
+ const fleet={stateRoot:root,
+  apps:[{family:'document',id:'test-package',digest:'a'.repeat(64),
+   origin:'http://127.0.0.1:'+server.address().port}],
+  recover:async()=>{reached();await recoveryBlocked;throw Error('interrupted recovery');},
+  stop:async()=>{}};
+ const supervisor=createPrivateFleetSupervisor({fleet,maxRestarts:1});
+ t.after(()=>supervisor.stop());
+ const pending=supervisor.tick();
+ try{
+  await recoveryEntered;
+  const receipt=JSON.parse(fs.readFileSync(supervisor.reportPath,'utf8'));
+  assert.equal(receipt.recoveryAttempts,1,
+   'the attempt must be persisted while recovery is still in flight');
+  assert.equal(receipt.services[0].status,'unhealthy');
+  assert.equal(receipt.services[0].lastOutcome,'pending');
+  const resumed=createPrivateFleetSupervisor({fleet,maxRestarts:1});
+  t.after(()=>resumed.stop());
+  assert.equal(resumed.report().recoveryAttempts,1);
+  assert.equal(resumed.report().quarantined,1,
+   'a recreated watchdog must not grant a third attempt');
+ }finally{
+  release();
+  await pending;
+ }
+});
