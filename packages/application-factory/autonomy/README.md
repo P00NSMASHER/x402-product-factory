@@ -57,3 +57,17 @@ Future cycle selection also consumes an append-only, source-backed scout queue, 
 Linux CI exercises genuine assembled services including scoped APIs, synthetic encrypted documents, browser-independent workers, persistence and recovery. Windows unit tests use strictly labeled injected-test-only acceptance after hash-verifying package files because the inherited recovery fsync fails on Windows. Never call those Windows fixtures actual packed-service acceptance.
 
 Market fit unvalidated, real customers null, collected revenue null, release approval false. Independent security, privacy, payment and business approval are still required for real customer use, public delivery or automatic money handling.
+
+## Checkpointed cross-family unattended director
+
+The original six-hour cycle selects one document app. A **separate fair quote/inventory director** now advances one source-pinned independent candidate per six-hour run, alternating available SaaS families and never claiming a title-only or duplicate business. It reads the existing eight source-referenced *unverified* workflow hypotheses (four quote, four inventory) in the strict, appendable cross-family proposal queue. Each newly researched, source-valid differentiated proposal can be scheduled on a future run; no LLM inference, paid source scraping, buying signal or contact is invented. An exhausted queue reports that new independent research is needed rather than recycling existing prototypes.
+
+Every chosen candidate is actually packaged and independently exercised under the existing same strong role/tenant/SQLite/idempotency tests. The director records an owner-private, source- and package-hashed slot receipt. A repeat cycle verifies and reuses that exact package, not rebuilding duplicates; changed sources, corrupt receipts, missing packages or forged acceptance block selection. After an ephemeral GitHub Actions runner exits, the next successful-run artifact is restored **only after** independent verification of source digests, packaged app bytes and acceptance evidence. Cross-family checkpoints are preserved inside the existing `autonomous-apps` artifact along with document-cycle checkpoints; no new schedules, credentials, runners or paid resources.
+
+To operate offline in a trusted private directory, use:
+
+    node scripts/run-cross-family-director.js --plan --at 2026-10-13T00:00:00Z
+    node scripts/run-cross-family-director.js --run --at 2026-10-13T00:00:00Z --output /absolute/private/auto-apps/cross-family
+    node scripts/restore-cross-family-checkpoint.js --source /absolute/private/previous-run --output /absolute/private/auto-apps --max-slots 24
+
+This improves autonomous **safe engineering throughput**, not public deployment. All buyer demand, revenue, commercial readiness, registration and permission data remain unknown/held. The GitHub declared cron on this stacked DRAFT remains inactive until an independently reviewed merge; the existing ChatGPT six-hour coordinator has not been rescheduled. No person, supplier, customer or third party is contacted.
