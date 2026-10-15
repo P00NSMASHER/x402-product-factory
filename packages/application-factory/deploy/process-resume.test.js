@@ -8,7 +8,7 @@ const docs=require('../recipes.json'),quotes=require('../quote-family/recipes.js
 const inventory=require('../inventory-family/recipes.json');
 const {launchPrivateFleet,resumePrivateFleet}=require('./fleet-preview');
 const {acquireSession}=require('./session-lock');
-const {parseHost,exerciseCrash}=require('../../../scripts/supervise-private-fleet');
+const {parseHost,exerciseCrash,watch,readCheckpoint}=require('../../../scripts/supervise-private-fleet');
 function fixture(t){
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'factory-process-recovery-'));
  t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
@@ -51,6 +51,40 @@ test('real child SIGKILL and independently resumed host preserve tenant data, cr
  assert.equal(proof.externalContacts,0);assert.equal(proof.paymentsSent,0);
  assert.equal(proof.realCustomers,null);assert.equal(proof.releaseApproved,false);
  assert.equal(fs.existsSync(path.join(f.stateRoot,'.factory-private-session-owner.json')),false);
+});
+test('outer launcher restart budget and original failure times survive supervisor recreation',async t=>{
+ if(process.platform==='win32')return t.skip('Linux process-state acceptance required');
+ const f=fixture(t),fleet=await launchPrivateFleet({sources:f.sources,stateRoot:f.stateRoot});
+ const ready={kind:'local-private-app-portal',origin:fleet.origin,appCount:fleet.apps.length,
+  stateDirectory:fleet.stateRoot,applications:fleet.apps.map(a=>({family:a.family,id:a.id,origin:a.origin})),
+  credentialFiles:fleet.apps.map(a=>({family:a.family,id:a.id,file:a.privateCredentialFile})),
+  releaseApproved:false,publicHostingEnabled:false,watchdogActive:true,
+  automaticLocalRecovery:true,externalContacts:0};
+ await fleet.stop();
+ const handles=[{code:17,signal:null},{code:null,signal:'SIGKILL'}];let starts=0;
+ const start=()=>{
+  const exit=handles[starts++];
+  return {child:{pid:41000+starts,kill(){}},ready:Promise.resolve(ready),
+   completion:Promise.resolve(exit),isCompleted:()=>true};
+ };
+ const input=parseHost(['--watch','--document',f.sources.document,'--quote',f.sources.quote,
+  '--inventory',f.sources.inventory,'--state-root',f.stateRoot]);
+ await assert.rejects(watch(input,{maxRestarts:1,start,restartDelayMs:0}),/HOST_RESTART_BUDGET_EXHAUSTED/);
+ assert.equal(starts,2);
+ const checkpoint=readCheckpoint(input),firstObserved=checkpoint.failures[0].observedAt;
+ assert.equal(checkpoint.status,'exhausted');assert.equal(checkpoint.restartAttempts,1);
+ assert.equal(checkpoint.launchesStarted,2);assert.equal(checkpoint.failures.length,2);
+ assert.equal(checkpoint.failures[0].exitCode,17);assert.equal(checkpoint.failures[1].signal,'SIGKILL');
+ assert.ok(Number.isFinite(Date.parse(firstObserved)));
+ let resumedStarts=0;
+ await assert.rejects(watch({...input,mode:'--resume-watch'},{maxRestarts:3,
+  start:()=>{resumedStarts++;return start();},restartDelayMs:0}),/HOST_RESTART_BUDGET_EXHAUSTED/);
+ assert.equal(resumedStarts,0);assert.equal(readCheckpoint(input).failures[0].observedAt,firstObserved);
+ assert.throws(()=>readCheckpoint({...input,sources:{...input.sources,quote:f.sources.document}}),
+  /HOST_CHECKPOINT_INVALID/);
+ const filename=path.join(f.stateRoot,'.private-host-supervisor.json');
+ fs.writeFileSync(filename,fs.readFileSync(filename,'utf8').replace('"exhausted"','"watching"'));
+ assert.throws(()=>readCheckpoint(input),/HOST_CHECKPOINT_INVALID/);
 });
 test('changed package and corrupted resume receipt do not reset private SQLite state or credentials',async t=>{
  if(process.platform==='win32')return t.skip('Linux process-state acceptance required');
