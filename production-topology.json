@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "canonical_sellers": [
+    {
+      "id": "floot_pa",
+      "origin": "https://pa-entity-x402.floot.app",
+      "catalog_path": "/.well-known/x402",
+      "routes": [
+        {
+          "id": "pa-entity-lookup",
+          "path": "/_api/pa-entity-one"
+        },
+        {
+          "id": "pa-business-search",
+          "path": "/_api/pa-business"
+        },
+        {
+          "id": "pa-vendor-intake-gate",
+          "path": "/_api/vendor-intake-gate"
+        }
+      ]
+    },
+    {
+      "id": "supabase_data_tools",
+      "origin": "https://bvjtimsalbzkmulyinpg.supabase.co/functions/v1/x402-data-tools",
+      "catalog_path": "/.well-known/x402",
+      "routes": [
+        {
+          "id": "sec-filings",
+          "path": "/api/sec-filings"
+        },
+        {
+          "id": "ofac-sdn-screen",
+          "path": "/api/ofac-sdn-screen"
+        },
+        {
+          "id": "us-address-geocode",
+          "path": "/api/us-address-geocode"
+        },
+        {
+          "id": "domain-rdap",
+          "path": "/api/domain-rdap"
+        },
+        {
+          "id": "treasury-average-rates",
+          "path": "/api/treasury-average-rates"
+        }
+      ]
+    }
+  ],
+  "legacy_shadows": [
+    {
+      "seller_id": "floot_pa",
+      "canonical_seller_id": "supabase_data_tools",
+      "routes": [
+        {
+          "id": "sec-filings",
+          "path": "/_api/sec-filings"
+        },
+        {
+          "id": "ofac-sdn-screen",
+          "path": "/_api/ofac-sdn-screen"
+        },
+        {
+          "id": "us-address-geocode",
+          "path": "/_api/us-address-geocode"
+        },
+        {
+          "id": "domain-rdap",
+          "path": "/_api/domain-rdap"
+        },
+        {
+          "id": "treasury-average-rates",
+          "path": "/_api/treasury-average-rates"
+        }
+      ],
+      "policy": "Noncanonical legacy copies may be observed but must not replace, redirect, or redefine the five canonical Supabase data-tool routes."
+    }
+  ]
+}

@@ -14,9 +14,12 @@ test('one batch assembles three isolated applications and writes bounded evidenc
 });
 test('rerun verifies and reuses accepted artifacts without rebuilding them',t=>{
  const outputRoot=setup(t),first=L.manufactureBatch({recipes,outputRoot,accept:receipt}),entry=path.join(outputRoot,first.results[0].artifact,'manifest.json');
+ const proof=path.join(outputRoot,'verification',first.results[0].artifact+'.json');
+ const original=fs.readFileSync(proof),proofStat=fs.statSync(proof,{bigint:true});
  const before=fs.statSync(entry).mtimeMs;let checks=0;
  const again=L.manufactureBatch({recipes,outputRoot,accept:(...args)=>{checks++;return receipt(...args);}});
  assert.equal(again.accepted,3);assert.equal(again.reused,3);assert.equal(checks,3);assert.equal(fs.statSync(entry).mtimeMs,before);
+ assert.deepEqual(fs.readFileSync(proof),original);assert.equal(fs.statSync(proof,{bigint:true}).mtimeNs,proofStat.mtimeNs);
 });
 test('bounded transient failure retries the same edition then accepts',t=>{
  const outputRoot=setup(t);let attempts=0;
@@ -34,6 +37,16 @@ test('a repeatedly failing edition is quarantined while healthy editions complet
 test('corrupted accepted artifact is never silently overwritten or counted as passing',t=>{
  const outputRoot=setup(t),r=L.manufactureBatch({recipes,outputRoot,accept:receipt}),file=path.join(outputRoot,r.results[0].artifact,'README.md');fs.appendFileSync(file,'tampered');
  const next=L.manufactureBatch({recipes,outputRoot,accept:receipt});assert.equal(next.accepted,2);assert.equal(next.failed,1);assert.match(fs.readFileSync(file,'utf8'),/tampered$/);
+});
+test('changed accepted receipt is never replaced by a later successful execution',t=>{
+ const outputRoot=setup(t),r=L.manufactureBatch({recipes:[recipes[0]],outputRoot,accept:receipt});
+ const proof=path.join(outputRoot,'verification',r.results[0].artifact+'.json');
+ const changed=fs.readFileSync(proof,'utf8').replace('"passed": true','"passed": false');
+ fs.writeFileSync(proof,changed,{mode:0o600});
+ const next=L.manufactureBatch({recipes:[recipes[0]],outputRoot,accept:receipt});
+ assert.equal(next.accepted,0);assert.equal(next.failed,1);
+ assert.equal(next.results[0].reason,'EXISTING_ARTIFACT_REJECTED');
+ assert.equal(fs.readFileSync(proof,'utf8'),changed);
 });
 test('forged or incomplete verifier receipts cannot promote a candidate',t=>{
  const outputRoot=setup(t),r=L.manufactureBatch({recipes:[recipes[0]],outputRoot,accept:()=>({passed:true})});

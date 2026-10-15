@@ -1,6 +1,8 @@
 "use strict";
 
 const assert=require("node:assert/strict");
+const fs=require("node:fs");
+const path=require("node:path");
 const registry=require("../product-registry.json");
 
 function unique(values,label){
@@ -37,6 +39,14 @@ function main(){
   for(const p of staging){
     assert.ok(p.release_gate, `${p.id} staging product must name a release gate`);
     assert.ok(p.deployment_blocker, `${p.id} staging product must record its current deploy blocker`);
+
+    const productDir=path.join(__dirname,"..","products",p.id);
+    assert.ok(fs.existsSync(productDir), `${p.id} staging product directory is missing`);
+    assert.ok(fs.statSync(productDir).isDirectory(), `${p.id} product path is not a directory`);
+
+    const gatePath=path.join(__dirname,"..",p.release_gate);
+    assert.ok(fs.existsSync(gatePath), `${p.id} release gate is missing: ${p.release_gate}`);
+    assert.ok(fs.statSync(gatePath).isFile(), `${p.id} release gate is not a file: ${p.release_gate}`);
   }
 
   console.log(JSON.stringify({

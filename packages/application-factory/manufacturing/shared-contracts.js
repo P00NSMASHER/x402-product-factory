@@ -101,4 +101,30 @@ function privateJson(file,value,{code='OUTPUT_UNSAFE'}={}){
   fs.renameSync(temp,file);
  }finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}
 }
-module.exports={sha256,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,privateJson};
+function immutablePrivateJson(file,value,{code='RECEIPT_IMMUTABLE'}={}){
+ if(typeof file!=='string'||!path.isAbsolute(file))fail(code);
+ const dir=privateDirectory(path.dirname(file),code);
+ if(path.basename(file)!==path.relative(dir,file))fail(code);
+ const body=JSON.stringify(value,null,2)+'\n';
+ if(fs.existsSync(file)){
+  try{
+   const st=fs.lstatSync(file);
+   if(!st.isFile()||st.isSymbolicLink()||st.size<2||st.size>65536||
+      (process.platform!=='win32'&&(st.mode&0o077)!==0)||
+      fs.readFileSync(file,'utf8')!==body)fail(code);
+   return {created:false,digest:sha256(body)};
+  }catch{fail(code);}
+ }
+ const temp=file+'.'+crypto.randomBytes(8).toString('hex')+'.tmp';
+ try{
+  const fd=fs.openSync(temp,'wx',0o600);
+  try{fs.writeFileSync(fd,body);fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
+  try{fs.linkSync(temp,file);}catch{fail(code);}
+  if(process.platform!=='win32'){
+   const parent=fs.openSync(dir,'r');try{fs.fsyncSync(parent);}finally{fs.closeSync(parent);}
+  }
+  return {created:true,digest:sha256(body)};
+ }finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}
+}
+module.exports={sha256,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,
+ privateJson,immutablePrivateJson};

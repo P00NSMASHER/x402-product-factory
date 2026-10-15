@@ -81,11 +81,11 @@ test('real three-family outages self-heal from the same private SQLite state wit
  const again=await sup.tick();assert.equal(again.recoveryAttempts,3);
  assert.equal(again.verifiedRecoveries,3);
 });
-test('tampered package cannot auto-repair and repeated failure consumes a strict quarantine budget',async t=>{
+test('tampered package cannot reset its durable quarantine budget by restarting the supervisor',async t=>{
  if(process.platform==='win32')return t.skip('Independent Linux SQLite package QA required');
  const f=fixture(t),fleet=await launchPrivateFleet({sources:f.sources,stateRoot:f.stateRoot});
  t.after(()=>fleet.stop());
- const sup=createPrivateFleetSupervisor({fleet,maxRestarts:2});t.after(()=>sup.stop());
+ const sup=createPrivateFleetSupervisor({fleet,maxRestarts:2});
  const app=fleet.apps[0],secret=hex(app.privateCredentialFile);
  const report=JSON.parse(fs.readFileSync(path.join(f.sources.document,'manufacturing-report.json')));
  const pkg=path.join(f.sources.document,report.results[0].artifact);
@@ -94,14 +94,39 @@ test('tampered package cannot auto-repair and repeated failure consumes a strict
  const first=await sup.tick();
  assert.equal(first.recoveryAttempts,1);assert.equal(first.quarantined,0);
  assert.equal(first.services[0].status,'unhealthy');
- const second=await sup.tick();
+ sup.stop();
+ const resumed=createPrivateFleetSupervisor({fleet,maxRestarts:2});t.after(()=>resumed.stop());
+ assert.equal(resumed.report().recoveryAttempts,1);
+ assert.equal(resumed.report().checks,1);
+ const second=await resumed.tick();
  assert.equal(second.recoveryAttempts,2);assert.equal(second.quarantined,1);
  assert.equal(second.services[0].lastOutcome,'recovery_failed');
- const third=await sup.tick();
+ resumed.stop();
+ const held=createPrivateFleetSupervisor({fleet,maxRestarts:3});t.after(()=>held.stop());
+ assert.equal(held.report().recoveryAttempts,2);
+ assert.equal(held.report().quarantined,1,'raising the new process budget must not clear quarantine');
+ const third=await held.tick();
  assert.equal(third.recoveryAttempts,2);assert.equal(third.quarantined,1);
  assert.equal(hex(app.privateCredentialFile),secret);
  assert.equal(third.externalContacts,0);
  assert.equal(third.publicHostingEnabled,false);
+});
+test('corrupt or source-mismatched watchdog checkpoints fail closed instead of resetting attempts',async t=>{
+ if(process.platform==='win32')return t.skip('Linux package QA required');
+ const f=fixture(t),fleet=await launchPrivateFleet({sources:f.sources,stateRoot:f.stateRoot});
+ t.after(()=>fleet.stop());
+ const sup=createPrivateFleetSupervisor({fleet,maxRestarts:2});
+ await sup.tick();sup.stop();
+ const filename=sup.reportPath,original=fs.readFileSync(filename,'utf8');
+ fs.writeFileSync(filename,original.replace('"checks": 1','"checks": 0'));
+ assert.throws(()=>createPrivateFleetSupervisor({fleet,maxRestarts:2}),
+  /SUPERVISOR_CHECKPOINT_INVALID/);
+ fs.writeFileSync(filename,original);
+ const report=JSON.parse(original);report.services[0].sourceDigest='0'.repeat(64);
+ const {digest,...body}=report;report.digest=crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
+ fs.writeFileSync(filename,JSON.stringify(report,null,2)+'\n',{mode:0o600});
+ assert.throws(()=>createPrivateFleetSupervisor({fleet,maxRestarts:2}),
+  /SUPERVISOR_CHECKPOINT_INVALID/);
 });
 test('supervisor rejects public URLs, duplicate IDs and unsafe restart budgets',async()=>{
  const fake={apps:[{family:'document',id:'sample',digest:'a'.repeat(64),origin:'https://example.com'}],

@@ -21,9 +21,13 @@ test('each supported inventory edition is independently compiled, run and audite
  }
 });
 test('repeat manufacturing reuses existing apps but independently reexecutes acceptance',t=>{
- const outputRoot=folder(t),a=factory.manufactureInventoryBatch({outputRoot}),b=factory.manufactureInventoryBatch({outputRoot});
+ const outputRoot=folder(t),a=factory.manufactureInventoryBatch({outputRoot});
+ const proof=path.join(outputRoot,'verification',a.results[0].artifact+'.json');
+ const original=fs.readFileSync(proof),before=fs.statSync(proof,{bigint:true});
+ const b=factory.manufactureInventoryBatch({outputRoot});
  assert.equal(a.accepted,3);assert.equal(b.reused,3);assert.equal(b.accepted,3);
  assert.ok(b.results.every(v=>v.reused===true));
+ assert.deepEqual(fs.readFileSync(proof),original);assert.equal(fs.statSync(proof,{bigint:true}).mtimeNs,before.mtimeNs);
 });
 test('changing an assembled source file fails content integrity and is not accepted on repeat',t=>{
  const outputRoot=folder(t),a=factory.manufactureInventoryBatch({outputRoot});

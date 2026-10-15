@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "product_id": "pa-vendor-intake-gate",
+  "scope": "product-002-endpoint-only",
+  "production_origin": "https://pa-entity-x402.floot.app",
+  "production_route": "/_api/vendor-intake-gate",
+  "source_repository": "P00NSMASHER/permitplate-nyc",
+  "source_repository_url": "https://github.com/P00NSMASHER/permitplate-nyc",
+  "source_commit": "07d83efaad9fbd9b582c2b18c1ee5d7a4ced1a41",
+  "files": [
+    {
+      "source_path": "docs/pa-entity-floot-release/vendor-intake-gate_GET.ts",
+      "target_path": "endpoints/vendor-intake-gate_GET.ts",
+      "bytes": 46016,
+      "sha256": "383d4328d60940305e719374798c2b452898762c6e3a440ef536fb0feb94e6e4",
+      "git_blob": "f318feaaf197783c8460899d1d419026760496b5",
+      "required_strings": [
+        "https://pa-entity-x402.floot.app/_api/vendor-intake-gate",
+        "const AMOUNT = '20000'",
+        "const NETWORK = 'eip155:8453'",
+        "const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'",
+        "const PAY_TO = '0x708f7b52b56eafd7fc1de65fc7752ed732914021'",
+        "export async function handle(request: Request)"
+      ],
+      "forbidden_strings": [
+        "api-v2.appdeploy.ai"
+      ]
+    },
+    {
+      "source_path": "docs/pa-entity-floot-release/vendor-intake-gate_GET.schema.ts",
+      "target_path": "endpoints/vendor-intake-gate_GET.schema.ts",
+      "bytes": 207,
+      "sha256": "fdf558d679ec4b0f8e3c3ac52618a9d45c1056b45f96217ef196315869b8acea",
+      "git_blob": "f13ed84460f72035f36cd69199c6d4e679676744",
+      "required_strings": [
+        "name: z.string().optional()",
+        "address: z.string().optional()",
+        "domain: z.string().optional()"
+      ],
+      "forbidden_strings": []
+    }
+  ],
+  "restore_guards": [
+    "This manifest is rollback evidence, not deployment authorization.",
+    "Read the current Floot project version before any write.",
+    "Restore only the two Product 002 endpoint files; do not replace discovery or unrelated routes.",
+    "Do not create an unsupported custom OPTIONS endpoint.",
+    "After an authorized restore, rerun the zero-payment strict Floot audit and verify the existing PA routes remain unchanged.",
+    "Do not modify the Supabase SEC, OFAC, Census, RDAP, or Treasury seller."
+  ]
+}

@@ -80,7 +80,8 @@ test('same version or superficial title-only edit cannot qualify as a distinct r
 });
 test('verified manufactured receipt cannot be forged after accepted test',t=>{
  if(process.platform==='win32')return t.skip('Real packaged Linux service acceptance is required');
- const folder=root(t),baselineRoots=baselines(folder),filename=path.join(baselineRoots.quote,'verification',quotes[0].id+'.json');
+ const folder=root(t),baselineRoots=baselines(folder),report=JSON.parse(fs.readFileSync(path.join(baselineRoots.quote,'manufacturing-report.json'))),
+  filename=path.join(baselineRoots.quote,'verification',quotes[0].id+'-'+report.apps[0].digest+'.json');
  fs.writeFileSync(filename,JSON.stringify({passed:true}));
  assert.throws(()=>verifiedFamilyArtifact({family:'quote',root:baselineRoots.quote,id:quotes[0].id}),
   /VERSION_RECEIPT_INVALID/);

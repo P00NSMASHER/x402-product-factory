@@ -40,7 +40,7 @@ test('batch manufactures and independently exercises all three full-stack applic
  assert.equal(result.verification,'executed-packaged-quote-lifecycle');
  for(const row of result.apps){assert.equal(row.status,'accepted');assert.ok(row.digest);
   const app=path.join(root,'apps',row.id+'-'+row.digest);assert.equal(verifyQuoteApp(app,row.digest).recipeId,row.id);
-  const acceptance=JSON.parse(fs.readFileSync(path.join(root,'apps','verification',row.id+'.json'),'utf8'));
+  const acceptance=JSON.parse(fs.readFileSync(path.join(root,'apps','verification',row.id+'-'+row.digest+'.json'),'utf8'));
   assert.equal(acceptance.tenantIsolation,true);assert.equal(acceptance.twoRoleGate,true);
   assert.equal(acceptance.restartPersistence,true);assert.equal(acceptance.idempotentOrder,true);
   assert.equal(acceptance.externalMessagesSent,0);
@@ -48,10 +48,21 @@ test('batch manufactures and independently exercises all three full-stack applic
 });
 test('batch prevents accidental repeat generation by verifying instead of rewriting',t=>{
  const root=dir(t),outputRoot=path.join(root,'apps');const a=manufactureQuoteBatch({outputRoot});
+ const proof=path.join(outputRoot,'verification',a.apps[0].id+'-'+a.apps[0].digest+'.json');
+ const original=fs.readFileSync(proof),before=fs.statSync(proof,{bigint:true});
  assert.equal(a.accepted,3);const b=manufactureQuoteBatch({outputRoot});
  assert.equal(b.accepted,3);assert.equal(b.reused,3);assert.equal(b.failed,0);
+ assert.deepEqual(fs.readFileSync(proof),original);assert.equal(fs.statSync(proof,{bigint:true}).mtimeNs,before.mtimeNs);
  const one=path.join(outputRoot,a.apps[0].id+'-'+a.apps[0].digest);
  fs.appendFileSync(path.join(one,'manifest.json'),'\nwrong bytes');const c=manufactureQuoteBatch({outputRoot});
  assert.equal(c.failed,1);assert.equal(c.accepted,2);
  assert.equal(c.apps.find(v=>v.id===a.apps[0].id).status,'quarantined');
+});
+test('new quote source identity preserves the earlier digest-addressed acceptance receipt',t=>{
+ const root=dir(t),outputRoot=path.join(root,'apps'),a=manufactureQuoteBatch({outputRoot,recipes:[recipes[0]]});
+ const changed={...recipes[0],title:recipes[0].title+' revision'};
+ const b=manufactureQuoteBatch({outputRoot,recipes:[changed]});
+ assert.equal(a.accepted,1);assert.equal(b.accepted,1);assert.notEqual(a.apps[0].digest,b.apps[0].digest);
+ for(const row of [a.apps[0],b.apps[0]])assert.equal(fs.existsSync(path.join(outputRoot,'verification',
+  row.id+'-'+row.digest+'.json')),true);
 });

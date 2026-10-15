@@ -7,8 +7,16 @@ const registry=require("../product-registry.json");
 const ROOT=path.resolve(__dirname,"..");
 const OUT=path.join(ROOT,"generated","product-modules.js");
 
-function has(productId,file){
-  return fs.existsSync(path.join(ROOT,"products",productId,file));
+function moduleDirectory(product){
+  const directory=product.module_directory??product.id;
+  if(typeof directory!=="string"||!/^[a-z0-9][a-z0-9-]*$/.test(directory)){
+    throw new Error(product.id+": invalid module_directory");
+  }
+  return directory;
+}
+
+function has(directory,file){
+  return fs.existsSync(path.join(ROOT,"products",directory,file));
 }
 
 function buildSource(){
@@ -18,10 +26,11 @@ function buildSource(){
 
   for(const product of registry.products){
     const id=product.id;
-    const base="../products/"+id+"/";
-    if(has(id,"metadata.js")) metadata.push(`  ${JSON.stringify(id)}:require(${JSON.stringify(base+"metadata")})`);
-    if(has(id,"service.js")) services.push(`  ${JSON.stringify(id)}:require(${JSON.stringify(base+"service")})`);
-    if(has(id,"paid-handler.js")) handlers.push(`  ${JSON.stringify(id)}:require(${JSON.stringify(base+"paid-handler")})`);
+    const directory=moduleDirectory(product);
+    const base="../products/"+directory+"/";
+    if(has(directory,"metadata.js")) metadata.push(`  ${JSON.stringify(id)}:require(${JSON.stringify(base+"metadata")})`);
+    if(has(directory,"service.js")) services.push(`  ${JSON.stringify(id)}:require(${JSON.stringify(base+"service")})`);
+    if(has(directory,"paid-handler.js")) handlers.push(`  ${JSON.stringify(id)}:require(${JSON.stringify(base+"paid-handler")})`);
   }
 
   return [
@@ -73,4 +82,4 @@ function main(){
 
 if(require.main===module)main();
 
-module.exports={ROOT,OUT,buildSource,write,check};
+module.exports={ROOT,OUT,moduleDirectory,buildSource,write,check};

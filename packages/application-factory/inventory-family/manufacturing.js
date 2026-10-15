@@ -1,7 +1,8 @@
 'use strict';
 // Compile complete self-contained synthetic inventory applications and independently execute each package.
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
-const {sha256:sha,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,privateJson:saveJson}=require('../manufacturing/shared-contracts');
+const {sha256:sha,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,
+ immutablePrivateJson:saveReceipt,privateJson:saveJson}=require('../manufacturing/shared-contracts');
 const {spawnSync}=require('node:child_process');
 const {validateRecipe}=require('./engine'),recipes=require('./recipes.json');
 const ROOT=path.resolve(__dirname,'../../..'),SOURCE=path.resolve(__dirname);
@@ -99,7 +100,7 @@ function manufactureInventoryBatch({outputRoot,catalog=recipes}={}){
     try{
      verifyInventoryPackage(dest,pkg.digest);
      const evidence=acceptInventoryPackage(dest,pkg.digest);
-     saveJson(path.join(verifyDir,artifact+'.json'),evidence);
+     saveReceipt(path.join(verifyDir,artifact+'.json'),evidence);
      result={id:recipe.id,digest:pkg.digest,artifact,status:'accepted',reused:true,attempts:1};
     }catch{result={id:recipe.id,digest:pkg.digest,status:'quarantined',reason:'EXISTING_ARTIFACT_REJECTED',attempts:1};}
    }else{
@@ -110,7 +111,7 @@ function manufactureInventoryBatch({outputRoot,catalog=recipes}={}){
       const evidence=acceptInventoryPackage(candidate,pkg.digest);
       if(fs.existsSync(dest))fail('OUTPUT_EXISTS');
       fs.renameSync(candidate,dest);
-      saveJson(path.join(verifyDir,artifact+'.json'),evidence);
+      saveReceipt(path.join(verifyDir,artifact+'.json'),evidence);
       result={id:recipe.id,digest:pkg.digest,artifact,status:'accepted',reused:false,attempts:attempt};
      }catch{
       if(attempt===2)result={id:recipe.id,digest:pkg.digest,status:'quarantined',reason:'ACCEPTANCE_FAILED',attempts:attempt};

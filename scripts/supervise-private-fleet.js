@@ -4,8 +4,12 @@
 const {spawn}=require('node:child_process'),path=require('node:path'),fs=require('node:fs'),crypto=require('node:crypto');
 const {parse}=require('./run-private-fleet-preview');
 const CLI=path.join(__dirname,'run-private-fleet-preview.js');
+const CHECKPOINT='.private-host-supervisor.json';
 const fail=code=>{throw Error(code);};
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const sha=value=>crypto.createHash('sha256').update(value).digest('hex');
+const exact=(value,keys)=>value&&typeof value==='object'&&!Array.isArray(value)&&
+ Object.keys(value).sort().join(',')===keys.slice().sort().join(',');
 function parseHost(args=process.argv.slice(2)){
  if(!Array.isArray(args)||!['--watch','--resume-watch','--exercise-crash'].includes(args[0]))
   fail('HOST_USAGE_INVALID');
@@ -91,6 +95,84 @@ function credentialFingerprint(ready){
  }
  return rows;
 }
+function safeStateRoot(stateRoot){
+ let stat;try{stat=fs.lstatSync(stateRoot);}catch{fail('HOST_CHECKPOINT_MISSING');}
+ if(!stat.isDirectory()||stat.isSymbolicLink()||fs.realpathSync(stateRoot)!==path.resolve(stateRoot)||
+  (process.platform!=='win32'&&(stat.mode&0o077)!==0)||
+  (typeof process.getuid==='function'&&stat.uid!==process.getuid()))fail('HOST_CHECKPOINT_UNSAFE');
+ return stateRoot;
+}
+function hostIdentity(input){
+ const root=safeStateRoot(input.stateRoot),reportFile=path.join(root,'preview-report.json');
+ let stat,raw;try{stat=fs.lstatSync(reportFile);raw=fs.readFileSync(reportFile);}
+ catch{fail('HOST_CHECKPOINT_SOURCE_INVALID');}
+ if(!stat.isFile()||stat.isSymbolicLink()||raw.length<32||raw.length>262144||
+  (process.platform!=='win32'&&(stat.mode&0o077)!==0)||
+  (typeof process.getuid==='function'&&stat.uid!==process.getuid()))fail('HOST_CHECKPOINT_SOURCE_INVALID');
+ return {stateRoot:path.resolve(root),sources:Object.fromEntries(['document','quote','inventory'].map(f=>{
+   let real;try{real=fs.realpathSync(input.sources[f]);}catch{fail('HOST_CHECKPOINT_SOURCE_INVALID');}
+   return [f,real];
+  })),previewReportSha256:sha(raw)};
+}
+function bodyChecksum(body){
+ const copy={...body};delete copy.integritySha256;return sha(JSON.stringify(copy));
+}
+function checkpointPath(input){return path.join(input.stateRoot,CHECKPOINT);}
+function validateCheckpoint(value,input){
+ if(!exact(value,['kind','schemaVersion','createdAt','updatedAt','maxRestarts','restartAttempts',
+  'launchesStarted','status','identity','failures','integritySha256'])||
+  value.kind!=='private-host-supervisor-checkpoint'||value.schemaVersion!==1||
+  !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(value.createdAt)||
+  !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(value.updatedAt)||
+  !Number.isSafeInteger(value.maxRestarts)||value.maxRestarts<1||value.maxRestarts>3||
+  !Number.isSafeInteger(value.restartAttempts)||value.restartAttempts<0||
+  value.restartAttempts>value.maxRestarts||!Number.isSafeInteger(value.launchesStarted)||
+  value.launchesStarted<1||!['watching','restarting','exhausted'].includes(value.status)||
+  !Array.isArray(value.failures)||value.failures.length<value.restartAttempts||value.failures.length>4||
+  typeof value.integritySha256!=='string'||value.integritySha256!==bodyChecksum(value)||
+  JSON.stringify(value.identity)!==JSON.stringify(hostIdentity(input)))fail('HOST_CHECKPOINT_INVALID');
+ for(const event of value.failures)if(!exact(event,['launcherOrdinal','observedAt','exitCode','signal'])||
+  !Number.isSafeInteger(event.launcherOrdinal)||event.launcherOrdinal<1||
+  !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(event.observedAt)||
+  !(event.exitCode===null||Number.isSafeInteger(event.exitCode))||
+  !(event.signal===null||typeof event.signal==='string'&&/^[A-Z0-9]+$/.test(event.signal)))
+  fail('HOST_CHECKPOINT_INVALID');
+ if(value.status==='exhausted'&&value.restartAttempts!==value.maxRestarts)
+  fail('HOST_CHECKPOINT_INVALID');
+ return value;
+}
+function readCheckpoint(input,{required=true}={}){
+ const filename=checkpointPath(input);let stat,raw;
+ try{stat=fs.lstatSync(filename);raw=fs.readFileSync(filename,'utf8');}
+ catch(error){if(!required&&error.code==='ENOENT')return null;fail('HOST_CHECKPOINT_MISSING');}
+ if(!stat.isFile()||stat.isSymbolicLink()||Buffer.byteLength(raw)>65536||
+  (process.platform!=='win32'&&(stat.mode&0o077)!==0)||
+  (typeof process.getuid==='function'&&stat.uid!==process.getuid()))fail('HOST_CHECKPOINT_UNSAFE');
+ let value;try{value=JSON.parse(raw);}catch{fail('HOST_CHECKPOINT_INVALID');}
+ return validateCheckpoint(value,input);
+}
+function writeCheckpoint(input,value){
+ safeStateRoot(input.stateRoot);
+ const complete={...value,integritySha256:bodyChecksum(value)},filename=checkpointPath(input);
+ const temporary=filename+'.'+process.pid+'.'+crypto.randomBytes(8).toString('hex')+'.tmp';
+ let fd;
+ try{
+  fd=fs.openSync(temporary,'wx',0o600);fs.writeFileSync(fd,JSON.stringify(complete)+'\n');
+  fs.fsyncSync(fd);fs.closeSync(fd);fd=null;fs.renameSync(temporary,filename);
+  if(process.platform!=='win32')fs.chmodSync(filename,0o600);
+  const dir=fs.openSync(input.stateRoot,'r');try{fs.fsyncSync(dir);}finally{fs.closeSync(dir);}
+ }finally{if(fd!==undefined&&fd!==null)fs.closeSync(fd);fs.rmSync(temporary,{force:true});}
+ return validateCheckpoint(complete,input);
+}
+function initialCheckpoint(input,maxRestarts){
+ const now=new Date().toISOString();
+ return writeCheckpoint(input,{kind:'private-host-supervisor-checkpoint',schemaVersion:1,
+  createdAt:now,updatedAt:now,maxRestarts,restartAttempts:0,launchesStarted:1,
+  status:'watching',identity:hostIdentity(input),failures:[]});
+}
+function updateCheckpoint(input,current,changes){
+ return writeCheckpoint(input,{...current,...changes,updatedAt:new Date().toISOString(),integritySha256:undefined});
+}
 async function request(origin,route,{token,body,key,method='GET'}={}){
  if(!/^http:\/\/127\.0\.0\.1:[1-9]\d{0,4}$/.test(origin))fail('HOST_ENDPOINT_UNSAFE');
  const headers=token?{Authorization:'Bearer '+token}:{};
@@ -169,26 +251,46 @@ async function exerciseCrash(input){
    publicHostingEnabled:false,releaseApproved:false};
  }finally{await halt(second);await halt(first);}
 }
-async function watch(input,{maxRestarts=2}={}){
+async function watch(input,{maxRestarts=2,start=startChild,restartDelayMs=500}={}){
  if(!['--watch','--resume-watch'].includes(input.mode)||!Number.isSafeInteger(maxRestarts)||
-  maxRestarts<1||maxRestarts>3)fail('HOST_USAGE_INVALID');
- let signalReceived=false,current=null,generation=0;
+  maxRestarts<1||maxRestarts>3||!Number.isSafeInteger(restartDelayMs)||restartDelayMs<0||restartDelayMs>5000)
+  fail('HOST_USAGE_INVALID');
+ let signalReceived=false,current=null,generation=0,checkpoint=null;
+ if(input.mode==='--resume-watch'){
+  checkpoint=readCheckpoint(input);
+  if(checkpoint.status==='exhausted')fail('HOST_RESTART_BUDGET_EXHAUSTED');
+  // The first launcher fixes the budget. A later process cannot raise it to
+  // erase prior attempts (or silently reinterpret the existing checkpoint).
+  maxRestarts=checkpoint.maxRestarts;
+ }
  const terminate=()=>{signalReceived=true;current?.child.kill('SIGTERM');};
  process.once('SIGTERM',terminate);process.once('SIGINT',terminate);
  try{
   let resume=input.mode==='--resume-watch';
   while(!signalReceived){
-   current=startChild(input,{resume});
+   current=start(input,{resume});
    const ready=await current.ready;
    generation++;
+   if(checkpoint)checkpoint=updateCheckpoint(input,checkpoint,{status:'watching',
+    launchesStarted:checkpoint.launchesStarted+1});
+   else checkpoint=initialCheckpoint(input,maxRestarts);
    process.stdout.write(JSON.stringify({kind:'private-host-watch-ready',generation,
     pid:current.child.pid,origin:ready.origin,appCount:ready.appCount,
-    resumed:resume,externalContacts:0,publicHostingEnabled:false,releaseApproved:false})+'\n');
-   await current.completion;
+    resumed:resume,restartAttempts:checkpoint.restartAttempts,
+    externalContacts:0,publicHostingEnabled:false,releaseApproved:false})+'\n');
+   const exit=await current.completion;
    if(signalReceived)break;
-   if(generation>maxRestarts)fail('HOST_RESTART_BUDGET_EXHAUSTED');
+   const failures=[...checkpoint.failures,{launcherOrdinal:checkpoint.launchesStarted,
+    observedAt:new Date().toISOString(),exitCode:Number.isSafeInteger(exit.code)?exit.code:null,
+    signal:typeof exit.signal==='string'&&/^[A-Z0-9]+$/.test(exit.signal)?exit.signal:null}];
+   if(checkpoint.restartAttempts>=maxRestarts){
+    checkpoint=updateCheckpoint(input,checkpoint,{status:'exhausted',failures});
+    fail('HOST_RESTART_BUDGET_EXHAUSTED');
+   }
+   checkpoint=updateCheckpoint(input,checkpoint,{status:'restarting',failures,
+    restartAttempts:checkpoint.restartAttempts+1});
    resume=true;
-   await wait(500);
+   await wait(restartDelayMs);
   }
   return {kind:'private-host-watch-stopped',generation,externalContacts:0,releaseApproved:false};
  }finally{
@@ -204,4 +306,4 @@ if(require.main===module)main().then(r=>console.log(JSON.stringify(r))).catch(()
  console.error('Private host recovery held an unsafe or exhausted synthetic session; no external contact.');
  process.exitCode=1;
 });
-module.exports={parseHost,startChild,exerciseCrash,watch,main};
+module.exports={parseHost,startChild,exerciseCrash,watch,main,readCheckpoint};

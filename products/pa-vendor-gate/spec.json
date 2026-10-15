@@ -1,16 +1,17 @@
 {
   "id": "pa-vendor-intake-gate",
   "version": "1.0.0",
-  "production_reference": "https://api-v2.appdeploy.ai/app/pa-entity-lookup-x402-4fbm4s/api/vendor-intake-gate",
+  "production_reference": "https://pa-entity-x402.floot.app/_api/vendor-intake-gate",
+  "historical_production_reference": "https://api-v2.appdeploy.ai/app/pa-entity-lookup-x402-4fbm4s/api/vendor-intake-gate",
   "purpose": "Decide whether an automated Pennsylvania vendor-intake workflow may continue or must pause for human review based on bounded public evidence.",
   "input": {
     "required": [
-      "company",
+      "name",
       "address",
       "domain"
     ],
     "properties": {
-      "company": {
+      "name": {
         "type": "string",
         "minLength": 2
       },

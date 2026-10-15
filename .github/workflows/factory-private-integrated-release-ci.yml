@@ -1,0 +1,57 @@
+name: Main-synchronized private App Factory release candidate acceptance
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/factory-private-integrated-release-ci.yml'
+      - 'quality/governance/private-integrated-release-*'
+      - 'scripts/rehearse-private-main-integration*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: private-main-integrated-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integrated-release-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require candidate is a real descendant of current main with zero missing main commits
+        run: |
+          set -euo pipefail
+          git show-ref --verify refs/remotes/origin/main
+          git merge-base --is-ancestor refs/remotes/origin/main HEAD
+          missing="$(git rev-list --count HEAD..refs/remotes/origin/main)"
+          test "$missing" = 0
+          ahead="$(git rev-list --count refs/remotes/origin/main..HEAD)"
+          test "$ahead" -gt 0
+          echo "Private candidate includes main; 0 missing commits. No refs updated."
+      - name: Independently retest source package ABI, role and tenant acceptance against merged main
+        run: |
+          node --test packages/application-factory/manufacturing/*.test.js
+          node --test packages/application-factory/quote-family/*.test.js
+          node --test packages/application-factory/inventory-family/*.test.js
+          node --test quality/governance/application-production-audit.test.js scripts/audit-app-production-integration.test.js scripts/rehearse-private-main-integration.test.js
+      - name: Preserve redacted zero-ref-change source integration rehearsal proof
+        run: |
+          set -euo pipefail
+          mkdir -m 700 "$RUNNER_TEMP/main-integration-proof"
+          node scripts/rehearse-private-main-integration.js --output "$RUNNER_TEMP/main-integration-proof/rehearsal.json"
+          node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(x.kind!=="private-readonly-git-merge-rehearsal"||x.productionAuthorization!==false||x.report.candidateBehindBy!==0||x.report.cleanMergePossible!==true||x.report.sourceRefUnchanged!==true||x.report.mainRefModified!==false||x.report.gitRefsUpdated!==0||x.report.productionReady!==false||x.report.releaseApproved!==false||x.report.externalContacts!==0||x.report.deploymentsPerformed!==0)throw Error("PRIVATE_SOURCE_SYNC_NOT_ESTABLISHED");console.log(JSON.stringify({sourceSynchronized:true,sourceAhead:x.report.candidateAheadBy,behind:0,productionReady:false,refsChanged:0}));' "$RUNNER_TEMP/main-integration-proof/rehearsal.json"
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: private-main-synchronized-source-evidence
+          path: ${{ runner.temp }}/main-integration-proof/rehearsal.json
+          retention-days: 7
+          if-no-files-found: error
+          include-hidden-files: false

@@ -1,6 +1,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
-const {privateDirectory:safeDir,privateJson:writeJSON}=require('./shared-contracts');
+const {privateDirectory:safeDir,privateJson:writeJSON,
+  immutablePrivateJson:writeReceipt}=require('./shared-contracts');
 const {validateRecipe}=require('../kernel');
 const {compileApplication,writeApplication,verifyApplication}=require('./assembler');
 const {acceptApplication,validReceipt}=require('./acceptance');
@@ -36,7 +37,7 @@ function manufactureBatch({recipes,outputRoot,sourceRoot=ROOT,maxAttempts=2,retr
           const evidence=accept(destination,app.digest);
           if(!validReceipt(evidence,recipe.id,app.digest))fail('ACCEPTANCE_FAILED');
           verifyApplication(destination,app.digest);
-          writeJSON(path.join(receiptDir,artifact+'.json'),evidence);outcome={id:recipe.id,digest:app.digest,artifact,status:'accepted',reused:true,attempts:1};
+          writeReceipt(path.join(receiptDir,artifact+'.json'),evidence);outcome={id:recipe.id,digest:app.digest,artifact,status:'accepted',reused:true,attempts:1};
         }catch{outcome={id:recipe.id,digest:app.digest,status:'quarantined',reason:'EXISTING_ARTIFACT_REJECTED',attempts:1};}
       }else{
         for(;attempts<maxAttempts&&!outcome;){
@@ -47,7 +48,7 @@ function manufactureBatch({recipes,outputRoot,sourceRoot=ROOT,maxAttempts=2,retr
             verifyApplication(candidate,app.digest);
             if(exists(destination))fail('OUTPUT_EXISTS');
             fs.renameSync(candidate,destination);
-            writeJSON(path.join(receiptDir,artifact+'.json'),evidence);
+            writeReceipt(path.join(receiptDir,artifact+'.json'),evidence);
             outcome={id:recipe.id,digest:app.digest,artifact,status:'accepted',reused:false,attempts};
           }catch{
             // Once a directory exists it is never overwritten by an automatic retry.
