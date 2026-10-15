@@ -12,6 +12,8 @@ on:
       - 'scripts/manufacture-quote-apps.js'
       - 'scripts/manufacture-inventory-apps.js'
       - 'scripts/manufacture-cross-family-ideas.js'
+      - 'scripts/run-cross-family-director.js'
+      - 'scripts/restore-cross-family-checkpoint.js'
       - 'scripts/validate-autonomy-ideas.js'
       - 'scripts/restore-autonomous-checkpoint.js'
       - 'scripts/export-autonomous-fleet.js'
@@ -50,6 +52,7 @@ jobs:
             find "$source" -type d -exec chmod 700 {} +
             find "$source" -type f -exec chmod 600 {} +
             node scripts/restore-autonomous-checkpoint.js --source "$source" --output "$RUNNER_TEMP/autonomous-apps" --max-cycles 32
+            node scripts/restore-cross-family-checkpoint.js --source "$source" --output "$RUNNER_TEMP/autonomous-apps" --max-slots 24
           else
             echo "No earlier successful same-branch artifact. Starting from clean private state."
           fi
@@ -73,6 +76,12 @@ jobs:
         run: |
           node scripts/manufacture-cross-family-ideas.js --check
           node scripts/manufacture-cross-family-ideas.js --build --quote-output "$RUNNER_TEMP/research-quote-apps" --inventory-output "$RUNNER_TEMP/research-inventory-apps"
+      - name: Advance one genuinely new cross-family app per cycle from restored private history
+        run: |
+          set -euo pipefail
+          at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          node scripts/run-cross-family-director.js --run --at "$at" --output "$RUNNER_TEMP/autonomous-apps/cross-family" > "$RUNNER_TEMP/cross-family-cycle.json"
+          node -e 'const fs=require("fs"),r=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const e=Math.floor((Date.parse(process.argv[2])-Date.parse("2026-10-13T00:00:00Z"))/21600000);if(r.kind!=="cross-family-autonomous-plan"||r.cycle!==e||r.releaseApproved!==false||r.realCustomers!==null||r.collectedRevenue!==null||r.transmittedMessages!==0||r.paymentsSent!==0||r.failed!==0||r.accepted!==(r.exhausted?0:1)||(!r.exhausted&&(!r.verifiedSlot||r.verifiedSlot.cycle!==r.cycle||r.verifiedSlot.status!=="accepted"))||r.verification==="injected-test-only")throw Error("CROSS_FAMILY_CYCLE_INVALID");console.log(JSON.stringify({cycle:r.cycle,key:r.selected?.key||null,accepted:r.accepted,completed:r.completed,exhausted:r.exhausted,releaseApproved:false}));' "$RUNNER_TEMP/cross-family-cycle.json" "$at"
       - name: Verify second SaaS family and independently manufacture three quote apps
         run: |
           node --test packages/application-factory/quote-family/*.test.js

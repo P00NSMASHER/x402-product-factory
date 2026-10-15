@@ -1,0 +1,65 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {planCrossCycle,runCrossCycle,readJournal}=require('./cross-cycle');
+const {loadOpportunities}=require('./cross-family');
+const script=require('../../../scripts/run-cross-family-director');
+const EPOCH=Date.parse('2026-10-13T00:00:00Z'),SLOT=21600000;
+const date=x=>new Date(EPOCH+x*SLOT).toISOString();
+const temp=t=>{const x=fs.mkdtempSync(path.join(os.tmpdir(),'cross-family-unattended-test-'));t.after(()=>fs.rmSync(x,{recursive:true,force:true}));return x;};
+test('unattended planner balances document-adjacent research across two different real app families',()=>{
+ const a=planCrossCycle({at:date(0)}),b=planCrossCycle({at:date(1)});
+ assert.equal(a.cycle,0);assert.equal(b.cycle,1);
+ assert.equal(a.selected.family,'quote-to-order');
+ assert.equal(b.selected.family,'inventory-control');
+ assert.equal(a.available,8);assert.equal(a.completed,0);
+ assert.equal(a.buyerDemandValidated,false);
+ assert.equal(a.transmittedMessages,0);assert.equal(b.paymentsSent,0);
+});
+test('durable source-pinned queue builds one real SaaS candidate per new slot and replays without duplicates',t=>{
+ if(process.platform==='win32')return t.skip('Linux independent package lifecycle required');
+ const root=temp(t),first=runCrossCycle({at:date(0),outputRoot:root});
+ assert.equal(first.accepted,1);assert.equal(first.failed,0);assert.equal(first.reused,0);
+ assert.equal(first.selected.family,'quote-to-order');
+ assert.equal(first.verifiedSlot.marketValidated,false);
+ const again=runCrossCycle({at:date(0),outputRoot:root});
+ assert.equal(again.reused,1);assert.equal(again.verifiedSlot.digest,first.verifiedSlot.digest);
+ const second=runCrossCycle({at:date(1),outputRoot:root});
+ assert.equal(second.selected.family,'inventory-control');
+ assert.equal(second.accepted,1);
+ assert.notEqual(second.selected.key,first.selected.key);
+ assert.equal(planCrossCycle({at:date(2),outputRoot:root}).completed,2);
+ assert.equal(readJournal(root,loadOpportunities()).length,2);
+ assert.equal(fs.readdirSync(path.join(root,'receipts')).length,2);
+ assert.equal(first.verifiedSlot.realCustomers,null);
+ assert.equal(second.verifiedSlot.collectedRevenue,null);
+});
+test('prior accepted receipt/source can never be silently reselected or rewritten',t=>{
+ if(process.platform==='win32')return t.skip('Linux package lifecycle');
+ const root=temp(t);runCrossCycle({at:date(0),outputRoot:root});
+ const file=path.join(root,'receipts','cycle-0.json'),original=fs.readFileSync(file);
+ const row=JSON.parse(original);
+ row.sourceDigest='b'.repeat(64);
+ fs.writeFileSync(file,JSON.stringify(row)+'\n');
+ assert.throws(()=>planCrossCycle({at:date(1),outputRoot:root}),/CROSS_RECEIPT_INVALID/);
+ fs.writeFileSync(file,original);
+ const report=path.join(root,'packages','cycle-0','manufacturing-report.json');
+ fs.writeFileSync(report,'{"kind":"false-acceptance"}\n');
+ assert.throws(()=>runCrossCycle({at:date(1),outputRoot:root}),/CROSS_EVIDENCE_INVALID/);
+});
+test('corrupted manufactured package is rejected before selecting any new idea',t=>{
+ if(process.platform==='win32')return t.skip('Linux package lifecycle');
+ const root=temp(t),one=runCrossCycle({at:date(1),outputRoot:root});
+ const folder=path.join(root,'packages','cycle-1',one.selected.key+'-'+one.selected.packageDigest);
+ fs.appendFileSync(path.join(folder,'client.js'),'\n/* changed binary */');
+ assert.throws(()=>planCrossCycle({at:date(2),outputRoot:root}),/CROSS_EVIDENCE_INVALID/);
+});
+test('invalid output, future receipts, concurrency and exhaustion never imply buyers or revenue',t=>{
+ const root=temp(t);
+ assert.throws(()=>script.main(['--run','--at',date(0)]),/USAGE_INVALID/);
+ assert.throws(()=>script.main(['--run','--output','relative']),/USAGE_INVALID/);
+ assert.throws(()=>script.main(['--pay','yes']),/USAGE_INVALID/);
+ assert.throws(()=>planCrossCycle({at:'2026-02-30T00:00:00Z'}),/CROSS_TIME_INVALID/);
+ assert.throws(()=>runCrossCycle({at:date(0),outputRoot:path.resolve(__dirname)}),/CROSS_PATH_UNSAFE/);
+ assert.equal(planCrossCycle({at:date(22)}).releaseApproved,false);
+ assert.equal(planCrossCycle({at:date(22)}).realCustomers,null);
+});
