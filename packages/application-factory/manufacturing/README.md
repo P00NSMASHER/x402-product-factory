@@ -10,9 +10,9 @@ From the source repository, with Node.js 22.13 or later:
 node scripts/manufacture-applications.js --output /absolute/private/manufactured-applications
 ```
 
-This compiles the three existing recipes, runs each package through a separate real local workflow process, accepts passing directories, and writes `manufacturing-report.json` plus per-package receipts in `verification/`. No app is deployed or kept running. To run an individual candidate, follow its generated README and keep its private state outside its application directory.
+This compiles the three existing recipes, runs each package through a separate real local workflow process, accepts passing directories, and writes replaceable progress to `manufacturing-report.json` plus digest-addressed, write-once per-package receipts in `verification/`. No app is deployed or kept running. To run an individual candidate, follow its generated README and keep its private state outside its application directory.
 
-The same command can be rerun. An existing content-addressed package is verified and **executed again** before reuse; it is not rebuilt or trusted merely because an old report said it passed. The compiler computes the expected digest from current source bytes and the selected recipe. A checksum supplied by an untrusted party is not an authenticity guarantee.
+The same command can be rerun. An existing content-addressed package is verified and **executed again** before reuse; it is not rebuilt or trusted merely because an old report said it passed. The fresh deterministic acceptance must match the original write-once receipt, whose bytes and filesystem identity remain unchanged. A changed receipt fails closed instead of being repaired from the later run. The compiler computes the expected digest from current source bytes and the selected recipe. A checksum supplied by an untrusted party is not an authenticity guarantee.
 
 `--recipes /absolute/path/to/recipes.json` accepts 1–100 validated document-workflow recipes. This is configuration manufacturing, not support for arbitrary uploaded code, new commercial product numbers, or proof that cloned editions have distinct customer demand. Duplicate IDs are rejected. The default numbered-product registry and payment paths stay unchanged.
 

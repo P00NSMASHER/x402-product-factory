@@ -1,6 +1,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
-const {sha256:hash,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,privateJson}=require('../manufacturing/shared-contracts');
+const {sha256:hash,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,
+ immutablePrivateJson,privateJson}=require('../manufacturing/shared-contracts');
 const {spawnSync}=require('node:child_process');
 const {validateRecipe}=require('./kernel'),catalog=require('./recipes.json');
 const SOURCE=path.resolve(__dirname),REPO=path.resolve(__dirname,'../../..');
@@ -100,7 +101,8 @@ function manufactureQuoteBatch({outputRoot,recipes=catalog,accept=acceptQuoteApp
      }finally{fs.rmSync(staging,{recursive:true,force:true});}
     }
     if(!validAcceptance(proof,recipe.id,app.digest))fail('ACCEPTANCE_FAILED');
-    verifyQuoteApp(folder,app.digest);privateJson(path.join(receipts,recipe.id+'.json'),proof);accepted=true;
+    verifyQuoteApp(folder,app.digest);
+    immutablePrivateJson(path.join(receipts,recipe.id+'-'+app.digest+'.json'),proof);accepted=true;
    }catch{reason=fs.existsSync(folder)?'EXISTING_ARTIFACT_REJECTED':'ACCEPTANCE_FAILED';}
    if(accepted){result.accepted++;if(reused)result.reused++;result.apps.push({id:recipe.id,digest:app.digest,status:'accepted',reused});}
    else{result.failed++;const record={id:recipe.id,digest:app.digest,status:'quarantined',reason};privateJson(denied,record);result.apps.push(record);}

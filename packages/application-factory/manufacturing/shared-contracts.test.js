@@ -116,6 +116,18 @@ test('atomic receipt writer preserves private permissions and cannot overwrite a
  assert.throws(()=>shared.privateJson(link,{leak:true}),/OUTPUT_UNSAFE/);
  assert.equal(fs.readFileSync(source,'utf8'),'private sentry');
 });
+test('accepted receipt writer is write-once and identical rechecks never alter original evidence',t=>{
+ const root=tmp(t),receipt=path.join(root,'accepted.json');
+ const evidence={kind:'acceptance',artifactDigest:'a'.repeat(64),passed:true,releaseApproved:false};
+ assert.equal(shared.immutablePrivateJson(receipt,evidence).created,true);
+ const original=fs.readFileSync(receipt),before=fs.statSync(receipt,{bigint:true});
+ assert.equal(shared.immutablePrivateJson(receipt,evidence).created,false);
+ const after=fs.statSync(receipt,{bigint:true});
+ assert.deepEqual(fs.readFileSync(receipt),original);
+ assert.equal(after.ino,before.ino);assert.equal(after.mtimeNs,before.mtimeNs);
+ assert.throws(()=>shared.immutablePrivateJson(receipt,{...evidence,passed:false}),/RECEIPT_IMMUTABLE/);
+ assert.deepEqual(fs.readFileSync(receipt),original);
+});
 test('signed-looking but invalid manifest hashes never bypass package contract',t=>{
  const root=tmp(t),app=inventory.compileInventoryPackage(inventoryRecipes[0]);
  const dir=fixtureFiles(root,app);
