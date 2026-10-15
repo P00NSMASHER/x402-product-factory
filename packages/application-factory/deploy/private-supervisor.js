@@ -6,6 +6,10 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const fail=code=>{throw Error(code);};
 const hash=v=>crypto.createHash('sha256').update(JSON.stringify(v)).digest('hex');
 const ID=/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+const DIGEST=/^[a-f0-9]{64}$/;
+const STATES=new Set(['pending','healthy','unhealthy','quarantined']);
+const OUTCOMES=new Set(['pending','healthy','restored_same_state','recovery_failed',
+ 'restart_budget_exhausted']);
 const local=url=>{
  if(typeof url!=='string')fail('SUPERVISOR_ENDPOINT_INVALID');
  let u;try{u=new URL(url);}catch{fail('SUPERVISOR_ENDPOINT_INVALID');}
@@ -23,7 +27,8 @@ function createPrivateFleetSupervisor({fleet,maxRestarts=2,intervalMs=5000}={}){
   fail('SUPERVISOR_CONFIG_INVALID');
  const ids=new Set(),statuses=new Map();
  for(const app of fleet.apps){
-  if(!['document','quote','inventory'].includes(app.family)||!ID.test(app.id)||app.id.length>60)
+  if(!['document','quote','inventory'].includes(app.family)||!ID.test(app.id)||app.id.length>60||
+    !DIGEST.test(app.digest))
    fail('SUPERVISOR_CONFIG_INVALID');
   local(app.origin);
   const id=app.family+':'+app.id;
@@ -34,6 +39,71 @@ function createPrivateFleetSupervisor({fleet,maxRestarts=2,intervalMs=5000}={}){
  }
  const reportPath=path.join(fleet.stateRoot,'private-watchdog-report.json');
  let closed=false,busy=false,timer=null,cycle=0,probes=0;
+ function privateRoot(){
+  let root;try{root=fs.lstatSync(fleet.stateRoot);}catch{fail('SUPERVISOR_STATE_UNSAFE');}
+  if(!root.isDirectory()||root.isSymbolicLink()||
+     fs.realpathSync(fleet.stateRoot)!==path.resolve(fleet.stateRoot)||
+     (process.platform!=='win32'&&(root.mode&0o077)!==0))fail('SUPERVISOR_STATE_UNSAFE');
+  return root;
+ }
+ function restoreCheckpoint(){
+  privateRoot();
+  if(!fs.existsSync(reportPath))return;
+  let stat,report;
+  try{
+   stat=fs.lstatSync(reportPath);
+   if(!stat.isFile()||stat.isSymbolicLink()||stat.size<2||stat.size>128*1024||
+      (process.platform!=='win32'&&(stat.mode&0o077)!==0))fail('SUPERVISOR_CHECKPOINT_INVALID');
+   report=JSON.parse(fs.readFileSync(reportPath,'utf8'));
+  }catch(error){
+   if(error?.message==='SUPERVISOR_CHECKPOINT_INVALID')throw error;
+   fail('SUPERVISOR_CHECKPOINT_INVALID');
+  }
+  if(!report||typeof report!=='object'||Array.isArray(report))fail('SUPERVISOR_CHECKPOINT_INVALID');
+  const {digest,...body}=report;
+  if(!DIGEST.test(digest)||hash(body)!==digest||body.schemaVersion!==1||
+    body.kind!=='private-autonomous-fleet-watchdog'||body.mode!=='synthetic-local-only'||
+    !Number.isSafeInteger(body.checks)||body.checks<0||
+    !Number.isSafeInteger(body.probes)||body.probes<0||
+    !Array.isArray(body.services)||body.services.length!==statuses.size||
+    body.noPublicNetworkAccess!==true||body.externalContacts!==0||
+    body.transmittedMessages!==0||body.externalOrders!==0||body.paymentsSent!==0||
+    body.realCustomers!==null||body.collectedRevenue!==null||
+    body.publicHostingEnabled!==false||body.releaseApproved!==false)
+   fail('SUPERVISOR_CHECKPOINT_INVALID');
+  const restored=new Map();
+  for(const saved of body.services){
+   if(!saved||typeof saved!=='object'||Array.isArray(saved)||
+     Object.keys(saved).sort().join(',')!==
+      'family,id,lastOutcome,restartAttempts,sourceDigest,status,successfulRestarts'||
+     !['document','quote','inventory'].includes(saved.family)||!ID.test(saved.id)||
+     !DIGEST.test(saved.sourceDigest)||!STATES.has(saved.status)||
+     !OUTCOMES.has(saved.lastOutcome)||!Number.isSafeInteger(saved.restartAttempts)||
+     saved.restartAttempts<0||saved.restartAttempts>3||
+     !Number.isSafeInteger(saved.successfulRestarts)||saved.successfulRestarts<0||
+     saved.successfulRestarts>saved.restartAttempts)
+    fail('SUPERVISOR_CHECKPOINT_INVALID');
+   const key=saved.family+':'+saved.id,current=statuses.get(key);
+   if(!current||restored.has(key)||current.sourceDigest!==saved.sourceDigest)
+    fail('SUPERVISOR_CHECKPOINT_INVALID');
+   restored.set(key,{...saved});
+  }
+  const entries=[...restored.values()];
+  if(body.healthy!==entries.filter(x=>x.status==='healthy').length||
+    body.quarantined!==entries.filter(x=>x.status==='quarantined').length||
+    body.recoveryAttempts!==entries.reduce((n,x)=>n+x.restartAttempts,0)||
+    body.verifiedRecoveries!==entries.reduce((n,x)=>n+x.successfulRestarts,0))
+   fail('SUPERVISOR_CHECKPOINT_INVALID');
+  for(const [key,saved] of restored){
+   // A completed quarantine and every consumed attempt survive supervisor restarts.
+   if(saved.status==='quarantined'||saved.restartAttempts>=maxRestarts){
+    saved.status='quarantined';saved.lastOutcome='restart_budget_exhausted';
+   }
+   statuses.set(key,saved);
+  }
+  cycle=body.checks;probes=body.probes;
+ }
+ restoreCheckpoint();
  async function check(app){
   const u=local(app.origin);
   const response=await fetch(u.origin+'/health',{signal:AbortSignal.timeout(2000),
@@ -56,10 +126,7 @@ function createPrivateFleetSupervisor({fleet,maxRestarts=2,intervalMs=5000}={}){
   return {...body,digest:hash(body)};
  }
  function write(snapshot){
-  const root=fs.lstatSync(fleet.stateRoot);
-  if(!root.isDirectory()||root.isSymbolicLink()||
-     fs.realpathSync(fleet.stateRoot)!==path.resolve(fleet.stateRoot)||
-     (process.platform!=='win32'&&(root.mode&0o077)!==0))fail('SUPERVISOR_STATE_UNSAFE');
+  privateRoot();
   if(fs.existsSync(reportPath)){
    const stat=fs.lstatSync(reportPath);
    if(!stat.isFile()||stat.isSymbolicLink()||(process.platform!=='win32'&&(stat.mode&0o077)!==0))
@@ -71,6 +138,9 @@ function createPrivateFleetSupervisor({fleet,maxRestarts=2,intervalMs=5000}={}){
    try{fs.writeFileSync(fd,JSON.stringify(snapshot,null,2)+'\n');fs.fsyncSync(fd);}
    finally{fs.closeSync(fd);}
    fs.renameSync(temp,reportPath);
+   if(process.platform!=='win32'){
+    const dir=fs.openSync(fleet.stateRoot,'r');try{fs.fsyncSync(dir);}finally{fs.closeSync(dir);}
+   }
   }finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}
  }
  async function tick(){
