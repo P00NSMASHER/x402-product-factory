@@ -5,6 +5,7 @@ on:
     paths:
       - 'quality/governance/application-production-*'
       - 'scripts/audit-app-production-integration*'
+      - 'scripts/rehearse-private-main-integration*'
       - '.github/workflows/factory-production-integration-ci.yml'
   workflow_dispatch:
 
@@ -27,22 +28,28 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+          fetch-depth: 0
       - name: Verify read-only audit source and adversarial release-gate tests
         run: |
-          node --test quality/governance/application-production-audit.test.js scripts/audit-app-production-integration.test.js quality/governance/application-production-workflow.test.js
+          node --test quality/governance/application-production-audit.test.js scripts/audit-app-production-integration.test.js quality/governance/application-production-workflow.test.js scripts/rehearse-private-main-integration.test.js
+      - name: Model actual main-to-private-candidate merge without modifying source or refs
+        run: |
+          set -euo pipefail
+          mkdir -m 700 "$RUNNER_TEMP/private-integration-evidence"
+          node scripts/rehearse-private-main-integration.js --output "$RUNNER_TEMP/private-integration-evidence/git-dryrun.json"
+          node -e 'const fs=require("node:fs");const q=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));const r=q.report;if(q.kind!=="private-readonly-git-merge-rehearsal"||q.productionAuthorization!==false||r.kind!=="git-object-only-integration-rehearsal"||r.sourceRefUnchanged!==true||r.mainRefModified!==false||r.worktreeModified!==false||r.releaseApproved!==false||r.productionReady!==false||r.externalContacts!==0||r.gitRefsUpdated!==0||r.deploymentsPerformed!==0||r.product025Unlocked!==false)throw Error("MERGE_DRYRUN_NOT_ISOLATED");console.log(JSON.stringify({gitObjectDryRun:true,behind:r.candidateBehindBy,ahead:r.candidateAheadBy,clean:r.cleanMergePossible,conflicts:r.conflictsReported,paths:r.conflictPaths,sourceChanged:false,publicRelease:false}));' "$RUNNER_TEMP/private-integration-evidence/git-dryrun.json"
       - name: Inspect LIVE upstream GitHub draft PRs, main divergence and exact-head CI
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mkdir -m 700 "$RUNNER_TEMP/private-integration-evidence"
           node scripts/audit-app-production-integration.js --audit-live --output "$RUNNER_TEMP/private-integration-evidence/readonly-status.json"
           node -e 'const fs=require("node:fs");const p=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(p.kind!=="private-readonly-app-integration-evidence"||p.productionAuthorization!==false||p.independentSignature!==false||p.report.kind!=="read-only-factory-production-integration-audit"||p.report.canonicalStackPrs!==33||p.report.candidateWorkflowCount!==9||p.report.productionReady!==false||p.report.releaseApproved!==false||p.report.externalContacts!==0||p.report.mergesPerformed!==0||p.report.deploymentsPerformed!==0||p.report.product025Unlocked!==false)throw Error("READONLY_INTEGRATION_REPORT_UNSAFE");console.log(JSON.stringify({mode:"GET_ONLY",stackPrs:p.report.canonicalStackChecked,exactHeadGreen:p.report.candidateWorkflowsPassed,missingIntegration:p.report.findings.length,mainBehind:p.report.candidateBehindBy,releaseStatus:p.report.releaseStatus,productionReady:false,contacts:0,merges:0}));' "$RUNNER_TEMP/private-integration-evidence/readonly-status.json"
       - uses: actions/upload-artifact@v4
         if: success()
         with:
           name: private-production-integration-readonly-audit
-          path: ${{ runner.temp }}/private-integration-evidence/readonly-status.json
+          path: ${{ runner.temp }}/private-integration-evidence
           retention-days: 7
           if-no-files-found: error
           include-hidden-files: false

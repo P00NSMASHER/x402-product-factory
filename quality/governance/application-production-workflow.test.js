@@ -8,6 +8,10 @@ test('integration gate is read-only, no new scheduler, no secret or write tokens
  assert.match(text,/contents: read/);
  assert.match(text,/actions: read/);
  assert.match(text,/persist-credentials: false/);
+ assert.match(text,/fetch-depth: 0/);
+ assert.match(text,/rehearse-private-main-integration\.js --output/);
+ assert.match(text,/MERGE_DRYRUN_NOT_ISOLATED/);
+ assert.match(text,/gitRefsUpdated!==0/);
  assert.match(text,/--audit-live --output/);
  assert.match(text,/github\.token/);
  assert.match(text,/private-production-integration-readonly-audit/);
