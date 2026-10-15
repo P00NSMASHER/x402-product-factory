@@ -161,6 +161,10 @@ function createPrivateFleetSupervisor({fleet,maxRestarts=2,intervalMs=5000}={}){
      s.status='quarantined';s.lastOutcome='restart_budget_exhausted';continue;
     }
     s.restartAttempts++;
+    // Commit the consumed budget BEFORE attempting recovery. A supervisor crash
+    // inside fleet.recover must not replay the attempt after restart.
+    s.status='unhealthy';s.lastOutcome='pending';
+    write(snapshot());
     try{
      const event=await fleet.recover(s.family,s.id);
      if(event.recovered!==true||event.sourceDigest!==s.sourceDigest||event.statePreserved!==true||
