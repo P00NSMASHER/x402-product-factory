@@ -40,6 +40,15 @@ function expectedPackage(entry){
    inventory.compileInventoryPackage(entry.recipe).digest;
 }
 function verifySlot(output,receipt,entries){
+ if(receipt?.recoveredLate!==undefined){
+  const stamp=receipt.executedAt;
+  if(receipt.recoveredLate!==true||typeof stamp!=='string'||
+     !/^20\d\d-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{3})?Z$/.test(stamp)||
+     !Number.isFinite(Date.parse(stamp))||
+     new Date(Date.parse(stamp)).toISOString().slice(0,19)!==stamp.slice(0,19)||
+     Date.parse(stamp)<EPOCH+(receipt.cycle+1)*SLOT)
+    fail('CROSS_RECEIPT_INVALID');
+ }else if(receipt?.executedAt!==undefined)fail('CROSS_RECEIPT_INVALID');
  if(!receipt||receipt.kind!=='cross-family-autonomous-slot'||receipt.schemaVersion!==1||
     !Number.isSafeInteger(receipt.cycle)||receipt.cycle<0||receipt.cycle>110000||
     !['quote-to-order','inventory-control'].includes(receipt.family)||
@@ -109,11 +118,12 @@ function readJournal(output,entries){
  }
  return list.sort((a,b)=>a.cycle-b.cycle);
 }
-function planCrossCycle({at=new Date().toISOString(),outputRoot}={}){
+function planCrossCycle({at=new Date().toISOString(),outputRoot,historicalRepair=false}={}){
+ if(typeof historicalRepair!=='boolean')fail('CROSS_HISTORY_INVALID');
  const cycle=clock(at),entries=loadOpportunities();
  const root=outputRoot?safeRoot(outputRoot):null;
  const journal=root?readJournal(root,entries):[];
- if(journal.some(v=>v.cycle>cycle))fail('CROSS_FUTURE_RECEIPT');
+ if(journal.some(v=>v.cycle>cycle)&&!historicalRepair)fail('CROSS_FUTURE_RECEIPT');
  const existing=journal.find(v=>v.cycle===cycle);
  let selected=existing?entries.find(x=>x.key===existing.key):null;
  if(!selected){
@@ -126,6 +136,7 @@ function planCrossCycle({at=new Date().toISOString(),outputRoot}={}){
   selected:selected?{key:selected.key,family:selected.family,sourceDigest:selected.proposalDigest,
     packageDigest:expectedPackage(selected),technicalFitScore:selected.technicalFitScore}:null,
   completed:journal.length,available:entries.length,
+  historicRepairMode:historicalRepair,
   exhausted:selected===null,nextAction:selected?'manufacture_and_verify_one':
     'new_independent_research_required',
   buyerDemandValidated:false,sourceVerification:'operator_provided_unverified',
@@ -142,7 +153,12 @@ function atomicReceipt(filename,value){
  }finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}
  return body;
 }
-function runCrossCycle({at=new Date().toISOString(),outputRoot}={}){
+function runCrossCycle({at=new Date().toISOString(),outputRoot,historicalRepair=false}={}){
+ if(typeof historicalRepair!=='boolean')fail('CROSS_HISTORY_INVALID');
+ if(historicalRepair){
+  const scheduled=clock(at),actual=clock(new Date().toISOString());
+  if(scheduled>=actual)fail('CROSS_HISTORY_INVALID');
+ }
  if(typeof outputRoot!=='string')fail('CROSS_PATH_UNSAFE');
  const output=safeRoot(outputRoot,{create:true});
  const roots={packages:path.join(output,'packages'),receipts:path.join(output,'receipts')};
@@ -150,7 +166,7 @@ function runCrossCycle({at=new Date().toISOString(),outputRoot}={}){
  const lock=path.join(output,'.cross-director.lock');
  let fd;try{fd=fs.openSync(lock,'wx',0o600);}catch(e){if(e.code==='EEXIST')fail('CROSS_BUSY');throw e;}
  try{
-  const plan=planCrossCycle({at,outputRoot:output});
+  const plan=planCrossCycle({at,outputRoot:output,historicalRepair});
   if(plan.exhausted)return {...plan,accepted:0,failed:0,reused:0,
     verifiedSlot:null,verification:'no-new-independent-idea'};
   const found=readJournal(output,loadOpportunities()).find(v=>v.cycle===plan.cycle);
@@ -167,8 +183,9 @@ function runCrossCycle({at=new Date().toISOString(),outputRoot}={}){
      out.verification!==(entry.family==='quote-to-order'?
       'executed-packaged-quote-lifecycle':'executed-packaged-inventory-lifecycle'))
    fail('CROSS_MANUFACTURING_FAILED');
+  const late=historicalRepair?{recoveredLate:true,executedAt:new Date().toISOString()}:{};
   const receipt=atomicReceipt(path.join(roots.receipts,'cycle-'+plan.cycle+'.json'),
-   {kind:'cross-family-autonomous-slot',schemaVersion:1,cycle:plan.cycle,
+   {kind:'cross-family-autonomous-slot',schemaVersion:1,cycle:plan.cycle,...late,
     key:entry.key,family:entry.family,sourceDigest:entry.proposalDigest,
     packageDigest:plan.selected.packageDigest,status:'accepted',accepted:1,failed:0,
     verification:out.verification,marketValidated:false,releaseApproved:false,
