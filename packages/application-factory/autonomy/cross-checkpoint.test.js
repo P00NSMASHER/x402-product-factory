@@ -49,7 +49,9 @@ test('no replacement of conflicting old receipts and no out-of-scope imports',t=
  runCrossCycle({at:at(0),outputRoot:origin});
  restoreCrossCheckpoint({sourceRoot:x.source,outputRoot:x.output});
  const receipt=path.join(target,'receipts','cycle-0.json');
- const original=fs.readFileSync(receipt);fs.appendFileSync(receipt,'\n');
+ const original=fs.readFileSync(receipt);
+ const altered=JSON.parse(original);altered.sourceDigest='c'.repeat(64);
+ fs.writeFileSync(receipt,JSON.stringify(altered)+'\n');
  assert.throws(()=>restoreCrossCheckpoint({sourceRoot:x.source,outputRoot:x.output}),/CROSS_RECEIPT_INVALID/);
  fs.writeFileSync(receipt,original);
  const extra=path.join(origin,'packages','cycle-0','exfiltrate.txt');
