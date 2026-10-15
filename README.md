@@ -37,7 +37,7 @@ The draft [release graph gate](quality/governance/README.md) now checks all 14 s
 | # | Product | Status | Route | Price |
 |---|---|---|---|---:|
 | 001 | PA Entity Lookup | production reference | `/_api/pa-entity-one` | $0.001 |
-| 002 | PA Vendor Intake Gate | production reference | `/api/vendor-intake-gate` | $0.020 |
+| 002 | PA Vendor Intake Gate | Floot production (server-to-server) | `/_api/vendor-intake-gate` | $0.020 |
 | 003 | PA Vendor Identity Match | live-source-verified staging | `/api/pa-vendor-identity-match` | $0.005 |
 | 004 | PA Business Address Match | live-source-verified staging | `/api/pa-business-address-match` | $0.003 |
 | 005 | PA Business Domain Match | live-source-verified staging | `/api/pa-business-domain-match` | $0.003 |
@@ -58,6 +58,24 @@ The draft [release graph gate](quality/governance/README.md) now checks all 14 s
 | 020 | PA Vendor Domain Continuity Review | live-source-verified staging | `/api/pa-vendor-domain-continuity-review` | $0.006 |
 
 Product 001 has an independently verified third-party Base USDC settlement and remains the payment/distribution reference.
+
+## Product 002
+
+The PA Vendor Intake Gate combines:
+- Pennsylvania Department of State registry identity,
+- U.S. Census address consistency,
+- current OFAC SDN candidate screening, and
+- authoritative RDAP registration.
+
+It returns `proceed` or `human_review`, never an automatic rejection. The factory now contains its deterministic decision policy, direct-source composition service, shared-x402 paid handler, and discovery metadata. A required-source transport failure is explicitly non-chargeable and is never settled.
+
+The durable PA seller remains on Floot. Product 002's paid route, unpaid x402 challenge, OpenAPI operation, and same-origin discovery entry are live there at `/_api/vendor-intake-gate`; the historical AppDeploy URL remains reference evidence only. Floot owns the route's `OPTIONS` response and does not support custom `*_OPTIONS.ts` endpoints, so the supported buyer mode is server-to-server x402. Browser-preflight compatibility is not claimed.
+
+`node scripts/verify-floot-product-002.js` performs a read-only, zero-payment audit of that cutover boundary. `--require-ready` strictly gates the Product 002 server-to-server route, discovery, and payment contract while also preserving the existing `/_api/pa-entity-one` `$0.001` and `/_api/pa-business` `$0.005` discovery/challenge contracts. The audit reports browser preflight separately through `browserPreflightReady` and warnings; `--require-browser-preflight` is diagnostic only and is not a Floot production gate.
+
+The Product 002 Floot endpoint and schema are pinned to an immutable source commit with byte lengths, Git blob IDs, and SHA-256 hashes in `deploy/floot-pa-vendor-gate/rollback-manifest.json`. `node scripts/verify-floot-product-002-rollback.js --verify-remote` validates those rollback bytes without sending payment headers or changing Floot.
+
+`production-topology.json` is the canonical discovery-ownership map: three PA routes belong to Floot, while SEC, OFAC, Census, RDAP, and Treasury belong to the Supabase data-tools seller. `node scripts/verify-production-topology.js` audits both live catalogs without payment. Historical same-origin data-tool copies still advertised by Floot are reported as noncanonical legacy-shadow warnings; they never satisfy a missing canonical Supabase route.
 
 ## Product 003
 
@@ -374,3 +392,41 @@ No upgrade/payment has been authorized. Products 003–023 therefore remain stag
 Shared packages, product modules, runtime wiring, release gates, discovery generators, and maintained GitHub workflows live directly at repository root. The former `permitplate-nyc/x402-product-factory-bootstrap` branch is retained only as migration history/source evidence and is no longer the canonical development location.
 
 See each product's `DEPLOYMENT_PLAN.md` and release gate before any production deployment.
+
+
+## Revenue-growth freeze
+
+Effective 2026-10-06, Products 025+ are frozen. Do not design, register, implement, stage, or deploy a new numbered product until at least one existing product satisfies either demand-unlock condition:
+
+- 5 distinct genuine external buyers; or
+- $1.00 USDC of genuine external revenue.
+
+Self-purchases, operator-controlled wallets, synthetic settlements, test payments, and manufactured traffic do not count toward either threshold. Existing Products 001-024 may be improved, composed, documented, deployed, repriced, or consolidated while the freeze is active.
+
+The purpose of this freeze is to move the factory from catalog expansion to external demand validation. Once a threshold is independently evidenced, record the evidence before creating Product 025.
+
+
+## Revenue operating scoreboard
+
+The factory is now measured by external demand rather than product count.
+
+### Primary proof target
+
+Reach Agent402's proven-seller floor using only genuine external activity:
+
+- at least 20 outside settlements;
+- from at least 3 distinct outside payers.
+
+Current independently verified baseline: at least 1 outside settlement for Product 001. Do not infer additional buyers or settlements without evidence.
+
+### 30-day targets
+
+- 20+ genuine outside settlements and 3+ distinct payers;
+- 10 distinct external x402 payers across the portfolio;
+- at least one route with a repeat external buyer;
+- at least one higher-priced composed decision product with genuine external revenue;
+- no Product 025+ until the revenue-growth freeze unlocks.
+
+### Counting rules
+
+Operator-controlled wallets, self-purchases, synthetic/test payments, marketplace crawler price checks, and manufactured traffic never count as demand. Record only independently attributable external settlements.

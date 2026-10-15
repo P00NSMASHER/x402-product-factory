@@ -4,6 +4,7 @@
 // Do not hand-edit. This file contains only static local requires so it can be bundled for AppDeploy.
 
 const METADATA_MODULES=Object.freeze({
+  "pa-vendor-intake-gate":require("../products/pa-vendor-gate/metadata"),
   "pa-vendor-identity-match":require("../products/pa-vendor-identity-match/metadata"),
   "pa-business-address-match":require("../products/pa-business-address-match/metadata"),
   "pa-business-domain-match":require("../products/pa-business-domain-match/metadata"),
@@ -29,6 +30,7 @@ const METADATA_MODULES=Object.freeze({
 });
 
 const SERVICE_MODULES=Object.freeze({
+  "pa-vendor-intake-gate":require("../products/pa-vendor-gate/service"),
   "pa-vendor-identity-match":require("../products/pa-vendor-identity-match/service"),
   "pa-business-address-match":require("../products/pa-business-address-match/service"),
   "pa-business-domain-match":require("../products/pa-business-domain-match/service"),
@@ -54,6 +56,7 @@ const SERVICE_MODULES=Object.freeze({
 });
 
 const PAID_HANDLER_MODULES=Object.freeze({
+  "pa-vendor-intake-gate":require("../products/pa-vendor-gate/paid-handler"),
   "pa-vendor-identity-match":require("../products/pa-vendor-identity-match/paid-handler"),
   "pa-business-address-match":require("../products/pa-business-address-match/paid-handler"),
   "pa-business-domain-match":require("../products/pa-business-domain-match/paid-handler"),
