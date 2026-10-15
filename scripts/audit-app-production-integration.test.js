@@ -4,7 +4,8 @@ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),cryp
 const {parse,privateSave,main}=require('./audit-app-production-integration');
 const tmp=t=>{const d=fs.mkdtempSync(path.join(os.tmpdir(),'private-app-integration-'));
  t.after(()=>fs.rmSync(d,{recursive:true,force:true}));return d;};
-const report=()=>({candidatePr:56,canonicalStackChecked:33,
+const report=()=>({candidatePr:56,candidateHead:'3'.repeat(40),mainHead:'2'.repeat(40),
+ canonicalStackChecked:33,
  candidateWorkflowsPassed:9,candidateWorkflowCount:9,
  candidateBehindBy:60,findings:[{code:'DEFAULT_BRANCH_HISTORY_NOT_IN_CANDIDATE'}],
  releaseStatus:'BLOCK_MAIN_RECONCILIATION',
