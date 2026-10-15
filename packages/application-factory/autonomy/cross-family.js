@@ -29,7 +29,10 @@ function publicReference(raw,asOf){
     !host.split('.').every(x=>x.length>0&&x.length<=63&&!x.startsWith('-')&&!x.endsWith('-'))||
     !u.pathname.startsWith('/')||raw.url!==u.href)fail('OPPORTUNITY_REFERENCE_INVALID');
  const stamp=day(raw.observedOn);
- if(stamp>asOf||asOf-stamp>180*86400000)fail('OPPORTUNITY_REFERENCE_INVALID');
+ // A reference is fresh relative to its OWN proposal's observation window.
+ // Advancing the append-only corpus date must never invalidate older pinned
+ // recipes already independently accepted in historical CI cycles.
+ if(stamp>asOf)fail('OPPORTUNITY_REFERENCE_INVALID');
  return {url:raw.url,observedOn:raw.observedOn,verification:'public-context-reference-not-independent-buyer-evidence'};
 }
 function fingerprint(recipe){return JSON.stringify(recipe.items.map(v=>v.id).sort());}
@@ -43,6 +46,7 @@ function loadOpportunities({sourceFile=SOURCE}={}){
   root.kind!=='cross-family-hypothesis-queue'||root.license!=='background-context-not-demand-proof'||
   !Array.isArray(root.proposals)||root.proposals.length<2||root.proposals.length>24)fail('OPPORTUNITY_INVALID');
  const asOf=day(root.observedOn),seen=new Set(),recipes=[];
+ let latestReference=0;
  const controls=[...baselineQuotes.map(v=>({family:v.family,id:v.id,recipe:v})),
   ...baselineInventory.map(v=>({family:v.family,id:v.id,recipe:v}))];
  for(const proposal of root.proposals){
@@ -57,6 +61,10 @@ function loadOpportunities({sourceFile=SOURCE}={}){
   seen.add(proposal.key);
   const references=proposal.sources.map(s=>publicReference(s,asOf));
   if(references[0].url===references[1].url)fail('OPPORTUNITY_REFERENCE_INVALID');
+  const earliest=Math.min(...references.map(v=>day(v.observedOn)));
+  const newest=Math.max(...references.map(v=>day(v.observedOn)));
+  if(newest-earliest>180*86400000)fail('OPPORTUNITY_REFERENCE_STALE');
+  latestReference=Math.max(latestReference,newest);
   const inputs=proposal.inputs.map(v=>{
    if(!exact(v,['id','label','unit'])||!safe(v.id,2,55)||
     !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(v.id)||!safe(v.label,5,100)||
@@ -88,6 +96,9 @@ function loadOpportunities({sourceFile=SOURCE}={}){
    references,sourceVerification:'operator_provided_unverified',buyerDemandValidated:false,
    realCustomers:null,collectedRevenue:null,releaseApproved:false});
  }
+ // A monotonic corpus watermark is the most recent admitted source
+ // observation, not an expiry date for older source-verified app identities.
+ if(latestReference!==asOf)fail('OPPORTUNITY_WATERMARK_INVALID');
  if(!recipes.some(v=>v.family==='quote-to-order')||!recipes.some(v=>v.family==='inventory-control'))
   fail('OPPORTUNITY_INVALID');
  return recipes;
