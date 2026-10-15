@@ -7,6 +7,7 @@ const {validateRecipe:validateInventory}=require('../inventory-family/engine');
 const baselineQuotes=require('../quote-family/recipes.json');
 const baselineInventory=require('../inventory-family/recipes.json');
 const SOURCE=path.join(__dirname,'cross-family','proposals.json');
+const PINS=path.join(__dirname,'cross-family','original-proposals-20261013.json');
 const fail=code=>{throw Error(code);};
 const exact=(v,keys)=>v!==null&&typeof v==='object'&&!Array.isArray(v)&&
  Object.keys(v).length===keys.length&&keys.every(k=>Object.hasOwn(v,k));
@@ -36,6 +37,23 @@ function publicReference(raw,asOf){
  return {url:raw.url,observedOn:raw.observedOn,verification:'public-context-reference-not-independent-buyer-evidence'};
 }
 function fingerprint(recipe){return JSON.stringify(recipe.items.map(v=>v.id).sort());}
+// Source-controlled frozen prefix for the original eight hypotheses. This is an
+// accidental-drift prevention control, not a cryptographic publisher signature.
+function verifyHistoricalPrefix(proposals,{seedFile=PINS}={}){
+ let stat;try{stat=fs.lstatSync(seedFile);}catch{fail('OPPORTUNITY_SEED_INVALID');}
+ if(!stat.isFile()||stat.isSymbolicLink()||stat.size<64||stat.size>90000)fail('OPPORTUNITY_SEED_INVALID');
+ let seed;try{seed=JSON.parse(fs.readFileSync(seedFile,'utf8'));}catch{fail('OPPORTUNITY_SEED_INVALID');}
+ if(!exact(seed,['schemaVersion','kind','observedOn','license','proposals'])||
+    seed.schemaVersion!==1||seed.kind!=='cross-family-hypothesis-queue'||
+    seed.license!=='background-context-not-demand-proof'||
+    seed.observedOn!=='2026-10-13'||!Array.isArray(seed.proposals)||
+    seed.proposals.length!==8||!Array.isArray(proposals)||
+    proposals.length<seed.proposals.length||
+    JSON.stringify(proposals.slice(0,seed.proposals.length))!==JSON.stringify(seed.proposals))
+   fail('OPPORTUNITY_SEED_CHANGED');
+ return {pinned:seed.proposals.length,appendOnly:true,independentDemandEvidence:false};
+}
+
 function loadOpportunities({sourceFile=SOURCE}={}){
  if(typeof sourceFile!=='string'||!path.isAbsolute(sourceFile))fail('OPPORTUNITY_SOURCE_INVALID');
  let st;try{st=fs.lstatSync(sourceFile);}catch{fail('OPPORTUNITY_SOURCE_INVALID');}
@@ -45,6 +63,7 @@ function loadOpportunities({sourceFile=SOURCE}={}){
  if(!exact(root,['schemaVersion','kind','observedOn','license','proposals'])||root.schemaVersion!==1||
   root.kind!=='cross-family-hypothesis-queue'||root.license!=='background-context-not-demand-proof'||
   !Array.isArray(root.proposals)||root.proposals.length<2||root.proposals.length>24)fail('OPPORTUNITY_INVALID');
+ if(path.resolve(sourceFile)===path.resolve(SOURCE))verifyHistoricalPrefix(root.proposals);
  const asOf=day(root.observedOn),seen=new Set(),recipes=[];
  let latestReference=0;
  const controls=[...baselineQuotes.map(v=>({family:v.family,id:v.id,recipe:v})),
@@ -115,4 +134,4 @@ function reportOpportunities(args={}){
   independentBuyerEvidence:false,realCustomers:null,collectedRevenue:null,
   publicDeploymentEnabled:false,paymentsSent:0,transmittedMessages:0,releaseApproved:false};
 }
-module.exports={loadOpportunities,reportOpportunities};
+module.exports={loadOpportunities,reportOpportunities,verifyHistoricalPrefix};

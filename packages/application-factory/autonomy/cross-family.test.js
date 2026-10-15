@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
-const {loadOpportunities,reportOpportunities}=require('./cross-family');
+const {loadOpportunities,reportOpportunities,verifyHistoricalPrefix}=require('./cross-family');
 const {compileQuoteApp}=require('../quote-family/manufacturing');
 const {compileInventoryPackage}=require('../inventory-family/manufacturing');
 const SRC=path.join(__dirname,'cross-family','proposals.json');
@@ -10,18 +10,18 @@ const scratch=t=>{const d=fs.mkdtempSync(path.join(os.tmpdir(),'cross-family-ide
 const mutate=(t,fn)=>{const d=scratch(t),file=path.join(d,'source.json');
  const row=JSON.parse(fs.readFileSync(SRC,'utf8'));
  fn(row);fs.writeFileSync(file,JSON.stringify(row));return file;};
-test('constrained source corpus generates eight independently distinct runnable application specifications',()=>{
- const rows=loadOpportunities();assert.equal(rows.length,8);
- assert.equal(rows.filter(v=>v.family==='quote-to-order').length,4);
- assert.equal(rows.filter(v=>v.family==='inventory-control').length,4);
- assert.equal(new Set(rows.map(v=>v.key)).size,8);
+test('constrained source corpus generates fourteen independently distinct runnable application specifications',()=>{
+ const rows=loadOpportunities();assert.equal(rows.length,14);
+ assert.equal(rows.filter(v=>v.family==='quote-to-order').length,7);
+ assert.equal(rows.filter(v=>v.family==='inventory-control').length,7);
+ assert.equal(new Set(rows.map(v=>v.key)).size,14);
  for(const row of rows){
   const pkg=row.family==='quote-to-order'?compileQuoteApp(row.recipe):compileInventoryPackage(row.recipe);
   assert.equal(pkg.digest.length,64);assert.equal(pkg.manifest.releaseApproved,false);
   assert.equal(row.buyerDemandValidated,false);assert.ok(row.technicalFitScore>=65);
  }
  const report=reportOpportunities();
- assert.equal(report.total,8);assert.equal(report.independentBuyerEvidence,false);
+ assert.equal(report.total,14);assert.equal(report.independentBuyerEvidence,false);
  assert.equal(report.publicDeploymentEnabled,false);assert.equal(report.collectedRevenue,null);
  assert.equal(report.releaseApproved,false);
 });
@@ -56,5 +56,36 @@ test('corrupt sources, extra revenue fields and symlinks are rejected',t=>{
  if(process.platform!=='win32'){
   const link=path.join(d,'link.json');fs.symlinkSync(SRC,link);
   assert.throws(()=>loadOpportunities({sourceFile:link}),/OPPORTUNITY_SOURCE_INVALID/);
+ }
+});
+
+test('the original eight referenced workflow identities remain an immutable source-pinned prefix',()=>{
+ const all=JSON.parse(fs.readFileSync(SRC,'utf8'));
+ assert.deepEqual(verifyHistoricalPrefix(all.proposals),{
+  pinned:8,appendOnly:true,independentDemandEvidence:false});
+ const corrupted=JSON.parse(JSON.stringify(all.proposals));
+ corrupted[0].problem='Changed after the prior independent source package acceptance';
+ assert.throws(()=>verifyHistoricalPrefix(corrupted),/OPPORTUNITY_SEED_CHANGED/);
+ const truncated=all.proposals.slice(0,7);
+ assert.throws(()=>verifyHistoricalPrefix(truncated),/OPPORTUNITY_SEED_CHANGED/);
+});
+test('fresh later appended ideas do not invalidate older dated source references or their original pinned digests',t=>{
+ const p=mutate(t,v=>{
+  // Historical context from nine months earlier is retained as a past observation,
+  // not presented as new 2026-10-14 market or technical findings.
+  for(const source of v.proposals[0].sources)source.observedOn='2026-01-01';
+ });
+ const rows=loadOpportunities({sourceFile:p});
+ assert.equal(rows.length,14);
+ assert.equal(rows[0].sourceVerification,'operator_provided_unverified');
+ assert.equal(rows[0].buyerDemandValidated,false);
+});
+test('corpus observation watermark cannot be forged and one proposal cannot mix unrelated stale references',t=>{
+ for(const edit of [
+  x=>x.observedOn='2026-10-13',
+  x=>x.observedOn='2026-10-15',
+  x=>x.proposals[8].sources[0].observedOn='2026-01-01']){
+  const p=mutate(t,edit);
+  assert.throws(()=>loadOpportunities({sourceFile:p}),/OPPORTUNITY_REFERENCE_INVALID|OPPORTUNITY_WATERMARK_INVALID|OPPORTUNITY_REFERENCE_STALE/);
  }
 });

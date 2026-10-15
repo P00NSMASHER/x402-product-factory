@@ -1,0 +1,296 @@
+{
+  "schemaVersion": 1,
+  "kind": "cross-family-hypothesis-queue",
+  "observedOn": "2026-10-13",
+  "license": "background-context-not-demand-proof",
+  "proposals": [
+    {
+      "key": "packaging-line-changeover",
+      "family": "quote-to-order",
+      "title": "Packaging Line Changeover Estimate",
+      "buyer": "Small packaging equipment service teams",
+      "problem": "Packaging machinery teams may need a consistent way to estimate supervised line changeover work.",
+      "trigger": "A packaging job requests a new format and pre-start inspection.",
+      "sourceStatus": "background_only_unverified",
+      "sources": [
+        {
+          "url": "https://www.nist.gov/mep",
+          "observedOn": "2026-10-13"
+        },
+        {
+          "url": "https://origin-www.acquisition.gov/far/15.404-1",
+          "observedOn": "2026-10-13"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "format-changeover-hours",
+          "label": "Changeover labor",
+          "unit": "hour"
+        },
+        {
+          "id": "setup-proof-jobs",
+          "label": "Setup proof",
+          "unit": "job"
+        },
+        {
+          "id": "equipment-travel-trips",
+          "label": "Equipment travel",
+          "unit": "trip"
+        }
+      ]
+    },
+    {
+      "key": "machine-tool-repair",
+      "family": "quote-to-order",
+      "title": "Machine Tool Repair Estimate",
+      "buyer": "Independent machine tool service coordinators",
+      "problem": "Machine shop teams may need itemized estimate reviews before approving tool repair activity.",
+      "trigger": "A CNC machine stops and its service needs assessment.",
+      "sourceStatus": "background_only_unverified",
+      "sources": [
+        {
+          "url": "https://www.nist.gov/mep/manufacturing-reports/supply-chain",
+          "observedOn": "2026-10-13"
+        },
+        {
+          "url": "https://origin-www.acquisition.gov/far/15.404-1",
+          "observedOn": "2026-10-13"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "spindle-service-hours",
+          "label": "Spindle technician work",
+          "unit": "hour"
+        },
+        {
+          "id": "replacement-tool-kits",
+          "label": "Replacement tool kits",
+          "unit": "item"
+        },
+        {
+          "id": "site-startup-visits",
+          "label": "Site startup checks",
+          "unit": "visit"
+        }
+      ]
+    },
+    {
+      "key": "facility-project-survey",
+      "family": "quote-to-order",
+      "title": "Facility Survey Estimate",
+      "buyer": "Property maintenance project planners",
+      "problem": "Facilities teams may have to reconcile site survey estimates and review handoffs across several work types.",
+      "trigger": "A new maintenance work scope requires estimation and independent review.",
+      "sourceStatus": "background_only_unverified",
+      "sources": [
+        {
+          "url": "https://www.nist.gov/mep/about-nist-mep/partnerships",
+          "observedOn": "2026-10-13"
+        },
+        {
+          "url": "https://origin-www.acquisition.gov/far/15.404-1",
+          "observedOn": "2026-10-13"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "survey-labor-hours",
+          "label": "Survey labor",
+          "unit": "hour"
+        },
+        {
+          "id": "documentation-visits",
+          "label": "Site documentation visits",
+          "unit": "visit"
+        },
+        {
+          "id": "condition-check-units",
+          "label": "Condition checks",
+          "unit": "unit"
+        }
+      ]
+    },
+    {
+      "key": "equipment-return-service",
+      "family": "quote-to-order",
+      "title": "Equipment Return Service Estimate",
+      "buyer": "Small equipment refurbishment centers",
+      "problem": "Refurbishment coordinators may struggle to break down service estimates by labor and consumable steps.",
+      "trigger": "An equipment return requires an itemized internal estimate before further work.",
+      "sourceStatus": "background_only_unverified",
+      "sources": [
+        {
+          "url": "https://www.nist.gov/mep",
+          "observedOn": "2026-10-13"
+        },
+        {
+          "url": "https://origin-www.acquisition.gov/far/15.404-1",
+          "observedOn": "2026-10-13"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "refurbishment-hours",
+          "label": "Return assessment labor",
+          "unit": "hour"
+        },
+        {
+          "id": "reconditioning-materials",
+          "label": "Reconditioning materials",
+          "unit": "item"
+        },
+        {
+          "id": "testing-jobs",
+          "label": "Final testing",
+          "unit": "job"
+        }
+      ]
+    },
+    {
+      "key": "machine-cell-consumables",
+      "family": "inventory-control",
+      "title": "Machine Cell Consumables Desk",
+      "buyer": "Small manufacturing cell coordinators",
+      "problem": "Machining teams may miss internal replenishment of low stock before a new production shift.",
+      "trigger": "An internal machine cell reports consumable stock under a review threshold.",
+      "sourceStatus": "background_only_unverified",
+      "sources": [
+        {
+          "url": "https://www.nist.gov/mep",
+          "observedOn": "2026-10-13"
+        },
+        {
+          "url": "https://www.nist.gov/mep/manufacturing-reports/supply-chain",
+          "observedOn": "2026-10-13"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "lathe-insert-packs",
+          "label": "Lathe insert packs",
+          "unit": "pack"
+        },
+        {
+          "id": "coolant-filter-kits",
+          "label": "Coolant filter kits",
+          "unit": "kit"
+        },
+        {
+          "id": "machine-label-boxes",
+          "label": "Machine inspection label boxes",
+          "unit": "box"
+        }
+      ]
+    },
+    {
+      "key": "warehouse-dock-spares",
+      "family": "inventory-control",
+      "title": "Warehouse Dock Spare Desk",
+      "buyer": "Distribution center equipment coordinators",
+      "problem": "Loading dock repairs may wait for an internal stock review and available repair component status.",
+      "trigger": "A dock maintenance work order needs standard spares reserved.",
+      "sourceStatus": "background_only_unverified",
+      "sources": [
+        {
+          "url": "https://www.nist.gov/mep/manufacturing-reports/supply-chain",
+          "observedOn": "2026-10-13"
+        },
+        {
+          "url": "https://www.nist.gov/mep/about-nist-mep/partnerships",
+          "observedOn": "2026-10-13"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "dock-bumper-pieces",
+          "label": "Dock bumper pieces",
+          "unit": "piece"
+        },
+        {
+          "id": "roller-bearing-kits",
+          "label": "Roller bearing kits",
+          "unit": "kit"
+        },
+        {
+          "id": "fastener-refill-boxes",
+          "label": "Fastener refill boxes",
+          "unit": "box"
+        }
+      ]
+    },
+    {
+      "key": "packing-line-readiness",
+      "family": "inventory-control",
+      "title": "Packing Line Readiness Shelf",
+      "buyer": "Small production packaging supervisors",
+      "problem": "Packing lines may run short on protective and sealing materials when internal checks are overdue.",
+      "trigger": "A new packing run consumes supplies faster than the review queue updates.",
+      "sourceStatus": "background_only_unverified",
+      "sources": [
+        {
+          "url": "https://www.nist.gov/mep",
+          "observedOn": "2026-10-13"
+        },
+        {
+          "url": "https://www.nist.gov/mep/about-nist-mep/partnerships",
+          "observedOn": "2026-10-13"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "seal-tape-cases",
+          "label": "Sealing tape cases",
+          "unit": "case"
+        },
+        {
+          "id": "label-roll-packs",
+          "label": "Label roll packs",
+          "unit": "pack"
+        },
+        {
+          "id": "bench-wipe-boxes",
+          "label": "Bench wipe boxes",
+          "unit": "box"
+        }
+      ]
+    },
+    {
+      "key": "field-technician-van",
+      "family": "inventory-control",
+      "title": "Field Technician Van Stock",
+      "buyer": "Small field service maintenance dispatchers",
+      "problem": "Service van supply shortages may cause return trips when internal replenishment review is late.",
+      "trigger": "A field technician starts a route with an incomplete stock handoff.",
+      "sourceStatus": "background_only_unverified",
+      "sources": [
+        {
+          "url": "https://www.nist.gov/mep/manufacturing-reports/supply-chain",
+          "observedOn": "2026-10-13"
+        },
+        {
+          "url": "https://www.nist.gov/mep/about-nist-mep/partnerships",
+          "observedOn": "2026-10-13"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "connector-assortment-kits",
+          "label": "Connector assortment kits",
+          "unit": "kit"
+        },
+        {
+          "id": "fastener-sorter-packs",
+          "label": "Fastener sorter packs",
+          "unit": "pack"
+        },
+        {
+          "id": "relay-boxes",
+          "label": "Relay replacement boxes",
+          "unit": "box"
+        }
+      ]
+    }
+  ]
+}

@@ -5,7 +5,7 @@ const script=path.resolve(__dirname,'../../../scripts/manufacture-cross-family-i
 const run=(...args)=>spawnSync(process.execPath,[script,...args],{encoding:'utf8',timeout:10000});
 test('scorer is read-only and acknowledges absence of independent demand',()=>{
  const x=run('--check');assert.equal(x.status,0,x.stderr);
- const r=JSON.parse(x.stdout);assert.equal(r.total,8);assert.equal(r.releaseApproved,false);
+ const r=JSON.parse(x.stdout);assert.equal(r.total,14);assert.equal(r.releaseApproved,false);
  assert.equal(r.scoreMeaning,'deterministic-structural-fit-not-demand-or-profitability');
 });
 test('scout has no public deploy, payment, outreach or unspecified output flags',()=>{
