@@ -95,8 +95,10 @@ test('tampered package cannot reset its durable quarantine budget by restarting 
  assert.equal(first.recoveryAttempts,1);assert.equal(first.quarantined,0);
  assert.equal(first.services[0].status,'unhealthy');
  sup.stop();
- const resumed=createPrivateFleetSupervisor({fleet,maxRestarts:2});t.after(()=>resumed.stop());
+ const resumed=createPrivateFleetSupervisor({fleet,maxRestarts:3});t.after(()=>resumed.stop());
  assert.equal(resumed.report().recoveryAttempts,1);
+ assert.equal(resumed.report().restartLimit,2,
+  'a recreated supervisor must retain the original session budget');
  assert.equal(resumed.report().checks,1);
  const second=await resumed.tick();
  assert.equal(second.recoveryAttempts,2);assert.equal(second.quarantined,1);
@@ -122,8 +124,15 @@ test('corrupt or source-mismatched watchdog checkpoints fail closed instead of r
  assert.throws(()=>createPrivateFleetSupervisor({fleet,maxRestarts:2}),
   /SUPERVISOR_CHECKPOINT_INVALID/);
  fs.writeFileSync(filename,original);
+ const unsupported=JSON.parse(original);unsupported.schemaVersion=1;
+ const unsupportedBody={...unsupported};delete unsupportedBody.digest;
+ unsupported.digest=crypto.createHash('sha256').update(JSON.stringify(unsupportedBody)).digest('hex');
+ fs.writeFileSync(filename,JSON.stringify(unsupported,null,2)+'\n',{mode:0o600});
+ assert.throws(()=>createPrivateFleetSupervisor({fleet,maxRestarts:2}),
+  /SUPERVISOR_CHECKPOINT_INVALID/);
  const report=JSON.parse(original);report.services[0].sourceDigest='0'.repeat(64);
- const {digest,...body}=report;report.digest=crypto.createHash('sha256').update(JSON.stringify(body)).digest('hex');
+ const sourceBody={...report};delete sourceBody.digest;
+ report.digest=crypto.createHash('sha256').update(JSON.stringify(sourceBody)).digest('hex');
  fs.writeFileSync(filename,JSON.stringify(report,null,2)+'\n',{mode:0o600});
  assert.throws(()=>createPrivateFleetSupervisor({fleet,maxRestarts:2}),
   /SUPERVISOR_CHECKPOINT_INVALID/);

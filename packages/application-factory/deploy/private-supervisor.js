@@ -38,7 +38,7 @@ function createPrivateFleetSupervisor({fleet,maxRestarts=2,intervalMs=5000}={}){
    status:'pending',restartAttempts:0,successfulRestarts:0,lastOutcome:'pending'});
  }
  const reportPath=path.join(fleet.stateRoot,'private-watchdog-report.json');
- let closed=false,busy=false,timer=null,cycle=0,probes=0;
+ let closed=false,busy=false,timer=null,cycle=0,probes=0,restartLimit=maxRestarts;
  function privateRoot(){
   let root;try{root=fs.lstatSync(fleet.stateRoot);}catch{fail('SUPERVISOR_STATE_UNSAFE');}
   if(!root.isDirectory()||root.isSymbolicLink()||
@@ -61,8 +61,9 @@ function createPrivateFleetSupervisor({fleet,maxRestarts=2,intervalMs=5000}={}){
   }
   if(!report||typeof report!=='object'||Array.isArray(report))fail('SUPERVISOR_CHECKPOINT_INVALID');
   const {digest,...body}=report;
-  if(!DIGEST.test(digest)||hash(body)!==digest||body.schemaVersion!==1||
+  if(!DIGEST.test(digest)||hash(body)!==digest||body.schemaVersion!==2||
     body.kind!=='private-autonomous-fleet-watchdog'||body.mode!=='synthetic-local-only'||
+    !Number.isSafeInteger(body.restartLimit)||body.restartLimit<1||body.restartLimit>3||
     !Number.isSafeInteger(body.checks)||body.checks<0||
     !Number.isSafeInteger(body.probes)||body.probes<0||
     !Array.isArray(body.services)||body.services.length!==statuses.size||
@@ -79,7 +80,7 @@ function createPrivateFleetSupervisor({fleet,maxRestarts=2,intervalMs=5000}={}){
      !['document','quote','inventory'].includes(saved.family)||!ID.test(saved.id)||
      !DIGEST.test(saved.sourceDigest)||!STATES.has(saved.status)||
      !OUTCOMES.has(saved.lastOutcome)||!Number.isSafeInteger(saved.restartAttempts)||
-     saved.restartAttempts<0||saved.restartAttempts>3||
+     saved.restartAttempts<0||saved.restartAttempts>body.restartLimit||
      !Number.isSafeInteger(saved.successfulRestarts)||saved.successfulRestarts<0||
      saved.successfulRestarts>saved.restartAttempts)
     fail('SUPERVISOR_CHECKPOINT_INVALID');
@@ -94,9 +95,12 @@ function createPrivateFleetSupervisor({fleet,maxRestarts=2,intervalMs=5000}={}){
     body.recoveryAttempts!==entries.reduce((n,x)=>n+x.restartAttempts,0)||
     body.verifiedRecoveries!==entries.reduce((n,x)=>n+x.successfulRestarts,0))
    fail('SUPERVISOR_CHECKPOINT_INVALID');
+  // The first supervisor fixes this session's budget. Later process
+  // configuration is not authority to widen or reinterpret it.
+  restartLimit=body.restartLimit;
   for(const [key,saved] of restored){
    // A completed quarantine and every consumed attempt survive supervisor restarts.
-   if(saved.status==='quarantined'||saved.restartAttempts>=maxRestarts){
+   if(saved.status==='quarantined'||saved.restartAttempts>=restartLimit){
     saved.status='quarantined';saved.lastOutcome='restart_budget_exhausted';
    }
    statuses.set(key,saved);
@@ -114,8 +118,8 @@ function createPrivateFleetSupervisor({fleet,maxRestarts=2,intervalMs=5000}={}){
  }
  function snapshot(){
   const entries=[...statuses.values()].map(s=>({...s}));
-  const body={schemaVersion:1,kind:'private-autonomous-fleet-watchdog',
-   mode:'synthetic-local-only',checks:cycle,probes,
+  const body={schemaVersion:2,kind:'private-autonomous-fleet-watchdog',
+   mode:'synthetic-local-only',restartLimit,checks:cycle,probes,
    services:entries,healthy:entries.filter(x=>x.status==='healthy').length,
    quarantined:entries.filter(x=>x.status==='quarantined').length,
    recoveryAttempts:entries.reduce((n,x)=>n+x.restartAttempts,0),
@@ -157,7 +161,7 @@ function createPrivateFleetSupervisor({fleet,maxRestarts=2,intervalMs=5000}={}){
     try{healthy=await check(app);}catch{}
     probes++;
     if(healthy){s.status='healthy';s.lastOutcome='healthy';continue;}
-    if(s.restartAttempts>=maxRestarts){
+    if(s.restartAttempts>=restartLimit){
      s.status='quarantined';s.lastOutcome='restart_budget_exhausted';continue;
     }
     s.restartAttempts++;
@@ -174,7 +178,7 @@ function createPrivateFleetSupervisor({fleet,maxRestarts=2,intervalMs=5000}={}){
       fail('SUPERVISOR_RECOVERY_FAILED');
      s.successfulRestarts++;s.status='healthy';s.lastOutcome='restored_same_state';
     }catch(error){
-     s.status=s.restartAttempts>=maxRestarts?'quarantined':'unhealthy';
+     s.status=s.restartAttempts>=restartLimit?'quarantined':'unhealthy';
      s.lastOutcome='recovery_failed';
     }
    }
