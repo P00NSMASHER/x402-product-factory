@@ -3,6 +3,10 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const file=path.resolve(__dirname,'../../.github/workflows/factory-private-integrated-release-ci.yml');
 test('integrated candidate CI requires current main ancestry, complete history and no ref mutation',()=>{
  const w=fs.readFileSync(file,'utf8');
+ assert.match(w,/pull_request:\n    branches:/);
+ assert.match(w,/factory\/production-integration-preflight-20261015/);
+ assert.match(w,/factory\/main-synchronized-private-app-candidate-20261015/);
+ assert.doesNotMatch(w,/\bpaths:/,'private acceptance must not skip changes to runtime sources');
  assert.match(w,/fetch-depth: 0/);
  assert.match(w,/persist-credentials: false/);
  assert.match(w,/merge-base --is-ancestor refs\/remotes\/origin\/main HEAD/);
