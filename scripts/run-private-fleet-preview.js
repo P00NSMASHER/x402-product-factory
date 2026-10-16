@@ -69,8 +69,16 @@ async function main(argv=process.argv.slice(2)){
  if(input.mode==='--exercise'){
   try{return await exercise(fleet);}finally{await fleet.stop();}
  }
- const supervisor=createPrivateFleetSupervisor({fleet,maxRestarts:2,intervalMs:5000});
- supervisor.start();
+ let supervisor;
+ try{
+  supervisor=createPrivateFleetSupervisor({fleet,maxRestarts:2,intervalMs:5000});
+  supervisor.start();
+ }catch(error){
+  // Resume already owns listeners and the session lease here. Release them on
+  // every supervisor startup hold without replacing the rejected checkpoint.
+  await fleet.stop();
+  throw error;
+ }
  process.stdout.write(JSON.stringify({kind:'local-private-app-portal',origin:fleet.origin,
   appCount:fleet.apps.length,stateDirectory:fleet.stateRoot,
   resumed:input.mode==='--resume',
