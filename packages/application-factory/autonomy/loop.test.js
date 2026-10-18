@@ -62,11 +62,22 @@ test('operator cycle uses genuine Linux packaged acceptance and hash-verified Wi
 });
 test('same slot reruns verify and reuse existing artifacts without minting duplicate apps',t=>{
  const outputRoot=dir(t);
- const first=loop.runCycle({at:EPOCH,outputRoot,accept:platformAcceptance}),second=loop.runCycle({at:'2026-10-13T01:00:00Z',outputRoot,accept:platformAcceptance});
+ const first=loop.runCycle({at:EPOCH,outputRoot,accept:platformAcceptance});
+ const receipt=path.join(outputRoot,'autonomy','cycle-0.json');
+ const original=fs.readFileSync(receipt),before=fs.statSync(receipt,{bigint:true});
+ const saved=JSON.parse(original);
+ assert.equal(first.executionKind,'initial-execution');
+ assert.equal(saved.scheduledFor,new Date(EPOCH).toISOString());
+ assert.ok(Number.isFinite(Date.parse(saved.executedAt)));
+ const second=loop.runCycle({at:'2026-10-13T01:00:00Z',outputRoot,accept:platformAcceptance});
  assert.equal(first.artifacts[0].artifact,second.artifacts[0].artifact);
  assert.equal(second.reused,1);assert.equal(second.accepted,1);
  assert.equal(fs.readdirSync(outputRoot).filter(x=>x.startsWith('vendor-')).length<=1,true);
  assert.equal(fs.readdirSync(path.join(outputRoot,'autonomy')).length,1);
+ assert.equal(second.executionKind,'independent-recheck');
+ assert.equal(second.originalReceiptDigest,saved.digest);
+ assert.deepEqual(fs.readFileSync(receipt),original,'recheck must not replace original cycle evidence');
+ assert.equal(fs.statSync(receipt,{bigint:true}).mtimeNs,before.mtimeNs);
 });
 test('manufacturing failure is quarantined and the report cannot pretend it is accepted',t=>{
  const outputRoot=dir(t);

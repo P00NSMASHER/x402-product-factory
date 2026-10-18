@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
-const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),crypto=require('node:crypto');
 const {runCycle}=require('./loop');
 const {verifyApplication}=require('../manufacturing/assembler');
 const {CHECKS}=require('../manufacturing/acceptance');
@@ -33,6 +33,17 @@ test('previously completed app is skipped only if its saved acceptance is indepe
  const d=output(t);runCycle({at:time(0),outputRoot:d});
  const p=subject.planRecovery({at:time(1),outputRoot:d,windowCycles:2});
  assert.equal(p.selectedCycle,1);assert.equal(p.skippedCompleted,1);
+});
+test('legacy accepted receipt remains readable without inventing historical execution time',t=>{
+ if(acceptance)return;
+ const d=output(t);runCycle({at:time(0),outputRoot:d});
+ const filename=path.join(d,'autonomy','cycle-0.json'),saved=JSON.parse(fs.readFileSync(filename));
+ for(const field of ['scheduledFor','executedAt','recoveredLate','executionKind'])delete saved[field];
+ saved.digest=crypto.createHash('sha256').update(JSON.stringify({...saved,digest:undefined})).digest('hex');
+ fs.writeFileSync(filename,JSON.stringify(saved,null,2)+'\n',{mode:0o600});
+ const original=fs.readFileSync(filename),p=subject.planRecovery({at:time(0),outputRoot:d,windowCycles:1});
+ assert.equal(p.skippedCompleted,1);assert.equal(p.selectedCycle,null);
+ assert.deepEqual(fs.readFileSync(filename),original);
 });
 test('failed candidate stays quarantined while healthy slots remain eligible',t=>{
  const d=output(t);runCycle({at:time(0),outputRoot:d,accept:()=>{throw Error('fixture failure');}});

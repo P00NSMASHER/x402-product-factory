@@ -17,7 +17,7 @@ For reproducible testing:
 
 The generator uses the current six-hour UTC slot. Repeating the same slot verifies and reuses existing content-addressed apps; changed or corrupt source/artifacts fail closed. Failure retries are bounded to two attempts and then quarantine. The default is one app per cycle and the absolute cap is two. Each accepted candidate is a real offline-verified packaged service, not a title-only stub.
 
-Each cycle produces a private autonomy/cycle-N.json receipt, application directory, and manufacturing acceptance receipts. Neither local nor scheduled runs send messages, deploy, contact buyers, charge, install daemons, or change account schedules. CI artifacts expire after seven days.
+Each cycle produces a private `autonomy/cycle-N.json` receipt, application directory, and manufacturing acceptance receipts. A cycle receipt is created once with its scheduled slot and true execution timestamp, then remains byte-for-byte immutable. A same-slot rerun independently reverifies the content-addressed package and reports its new execution time without replacing the original receipt or making a late recovery look like the historical scheduled run. Legacy receipts without timing fields remain readable but are never retroactively assigned a guessed timestamp. Neither local nor scheduled runs send messages, deploy, contact buyers, charge, install daemons, or change account schedules. CI artifacts expire after seven days.
 
 ## Scheduled CI: activation caveat
 
