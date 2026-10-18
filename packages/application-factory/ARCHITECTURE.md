@@ -50,7 +50,7 @@ Unverified workflow research / recipes
 6. Keep automated browser, real packaged SQLite/HTTP, crashed-listener and whole-launcher recovery proofs independently executed. A static manifest validation is not a substitute.
 7. The GitHub schedule declared only in stacked draft branches **does not run on main**. No draft should be represented as an activated public service or paying business.
 8. Accepted lifecycle evidence is keyed by the exact package digest and is write-once. A repeat run must independently execute the package, match the original receipt bytes and leave that receipt untouched; progress reports and quarantine records remain separately replaceable.
-9. Local process-lock recovery is deliberately narrow: only a valid lock whose recorded PID is definitely absent can be reclaimed, and the original lock plus a true-time recovery observation are preserved immutably before reuse. A recovery event is not backdated execution evidence.
+9. Local process-lock recovery is deliberately narrow: only a valid lock whose recorded PID is definitely absent can be reclaimed, and the original lock plus a true-time recovery observation are preserved immutably before reuse. If recovery is interrupted after that observation becomes durable, it resumes only when the exact archive/event pair validates, without rewriting the observation. A recovery event is not backdated execution evidence.
 
 ### CI checklist
 

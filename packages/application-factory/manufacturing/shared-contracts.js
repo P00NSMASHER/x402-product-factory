@@ -148,6 +148,27 @@ function privateProcessLock(file,{code='MANUFACTURING_BUSY'}={}){
    return {body,row,token:legacy?sha256(body).slice(0,64):row.token,legacy,st};
   }catch(error){if(error?.message===code)throw error;fail(code);}
  };
+ const acceptExistingRecovery=(event,prior)=>{
+  try{
+   const st=fs.lstatSync(event);
+   if(!st.isFile()||st.isSymbolicLink()||st.nlink!==1||st.size<2||st.size>65536||
+      (process.platform!=='win32'&&((st.mode&0o077)!==0||
+       (typeof process.getuid==='function'&&st.uid!==process.getuid()))))fail(code);
+   const body=fs.readFileSync(event,'utf8'),saved=JSON.parse(body);
+   if(!saved||typeof saved!=='object'||Array.isArray(saved)||
+      Object.keys(saved).sort().join(',')!==
+       'kind,legacyRecord,observedDeadAt,original,originalDigest,schemaVersion'||
+      saved.schemaVersion!==1||saved.kind!=='stale-private-process-lock-recovery'||
+      saved.originalDigest!==sha256(prior.body)||saved.legacyRecord!==prior.legacy||
+      typeof saved.observedDeadAt!=='string'||
+      !/^20\d\d-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(saved.observedDeadAt)||
+      !Number.isFinite(Date.parse(saved.observedDeadAt))||
+      Date.parse(saved.observedDeadAt)>Date.now()||
+      Date.parse(saved.observedDeadAt)<Date.parse(prior.row.startedAt)||
+      JSON.stringify(saved.original)!==JSON.stringify(prior.row)||
+      body!==JSON.stringify(saved,null,2)+'\n')fail(code);
+  }catch(error){if(error?.message===code)throw error;fail(code);}
+ };
  const alive=pid=>{try{process.kill(pid,0);return true;}catch(error){return error?.code!=='ESRCH';}};
  const token=crypto.randomBytes(32).toString('hex'),record={schemaVersion:1,pid:process.pid,
   startedAt:new Date().toISOString(),token},body=JSON.stringify(record)+'\n';
@@ -176,11 +197,12 @@ function privateProcessLock(file,{code='MANUFACTURING_BUSY'}={}){
   }
   const archivedStat=fs.lstatSync(archived),currentStat=fs.lstatSync(file);
   if(fs.readFileSync(archived,'utf8')!==prior.body||archivedStat.dev!==currentStat.dev||
-     archivedStat.ino!==currentStat.ino)fail(code);
+     archivedStat.ino!==currentStat.ino||archivedStat.nlink!==2||currentStat.nlink!==2)fail(code);
   const eventBody={schemaVersion:1,kind:'stale-private-process-lock-recovery',
    observedDeadAt:new Date().toISOString(),originalDigest:sha256(prior.body),
    legacyRecord:prior.legacy,original:prior.row};
-  immutablePrivateJson(event,eventBody,{code});
+  if(fs.existsSync(event))acceptExistingRecovery(event,prior);
+  else immutablePrivateJson(event,eventBody,{code});
   try{fs.unlinkSync(file);}catch(error){if(error.code!=='ENOENT')throw error;}
   sync(history);sync(dir);
  }

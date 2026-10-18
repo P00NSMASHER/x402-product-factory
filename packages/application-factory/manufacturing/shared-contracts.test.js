@@ -1,6 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto');
+const {spawnSync}=require('node:child_process');
 const shared=require('./shared-contracts');
 const quote=require('../quote-family/manufacturing');
 const inventory=require('../inventory-family/manufacturing');
@@ -137,6 +138,28 @@ test('shared process lock rejects an active owner and releases only its own exac
  first.release();assert.equal(fs.existsSync(file),false);
  const second=shared.privateProcessLock(file);assert.notEqual(second.record.token,first.record.token);
  second.release();
+});
+test('interrupted stale-lock recovery resumes without replacing its original observation',t=>{
+ if(process.platform==='win32')return t.skip('Linux process ownership acceptance required');
+ const root=tmp(t),file=path.join(root,'.manufacturing.lock');
+ const child=spawnSync(process.execPath,['-e',
+  "require(process.argv[1]).privateProcessLock(process.argv[2])",require.resolve('./shared-contracts'),file],
+  {encoding:'utf8'});
+ assert.equal(child.status,0,child.stderr);assert.equal(fs.existsSync(file),true);
+ const original=fs.readFileSync(file),record=JSON.parse(original),history=path.join(root,'.lock-history');
+ fs.mkdirSync(history,{mode:0o700});
+ const stem='manufacturing.lock-'+record.token,archived=path.join(history,stem+'.lock'),
+  event=path.join(history,stem+'.json'),observedDeadAt=new Date().toISOString();
+ fs.linkSync(file,archived);
+ shared.immutablePrivateJson(event,{schemaVersion:1,kind:'stale-private-process-lock-recovery',
+  observedDeadAt,originalDigest:sha(original),
+  legacyRecord:false,original:record});
+ const evidence=fs.readFileSync(event),before=fs.statSync(event,{bigint:true});
+ const resumed=shared.privateProcessLock(file);
+ assert.deepEqual(fs.readFileSync(event),evidence);
+ assert.equal(fs.statSync(event,{bigint:true}).mtimeNs,before.mtimeNs);
+ assert.deepEqual(fs.readFileSync(archived),original);
+ resumed.release();
 });
 test('signed-looking but invalid manifest hashes never bypass package contract',t=>{
  const root=tmp(t),app=inventory.compileInventoryPackage(inventoryRecipes[0]);
