@@ -188,6 +188,8 @@ function privateProcessLock(file,{code='MANUFACTURING_BUSY'}={}){
    }});
   }
   const prior=read();if(alive(prior.row.pid))fail(code);
+  const observedDeadAt=new Date().toISOString();
+  if(Date.parse(observedDeadAt)<Date.parse(prior.row.startedAt))fail(code);
   const history=path.join(dir,'.lock-history');fs.mkdirSync(history,{recursive:true,mode:0o700});
   privateDirectory(history,code);
   const stem=name.replace(/^\.+/,'')+'-'+prior.token,
@@ -199,7 +201,7 @@ function privateProcessLock(file,{code='MANUFACTURING_BUSY'}={}){
   if(fs.readFileSync(archived,'utf8')!==prior.body||archivedStat.dev!==currentStat.dev||
      archivedStat.ino!==currentStat.ino||archivedStat.nlink!==2||currentStat.nlink!==2)fail(code);
   const eventBody={schemaVersion:1,kind:'stale-private-process-lock-recovery',
-   observedDeadAt:new Date().toISOString(),originalDigest:sha256(prior.body),
+   observedDeadAt,originalDigest:sha256(prior.body),
    legacyRecord:prior.legacy,original:prior.row};
   if(fs.existsSync(event))acceptExistingRecovery(event,prior);
   else immutablePrivateJson(event,eventBody,{code});
@@ -210,3 +212,4 @@ function privateProcessLock(file,{code='MANUFACTURING_BUSY'}={}){
 }
 module.exports={sha256,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,
  privateJson,immutablePrivateJson,privateProcessLock};
+

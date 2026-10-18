@@ -161,6 +161,21 @@ test('interrupted stale-lock recovery resumes without replacing its original obs
  assert.deepEqual(fs.readFileSync(archived),original);
  resumed.release();
 });
+test('future-dated dead-owner lock cannot create impossible recovery chronology',t=>{
+ if(process.platform==='win32')return t.skip('Linux process ownership acceptance required');
+ const root=tmp(t),file=path.join(root,'.manufacturing.lock');
+ const child=spawnSync(process.execPath,['-e',
+  "require(process.argv[1]).privateProcessLock(process.argv[2])",require.resolve('./shared-contracts'),file],
+  {encoding:'utf8'});
+ assert.equal(child.status,0,child.stderr);
+ const record=JSON.parse(fs.readFileSync(file,'utf8'));
+ record.startedAt=new Date(Date.now()+3600000).toISOString();
+ const original=Buffer.from(JSON.stringify(record)+String.fromCharCode(10));
+ fs.writeFileSync(file,original,{mode:0o600});
+ assert.throws(()=>shared.privateProcessLock(file),/MANUFACTURING_BUSY/);
+ assert.deepEqual(fs.readFileSync(file),original);
+ assert.equal(fs.existsSync(path.join(root,'.lock-history')),false);
+});
 test('signed-looking but invalid manifest hashes never bypass package contract',t=>{
  const root=tmp(t),app=inventory.compileInventoryPackage(inventoryRecipes[0]);
  const dir=fixtureFiles(root,app);
