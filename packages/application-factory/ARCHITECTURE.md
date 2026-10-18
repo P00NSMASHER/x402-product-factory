@@ -35,7 +35,7 @@ Unverified workflow research / recipes
 | `kernel.js` + `runtime/` | Document CRUD, tenancies, encrypted evidence, worker, renewal workflows | Quote/order inventory state |
 | `quote-family/kernel.js`, `store.js`, `server.js` | Quote totals, role-separated approvals, idempotent order handoffs | Supplier orders, payments |
 | `inventory-family/engine.js`, `store.js`, `server.js` | Quantity arithmetic, internal reorder approval, role and tenant isolation | Real purchases, invoicing |
-| `manufacturing/shared-contracts.js` | Trusted *build inputs*, manifest/file hash integrity, private paths, atomic mutable progress and digest-addressed write-once acceptance receipts | Business workflow rules, runtime import, network transport |
+| `manufacturing/shared-contracts.js` | Trusted *build inputs*, manifest/file hash integrity, private paths, atomic mutable progress, digest-addressed write-once acceptance receipts and evidence-preserving local process locks | Business workflow rules, runtime import, network transport |
 | Family-specific `manufacturing.js` or `manufacturing/line.js` | Exact manifest schema, documented family recipe, independently executed acceptance | Cross-family business policy |
 | `autonomy/` | Six-hour engineering slot selection, missed-cycle repair, source-pinned checkpoint reuse | Customer demand claims or public launch |
 | `deploy/` | Verified private local app boot, browser QA, bounded crash recovery and source-pinned gateway | Commercial/public hosting |
@@ -50,6 +50,7 @@ Unverified workflow research / recipes
 6. Keep automated browser, real packaged SQLite/HTTP, crashed-listener and whole-launcher recovery proofs independently executed. A static manifest validation is not a substitute.
 7. The GitHub schedule declared only in stacked draft branches **does not run on main**. No draft should be represented as an activated public service or paying business.
 8. Accepted lifecycle evidence is keyed by the exact package digest and is write-once. A repeat run must independently execute the package, match the original receipt bytes and leave that receipt untouched; progress reports and quarantine records remain separately replaceable.
+9. Local process-lock recovery is deliberately narrow: only a valid lock whose recorded PID is definitely absent can be reclaimed, and the original lock plus a true-time recovery observation are preserved immutably before reuse. A recovery event is not backdated execution evidence.
 
 ### CI checklist
 

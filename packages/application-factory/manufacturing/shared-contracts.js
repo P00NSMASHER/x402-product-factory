@@ -126,5 +126,65 @@ function immutablePrivateJson(file,value,{code='RECEIPT_IMMUTABLE'}={}){
   return {created:true,digest:sha256(body)};
  }finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}
 }
+function privateProcessLock(file,{code='MANUFACTURING_BUSY'}={}){
+ if(typeof file!=='string'||!path.isAbsolute(file))fail(code);
+ const dir=privateDirectory(path.dirname(file),code),name=path.basename(file);
+ if(name!==path.relative(dir,file)||!safeName(name))fail(code);
+ const sync=directory=>{if(process.platform!=='win32'){
+  const fd=fs.openSync(directory,'r');try{fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
+ }};
+ const read=()=>{
+  try{
+   const st=fs.lstatSync(file);
+   if(!st.isFile()||st.isSymbolicLink()||st.size<2||st.size>2048||
+      (process.platform!=='win32'&&((st.mode&0o077)!==0||
+       (typeof process.getuid==='function'&&st.uid!==process.getuid()))))fail(code);
+   const body=fs.readFileSync(file,'utf8'),row=JSON.parse(body),keys=Object.keys(row).sort().join(',');
+   const legacy=keys==='pid,startedAt',current=keys==='pid,schemaVersion,startedAt,token';
+   if((!legacy&&!current)||(current&&(row.schemaVersion!==1||!digest64(row.token)))||
+      !Number.isSafeInteger(row.pid)||row.pid<1||row.pid>2147483647||
+      typeof row.startedAt!=='string'||!/^20\d\d-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(row.startedAt)||
+      !Number.isFinite(Date.parse(row.startedAt)))fail(code);
+   return {body,row,token:legacy?sha256(body).slice(0,64):row.token,legacy,st};
+  }catch(error){if(error?.message===code)throw error;fail(code);}
+ };
+ const alive=pid=>{try{process.kill(pid,0);return true;}catch(error){return error?.code!=='ESRCH';}};
+ const token=crypto.randomBytes(32).toString('hex'),record={schemaVersion:1,pid:process.pid,
+  startedAt:new Date().toISOString(),token},body=JSON.stringify(record)+'\n';
+ for(let attempt=0;attempt<2;attempt++){
+  const temp=file+'.'+token+'.tmp';let linked=false;
+  try{
+   const fd=fs.openSync(temp,'wx',0o600);
+   try{fs.writeFileSync(fd,body);fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
+   try{fs.linkSync(temp,file);linked=true;}catch(error){if(error.code!=='EEXIST')throw error;}
+  }finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}
+  if(linked){
+   sync(dir);let released=false;
+   return Object.freeze({record:Object.freeze({...record}),release(){
+    if(released)return;
+    const owner=read();if(owner.body!==body)fail(code);
+    fs.unlinkSync(file);sync(dir);released=true;
+   }});
+  }
+  const prior=read();if(alive(prior.row.pid))fail(code);
+  const history=path.join(dir,'.lock-history');fs.mkdirSync(history,{recursive:true,mode:0o700});
+  privateDirectory(history,code);
+  const stem=name.replace(/^\.+/,'')+'-'+prior.token,
+    archived=path.join(history,stem+'.lock'),event=path.join(history,stem+'.json');
+  try{fs.linkSync(file,archived);}catch(error){
+   if(error.code!=='EEXIST'||fs.readFileSync(archived,'utf8')!==prior.body)fail(code);
+  }
+  const archivedStat=fs.lstatSync(archived),currentStat=fs.lstatSync(file);
+  if(fs.readFileSync(archived,'utf8')!==prior.body||archivedStat.dev!==currentStat.dev||
+     archivedStat.ino!==currentStat.ino)fail(code);
+  const eventBody={schemaVersion:1,kind:'stale-private-process-lock-recovery',
+   observedDeadAt:new Date().toISOString(),originalDigest:sha256(prior.body),
+   legacyRecord:prior.legacy,original:prior.row};
+  immutablePrivateJson(event,eventBody,{code});
+  try{fs.unlinkSync(file);}catch(error){if(error.code!=='ENOENT')throw error;}
+  sync(history);sync(dir);
+ }
+ fail(code);
+}
 module.exports={sha256,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,
- privateJson,immutablePrivateJson};
+ privateJson,immutablePrivateJson,privateProcessLock};

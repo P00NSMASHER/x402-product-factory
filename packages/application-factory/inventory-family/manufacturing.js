@@ -2,7 +2,7 @@
 // Compile complete self-contained synthetic inventory applications and independently execute each package.
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const {sha256:sha,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,
- immutablePrivateJson:saveReceipt,privateJson:saveJson}=require('../manufacturing/shared-contracts');
+ immutablePrivateJson:saveReceipt,privateJson:saveJson,privateProcessLock}=require('../manufacturing/shared-contracts');
 const {spawnSync}=require('node:child_process');
 const {validateRecipe}=require('./engine'),recipes=require('./recipes.json');
 const ROOT=path.resolve(__dirname,'../../..'),SOURCE=path.resolve(__dirname);
@@ -80,8 +80,7 @@ function manufactureInventoryBatch({outputRoot,catalog=recipes}={}){
  const list=catalog.map(validateRecipe);
  const destinationRoot=outsideRepository(outputRoot,{root:ROOT});
  fs.mkdirSync(destinationRoot,{recursive:true,mode:0o700});safeDir(destinationRoot);
- const lock=path.join(destinationRoot,'.inventory-build.lock');let fd;
- try{fd=fs.openSync(lock,'wx',0o600);}catch(e){if(e.code==='EEXIST')fail('MANUFACTURING_BUSY');throw e;}
+ const lock=privateProcessLock(path.join(destinationRoot,'.inventory-build.lock'));
  const report={kind:'inventory-family-manufacturing',family:'inventory-control',
   accepted:0,failed:0,reused:0,results:[],verification:'executed-packaged-inventory-lifecycle',
   marketValidated:false,realCustomers:null,collectedRevenue:null,
@@ -123,6 +122,6 @@ function manufactureInventoryBatch({outputRoot,catalog=recipes}={}){
    report.results.push(result);saveJson(path.join(destinationRoot,'manufacturing-report.json'),report);
   }
   return report;
- }finally{fs.closeSync(fd);fs.unlinkSync(lock);}
+ }finally{lock.release();}
 }
 module.exports={compileInventoryPackage,verifyInventoryPackage,manufactureInventoryBatch,acceptInventoryPackage,CHECKS};

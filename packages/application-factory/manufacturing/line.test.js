@@ -1,5 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {spawn}=require('node:child_process'),{once}=require('node:events');
 const recipes=require('../recipes.json'),A=require('./assembler');
 let L={};try{L=require('./line');}catch(e){if(e.code!=='MODULE_NOT_FOUND')throw e;}
 function setup(t){assert.equal(typeof L.manufactureBatch,'function','resumable manufacturing line must exist');
@@ -56,6 +57,28 @@ test('forged or incomplete verifier receipts cannot promote a candidate',t=>{
 test('single-writer lock fails closed and does not remove another owner lock',t=>{
  const outputRoot=setup(t),lock=path.join(outputRoot,'.manufacturing.lock');fs.writeFileSync(lock,'other owner');
  assert.throws(()=>L.manufactureBatch({recipes,outputRoot,accept:receipt}),/MANUFACTURING_BUSY/);assert.equal(fs.readFileSync(lock,'utf8'),'other owner');
+});
+test('a real SIGKILL leaves evidence but does not permanently block manufacturing', {timeout:15000}, async t=>{
+ if(process.platform==='win32')return t.skip('Linux process ownership acceptance required');
+ const outputRoot=setup(t),marker=path.join(outputRoot,'acceptance-entered');
+ const script="const fs=require('node:fs');const {manufactureBatch}=require(process.argv[1]);"+
+  "const recipes=require(process.argv[2]);manufactureBatch({recipes:[recipes[0]],outputRoot:process.argv[3],"+
+  "accept:()=>{fs.writeFileSync(process.argv[4],'ready');Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0);}});";
+ const child=spawn(process.execPath,['-e',script,require.resolve('./line'),require.resolve('../recipes.json'),outputRoot,marker],
+  {stdio:'ignore'});t.after(()=>{if(child.exitCode===null)child.kill('SIGKILL');});
+ const deadline=Date.now()+5000;
+ while(!fs.existsSync(marker)&&Date.now()<deadline)await new Promise(resolve=>setTimeout(resolve,20));
+ assert.equal(fs.existsSync(marker),true,'child never reached packaged acceptance');
+ child.kill('SIGKILL');await once(child,'exit');
+ const resumed=L.manufactureBatch({recipes:[recipes[0]],outputRoot,accept:receipt});
+ assert.equal(resumed.accepted,1);assert.equal(resumed.failed,0);
+ const history=path.join(outputRoot,'.lock-history');
+ assert.equal(fs.readdirSync(history).filter(name=>name.endsWith('.lock')).length,1);
+ const event=JSON.parse(fs.readFileSync(path.join(history,
+  fs.readdirSync(history).find(name=>name.endsWith('.json'))),'utf8'));
+ assert.equal(event.kind,'stale-private-process-lock-recovery');
+ assert.ok(Number.isFinite(Date.parse(event.observedDeadAt)));
+ assert.equal(event.original.pid,child.pid);assert.equal(event.originalDigest.length,64);
 });
 test('invalid batch and duplicate edition IDs are rejected before writing files',t=>{
  const outputRoot=setup(t);for(const batch of [[],[recipes[0],recipes[0]],Array(101).fill(recipes[0])])assert.throws(()=>L.manufactureBatch({recipes:batch,outputRoot,accept:receipt}),/BATCH_INVALID/);

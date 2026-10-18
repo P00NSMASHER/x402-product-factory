@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const {sha256:hash,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,
- immutablePrivateJson,privateJson}=require('../manufacturing/shared-contracts');
+ immutablePrivateJson,privateJson,privateProcessLock}=require('../manufacturing/shared-contracts');
 const {spawnSync}=require('node:child_process');
 const {validateRecipe}=require('./kernel'),catalog=require('./recipes.json');
 const SOURCE=path.resolve(__dirname),REPO=path.resolve(__dirname,'../../..');
@@ -81,8 +81,7 @@ function manufactureQuoteBatch({outputRoot,recipes=catalog,accept=acceptQuoteApp
  const dir=outsideRepo(outputRoot),validated=recipes.map(validateRecipe);
  if(!Array.isArray(recipes)||recipes.length<1||recipes.length>12||new Set(validated.map(r=>r.id)).size!==validated.length)fail('BATCH_INVALID');
  fs.mkdirSync(dir,{recursive:true,mode:0o700});validDir(dir,'OUTPUT_UNSAFE');
- const lock=path.join(dir,'.quote-build.lock');let fd;
- try{fd=fs.openSync(lock,'wx',0o600);}catch(e){if(e.code==='EEXIST')fail('MANUFACTURING_BUSY');throw e;}
+ const lock=privateProcessLock(path.join(dir,'.quote-build.lock'));
  const result={kind:'quote-family-manufacturing',accepted:0,failed:0,reused:0,apps:[],
   verification:accept===acceptQuoteApp?'executed-packaged-quote-lifecycle':'injected-test-only',
   realCustomers:null,collectedRevenue:null,transmittedMessages:0,paymentsSent:0,releaseApproved:false};
@@ -108,6 +107,6 @@ function manufactureQuoteBatch({outputRoot,recipes=catalog,accept=acceptQuoteApp
    else{result.failed++;const record={id:recipe.id,digest:app.digest,status:'quarantined',reason};privateJson(denied,record);result.apps.push(record);}
   }
   privateJson(path.join(dir,'manufacturing-report.json'),result);return result;
- }finally{fs.closeSync(fd);fs.unlinkSync(lock);}
+ }finally{lock.release();}
 }
 module.exports={compileQuoteApp,writeQuoteApp,verifyQuoteApp,manufactureQuoteBatch,acceptQuoteApp,validAcceptance};

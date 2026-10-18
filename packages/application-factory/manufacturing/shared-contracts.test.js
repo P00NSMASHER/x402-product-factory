@@ -128,6 +128,16 @@ test('accepted receipt writer is write-once and identical rechecks never alter o
  assert.throws(()=>shared.immutablePrivateJson(receipt,{...evidence,passed:false}),/RECEIPT_IMMUTABLE/);
  assert.deepEqual(fs.readFileSync(receipt),original);
 });
+test('shared process lock rejects an active owner and releases only its own exact record',t=>{
+ const root=tmp(t),file=path.join(root,'.manufacturing.lock'),first=shared.privateProcessLock(file);
+ assert.equal(first.record.pid,process.pid);
+ assert.throws(()=>shared.privateProcessLock(file),/MANUFACTURING_BUSY/);
+ const original=fs.readFileSync(file,'utf8');
+ assert.equal(JSON.parse(original).token,first.record.token);
+ first.release();assert.equal(fs.existsSync(file),false);
+ const second=shared.privateProcessLock(file);assert.notEqual(second.record.token,first.record.token);
+ second.release();
+});
 test('signed-looking but invalid manifest hashes never bypass package contract',t=>{
  const root=tmp(t),app=inventory.compileInventoryPackage(inventoryRecipes[0]);
  const dir=fixtureFiles(root,app);
