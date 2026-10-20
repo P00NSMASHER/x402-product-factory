@@ -89,9 +89,34 @@ function manufactureQuoteBatch({outputRoot,recipes=catalog,accept=acceptQuoteApp
   preserveIncompleteStages(dir,{prefixes:['.candidate-','.quote-stage-']});
   const receipts=path.join(dir,'verification'),quarantine=path.join(dir,'.quarantine');
   for(const d of [receipts,quarantine]){fs.mkdirSync(d,{recursive:true,mode:0o700});validDir(d,'OUTPUT_UNSAFE');}
+  const readFailure=(file,expectedId)=>{
+   if(!fs.existsSync(file))return null;
+   try{
+    const st=fs.lstatSync(file);
+    if(!st.isFile()||st.isSymbolicLink()||st.nlink!==1||st.size<2||st.size>65536||
+     (process.platform!=='win32'&&((st.mode&0o077)!==0||
+      (typeof process.getuid==='function'&&st.uid!==process.getuid()))))fail('OUTPUT_UNSAFE');
+    const body=fs.readFileSync(file,'utf8'),row=JSON.parse(body),
+     keys=Object.keys(row).sort().join(','),legacy=keys==='digest,id,reason,status',
+     v1=keys==='digest,id,kind,observedFailedAt,reason,schemaVersion,status';
+    if((!legacy&&!v1)||row.id!==expectedId||
+     typeof row.digest!=='string'||!/^[a-f0-9]{64}$/.test(row.digest)||
+     row.status!=='quarantined'||
+     !['ACCEPTANCE_FAILED','EXISTING_ARTIFACT_REJECTED','PREVIOUS_FAILURE'].includes(row.reason)||
+     (v1&&(row.schemaVersion!==1||row.kind!=='quote-manufacturing-failure'||
+      row.reason==='PREVIOUS_FAILURE'||typeof row.observedFailedAt!=='string'||
+      !/^20\d\d-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(row.observedFailedAt)||
+      !Number.isFinite(Date.parse(row.observedFailedAt))||Date.parse(row.observedFailedAt)>Date.now()))||
+     body!==JSON.stringify(row,null,2)+'\n')fail('OUTPUT_UNSAFE');
+    return row;
+   }catch(error){if(error?.message==='OUTPUT_UNSAFE')throw error;fail('OUTPUT_UNSAFE');}
+  };
   for(const recipe of validated){const app=compileQuoteApp(recipe),folder=path.join(dir,recipe.id+'-'+app.digest);
-   const denied=path.join(quarantine,recipe.id+'.json');let accepted=false,reused=false,proof,reason='ACCEPTANCE_FAILED';
-   if(fs.existsSync(denied))reason='PREVIOUS_FAILURE';
+   const denied=path.join(quarantine,recipe.id+'-'+app.digest+'.json'),
+    exactFailure=readFailure(denied,recipe.id),
+    legacyFailure=readFailure(path.join(quarantine,recipe.id+'.json'),recipe.id);
+   let accepted=false,reused=false,proof,reason='ACCEPTANCE_FAILED';
+   if(exactFailure||legacyFailure?.digest===app.digest)reason='PREVIOUS_FAILURE';
    else try{
     if(fs.existsSync(folder)){reused=true;verifyQuoteApp(folder,app.digest);proof=accept(folder,app.digest);}
     else{const staging=fs.mkdtempSync(path.join(dir,'.candidate-'));
@@ -105,7 +130,10 @@ function manufactureQuoteBatch({outputRoot,recipes=catalog,accept=acceptQuoteApp
     immutablePrivateJson(path.join(receipts,recipe.id+'-'+app.digest+'.json'),proof);accepted=true;
    }catch{reason=fs.existsSync(folder)?'EXISTING_ARTIFACT_REJECTED':'ACCEPTANCE_FAILED';}
    if(accepted){result.accepted++;if(reused)result.reused++;result.apps.push({id:recipe.id,digest:app.digest,status:'accepted',reused});}
-   else{result.failed++;const record={id:recipe.id,digest:app.digest,status:'quarantined',reason};privateJson(denied,record);result.apps.push(record);}
+   else{result.failed++;const record={id:recipe.id,digest:app.digest,status:'quarantined',reason};
+    if(reason!=='PREVIOUS_FAILURE')immutablePrivateJson(denied,{schemaVersion:1,
+     kind:'quote-manufacturing-failure',observedFailedAt:new Date().toISOString(),...record});
+    result.apps.push(record);}
   }
   privateJson(path.join(dir,'manufacturing-report.json'),result);return result;
  }finally{lock.release();}

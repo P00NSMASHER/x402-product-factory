@@ -77,4 +77,54 @@ test('new quote source identity preserves the earlier digest-addressed acceptanc
  for(const row of [a.apps[0],b.apps[0]])assert.equal(fs.existsSync(path.join(outputRoot,'verification',
   row.id+'-'+row.digest+'.json')),true);
 });
+test('a failed quote source identity cannot block a corrected digest or replace its original failure',t=>{
+ const root=dir(t),outputRoot=path.join(root,'apps'),recipe=recipes[0];let reject=true;
+ const acceptance=(folder,digest)=>{
+  if(reject)throw Error('synthetic first-source rejection');
+  return {kind:'quote-app-assembled-acceptance',passed:true,recipeId:recipe.id,artifactDigest:digest,
+   tenantIsolation:true,twoRoleGate:true,idempotentOrder:true,restartPersistence:true,
+   internalExpiry:true,htmlServed:true,externalMessagesSent:0,paymentsSent:0,
+   realCustomers:null,collectedRevenue:null,releaseApproved:false};
+ };
+ const failed=manufactureQuoteBatch({outputRoot,recipes:[recipe],accept:acceptance});
+ assert.equal(failed.failed,1);
+ const oldDigest=failed.apps[0].digest,oldFailure=path.join(outputRoot,'.quarantine',recipe.id+'-'+oldDigest+'.json');
+ assert.equal(fs.existsSync(oldFailure),true);
+ const failure=JSON.parse(fs.readFileSync(oldFailure,'utf8'));
+ assert.equal(failure.kind,'quote-manufacturing-failure');
+ assert.equal(failure.reason,'ACCEPTANCE_FAILED');
+ assert.ok(Number.isFinite(Date.parse(failure.observedFailedAt)));
+ const original=fs.readFileSync(oldFailure),before=fs.statSync(oldFailure,{bigint:true});
+ reject=false;
+ const held=manufactureQuoteBatch({outputRoot,recipes:[recipe],accept:acceptance});
+ assert.equal(held.failed,1);assert.equal(held.apps[0].reason,'PREVIOUS_FAILURE');
+ assert.deepEqual(fs.readFileSync(oldFailure),original);
+ assert.equal(fs.statSync(oldFailure,{bigint:true}).mtimeNs,before.mtimeNs);
+ const corrected={...recipe,title:recipe.title+' corrected source'},
+  accepted=manufactureQuoteBatch({outputRoot,recipes:[corrected],accept:acceptance});
+ assert.equal(accepted.accepted,1);assert.equal(accepted.failed,0);
+ assert.notEqual(accepted.apps[0].digest,oldDigest);
+ assert.deepEqual(fs.readFileSync(oldFailure),original);
+ assert.equal(fs.statSync(oldFailure,{bigint:true}).mtimeNs,before.mtimeNs);
+});
+test('legacy ID-only quote quarantine remains unchanged and applies only to its recorded digest',t=>{
+ const root=dir(t),outputRoot=path.join(root,'apps'),quarantine=path.join(outputRoot,'.quarantine'),
+  recipe=recipes[0],old=compileQuoteApp(recipe),legacy=path.join(quarantine,recipe.id+'.json');
+ fs.mkdirSync(quarantine,{recursive:true,mode:0o700});
+ fs.writeFileSync(legacy,JSON.stringify({id:recipe.id,digest:old.digest,status:'quarantined',
+  reason:'ACCEPTANCE_FAILED'},null,2)+'\n',{mode:0o600});
+ const original=fs.readFileSync(legacy),before=fs.statSync(legacy,{bigint:true}),acceptance=(folder,digest)=>({
+  kind:'quote-app-assembled-acceptance',passed:true,recipeId:recipe.id,artifactDigest:digest,
+  tenantIsolation:true,twoRoleGate:true,idempotentOrder:true,restartPersistence:true,
+  internalExpiry:true,htmlServed:true,externalMessagesSent:0,paymentsSent:0,
+  realCustomers:null,collectedRevenue:null,releaseApproved:false
+ });
+ const held=manufactureQuoteBatch({outputRoot,recipes:[recipe],accept:acceptance});
+ assert.equal(held.failed,1);assert.equal(held.apps[0].reason,'PREVIOUS_FAILURE');
+ const corrected={...recipe,title:recipe.title+' legacy-compatible correction'},
+  accepted=manufactureQuoteBatch({outputRoot,recipes:[corrected],accept:acceptance});
+ assert.equal(accepted.accepted,1);assert.equal(accepted.failed,0);
+ assert.deepEqual(fs.readFileSync(legacy),original);
+ assert.equal(fs.statSync(legacy,{bigint:true}).mtimeNs,before.mtimeNs);
+});
 
