@@ -2,7 +2,8 @@
 // Compile complete self-contained synthetic inventory applications and independently execute each package.
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const {sha256:sha,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,
- immutablePrivateJson:saveReceipt,privateJson:saveJson,privateProcessLock}=require('../manufacturing/shared-contracts');
+ immutablePrivateJson:saveReceipt,privateJson:saveJson,privateProcessLock,
+ preserveIncompleteStages}=require('../manufacturing/shared-contracts');
 const {spawnSync}=require('node:child_process');
 const {validateRecipe}=require('./engine'),recipes=require('./recipes.json');
 const ROOT=path.resolve(__dirname,'../../..'),SOURCE=path.resolve(__dirname);
@@ -86,6 +87,7 @@ function manufactureInventoryBatch({outputRoot,catalog=recipes}={}){
   marketValidated:false,realCustomers:null,collectedRevenue:null,
   paymentsSent:0,externalMessagesSent:0,releaseApproved:false};
  try{
+  preserveIncompleteStages(destinationRoot,{prefixes:['.inventory-stage-']});
   const verifyDir=path.join(destinationRoot,'verification'),quarantine=path.join(destinationRoot,'.quarantine');
   for(const dir of [verifyDir,quarantine]){fs.mkdirSync(dir,{recursive:true,mode:0o700});safeDir(dir);}
   for(const recipe of list){
@@ -125,3 +127,4 @@ function manufactureInventoryBatch({outputRoot,catalog=recipes}={}){
  }finally{lock.release();}
 }
 module.exports={compileInventoryPackage,verifyInventoryPackage,manufactureInventoryBatch,acceptInventoryPackage,CHECKS};
+

@@ -32,6 +32,17 @@ test('output requires an empty private path outside the source repository',t=>{
  assert.throws(()=>writeQuoteApp(app,target),/OUTPUT_EXISTS/);
  assert.throws(()=>writeQuoteApp(app,path.resolve(__dirname,'../quote-family/generated')),/OUTPUT_UNSAFE/);
 });
+test('batch preserves a dead quote staging tree before continuing',t=>{
+ const root=dir(t),outputRoot=path.join(root,'apps'),stage=path.join(outputRoot,'.candidate-dead');
+ fs.mkdirSync(stage,{recursive:true,mode:0o700});fs.writeFileSync(path.join(stage,'partial'),'quote source',{mode:0o600});
+ const result=manufactureQuoteBatch({outputRoot,recipes:[recipes[0]]});
+ assert.equal(result.accepted,1);assert.equal(fs.existsSync(stage),false);
+ const history=path.join(outputRoot,'.incomplete-history'),
+  archived=fs.readdirSync(history,{withFileTypes:true}).find(entry=>entry.isDirectory());
+ assert.equal(fs.readFileSync(path.join(history,archived.name,'partial'),'utf8'),'quote source');
+ assert.equal(JSON.parse(fs.readFileSync(path.join(history,archived.name+'.json'),'utf8')).kind,
+  'incomplete-private-build-preserved');
+});
 test('batch manufactures and independently exercises all three full-stack applications',t=>{
  const root=dir(t),result=manufactureQuoteBatch({outputRoot:path.join(root,'apps')});
  assert.equal(result.accepted,3);assert.equal(result.failed,0);assert.equal(result.realCustomers,null);
@@ -66,3 +77,4 @@ test('new quote source identity preserves the earlier digest-addressed acceptanc
  for(const row of [a.apps[0],b.apps[0]])assert.equal(fs.existsSync(path.join(outputRoot,'verification',
   row.id+'-'+row.digest+'.json')),true);
 });
+

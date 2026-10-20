@@ -58,6 +58,16 @@ test('single-writer lock fails closed and does not remove another owner lock',t=
  const outputRoot=setup(t),lock=path.join(outputRoot,'.manufacturing.lock');fs.writeFileSync(lock,'other owner');
  assert.throws(()=>L.manufactureBatch({recipes,outputRoot,accept:receipt}),/MANUFACTURING_BUSY/);assert.equal(fs.readFileSync(lock,'utf8'),'other owner');
 });
+test('unsafe incomplete staging holds unchanged without leaking the new process lock',t=>{
+ if(process.platform==='win32')return t.skip('POSIX private-directory acceptance required');
+ const outputRoot=setup(t),stage=path.join(outputRoot,'.assembly-unsafe');
+ fs.mkdirSync(stage,{mode:0o755});fs.writeFileSync(path.join(stage,'partial'),'original',{mode:0o600});
+ assert.throws(()=>L.manufactureBatch({recipes:[recipes[0]],outputRoot,accept:receipt}),/MANUFACTURING_BUSY/);
+ assert.equal(fs.readFileSync(path.join(stage,'partial'),'utf8'),'original');
+ assert.equal(fs.statSync(stage).mode&0o077,0o055);
+ assert.equal(fs.existsSync(path.join(outputRoot,'.manufacturing.lock')),false);
+ assert.equal(fs.existsSync(path.join(outputRoot,'.incomplete-history')),false);
+});
 test('a real SIGKILL leaves evidence but does not permanently block manufacturing', {timeout:15000}, async t=>{
  if(process.platform==='win32')return t.skip('Linux process ownership acceptance required');
  const outputRoot=setup(t),marker=path.join(outputRoot,'acceptance-entered');
@@ -72,6 +82,17 @@ test('a real SIGKILL leaves evidence but does not permanently block manufacturin
  child.kill('SIGKILL');await once(child,'exit');
  const resumed=L.manufactureBatch({recipes:[recipes[0]],outputRoot,accept:receipt});
  assert.equal(resumed.accepted,1);assert.equal(resumed.failed,0);
+ assert.equal(fs.readdirSync(outputRoot).some(name=>name.startsWith('.assembly-')),false,
+  'dead-owner staging directory must not remain in the active output namespace');
+ const incomplete=path.join(outputRoot,'.incomplete-history'),
+  archived=fs.readdirSync(incomplete,{withFileTypes:true}).filter(entry=>entry.isDirectory());
+ assert.equal(archived.length,1);
+ A.verifyApplication(path.join(incomplete,archived[0].name,'app'),resumed.results[0].digest);
+ const incompleteEvent=JSON.parse(fs.readFileSync(path.join(incomplete,archived[0].name+'.json'),'utf8'));
+ assert.equal(incompleteEvent.kind,'incomplete-private-build-preserved');
+ assert.equal(incompleteEvent.originalName.startsWith('.assembly-'),true);
+ assert.equal(incompleteEvent.treeDigest.length,64);
+ assert.ok(Number.isFinite(Date.parse(incompleteEvent.observedIncompleteAt)));
  const history=path.join(outputRoot,'.lock-history');
  assert.equal(fs.readdirSync(history).filter(name=>name.endsWith('.lock')).length,1);
  const event=JSON.parse(fs.readFileSync(path.join(history,
@@ -94,3 +115,4 @@ test('100 configured editions use the same assembly line and remain noncommercia
  const r=L.manufactureBatch({recipes:batch,outputRoot,accept:receipt});assert.equal(r.accepted,100);assert.equal(r.results.length,100);
  assert.equal(r.realCustomers,null);assert.equal(r.collectedRevenue,null);
 });
+

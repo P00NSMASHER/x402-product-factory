@@ -156,6 +156,23 @@ test('a reused live PID does not pin a dead process-identity lock forever',t=>{
  assert.ok(Date.parse(event.observedDeadAt)>=Date.parse(original.startedAt));
  lease.release();
 });
+test('interrupted incomplete-stage preservation reuses its original observation',t=>{
+ const root=tmp(t),name='.assembly-crash',stage=path.join(root,name),history=path.join(root,'.incomplete-history');
+ fs.mkdirSync(stage,{mode:0o700});const content='unfinished source';
+ fs.writeFileSync(path.join(stage,'partial'),content,{mode:0o600});fs.mkdirSync(history,{mode:0o700});
+ const treeDigest=sha(JSON.stringify([['partial',0o600,Buffer.byteLength(content),sha(content)]])),
+  archivedName=name.slice(1)+'-'+treeDigest,event=path.join(history,archivedName+'.json'),
+  record={schemaVersion:1,kind:'incomplete-private-build-preserved',
+   observedIncompleteAt:new Date().toISOString(),originalName:name,treeDigest,entryCount:1,
+   bytes:Buffer.byteLength(content)};
+ shared.immutablePrivateJson(event,record);const original=fs.readFileSync(event),before=fs.statSync(event,{bigint:true});
+ const recovered=shared.preserveIncompleteStages(root,{prefixes:['.assembly-']});
+ assert.equal(recovered.length,1);assert.equal(recovered[0].observedIncompleteAt,record.observedIncompleteAt);
+ assert.deepEqual(fs.readFileSync(event),original);
+ assert.equal(fs.statSync(event,{bigint:true}).mtimeNs,before.mtimeNs);
+ assert.equal(fs.readFileSync(path.join(history,archivedName,'partial'),'utf8'),content);
+ assert.equal(fs.existsSync(stage),false);
+});
 test('interrupted stale-lock recovery resumes without replacing its original observation',t=>{
  if(process.platform==='win32')return t.skip('Linux process ownership acceptance required');
  const root=tmp(t),file=path.join(root,'.manufacturing.lock');

@@ -126,6 +126,85 @@ function immutablePrivateJson(file,value,{code='RECEIPT_IMMUTABLE'}={}){
   return {created:true,digest:sha256(body)};
  }finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}
 }
+function preserveIncompleteStages(root,{prefixes,code='MANUFACTURING_BUSY'}={}){
+ try{
+ const dir=privateDirectory(root,code);
+ if(!Array.isArray(prefixes)||prefixes.length<1||prefixes.length>8||
+    new Set(prefixes).size!==prefixes.length||
+    !prefixes.every(value=>typeof value==='string'&&/^\.[a-z][a-z0-9-]{1,31}-$/.test(value)))fail(code);
+ const names=fs.readdirSync(dir).filter(name=>prefixes.some(prefix=>name.startsWith(prefix))).sort();
+ if(names.length>32)fail(code);
+ if(names.length===0)return [];
+ const history=path.join(dir,'.incomplete-history');
+ if(fs.existsSync(history))privateDirectory(history,code);
+ const tree=stage=>{
+  let entryCount=0,bytes=0,latestMtimeMs=0;const rows=[];
+  const walk=(folder,relative='')=>{
+   for(const entry of fs.readdirSync(folder,{withFileTypes:true}).sort((a,b)=>a.name.localeCompare(b.name))){
+    if(!/^[A-Za-z0-9._-]+$/.test(entry.name)||entry.name==='.'||entry.name==='..')fail(code);
+    const rel=relative+entry.name,target=path.join(folder,entry.name),st=fs.lstatSync(target);
+    if(st.isSymbolicLink()||(process.platform!=='win32'&&
+       (typeof process.getuid==='function'&&st.uid!==process.getuid())))fail(code);
+    latestMtimeMs=Math.max(latestMtimeMs,st.mtimeMs);entryCount++;if(entryCount>128)fail(code);
+    if(entry.isDirectory()){rows.push([rel+'/',st.mode&0o777]);walk(target,rel+'/');}
+    else if(entry.isFile()){
+     if(st.size>1048576)fail(code);bytes+=st.size;if(bytes>16777216)fail(code);
+     rows.push([rel,st.mode&0o777,st.size,sha256(fs.readFileSync(target))]);
+    }else fail(code);
+   }
+  };
+  walk(stage);return {entryCount,bytes,latestMtimeMs,treeDigest:sha256(JSON.stringify(rows))};
+ };
+ const planned=names.map(name=>{
+  const source=path.join(dir,name),st=fs.lstatSync(source);
+  if(!st.isDirectory()||st.isSymbolicLink()||
+     normalized(fs.realpathSync(source))!==normalized(path.resolve(source))||
+     (process.platform!=='win32'&&((st.mode&0o077)!==0||
+      (typeof process.getuid==='function'&&st.uid!==process.getuid()))))fail(code);
+  const detail=tree(source),stem=name.slice(1)+'-'+detail.treeDigest,
+   archived=path.join(history,stem),event=archived+'.json';
+  if(fs.existsSync(archived))fail(code);
+  let record;
+  if(fs.existsSync(event)){
+   try{
+    const eventStat=fs.lstatSync(event),body=fs.readFileSync(event,'utf8'),saved=JSON.parse(body);
+    if(!eventStat.isFile()||eventStat.isSymbolicLink()||eventStat.nlink!==1||
+       eventStat.size<2||eventStat.size>65536||
+       (process.platform!=='win32'&&((eventStat.mode&0o077)!==0||
+        (typeof process.getuid==='function'&&eventStat.uid!==process.getuid())))||
+       Object.keys(saved).sort().join(',')!==
+        'bytes,entryCount,kind,observedIncompleteAt,originalName,schemaVersion,treeDigest'||
+       saved.schemaVersion!==1||saved.kind!=='incomplete-private-build-preserved'||
+       saved.originalName!==name||saved.treeDigest!==detail.treeDigest||
+       saved.entryCount!==detail.entryCount||saved.bytes!==detail.bytes||
+       typeof saved.observedIncompleteAt!=='string'||
+       !/^20\d\d-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(saved.observedIncompleteAt)||
+       !Number.isFinite(Date.parse(saved.observedIncompleteAt))||
+       Date.parse(saved.observedIncompleteAt)>Date.now()||
+       Date.parse(saved.observedIncompleteAt)<Math.floor(detail.latestMtimeMs)||
+       body!==JSON.stringify(saved,null,2)+'\n')fail(code);
+    record=saved;
+   }catch(error){if(error?.message===code)throw error;fail(code);}
+  }else{
+   const observedIncompleteAt=new Date().toISOString();
+   if(Date.parse(observedIncompleteAt)<Math.floor(detail.latestMtimeMs))fail(code);
+   record={schemaVersion:1,kind:'incomplete-private-build-preserved',observedIncompleteAt,
+    originalName:name,treeDigest:detail.treeDigest,entryCount:detail.entryCount,bytes:detail.bytes};
+  }
+  return {source,archived,event,record,detail};
+ });
+ if(planned.reduce((sum,item)=>sum+item.detail.bytes,0)>67108864)fail(code);
+ fs.mkdirSync(history,{recursive:true,mode:0o700});privateDirectory(history,code);
+ const sync=directory=>{if(process.platform!=='win32'){
+  const fd=fs.openSync(directory,'r');try{fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
+ }};
+ for(const item of planned){
+  immutablePrivateJson(item.event,item.record,{code});
+  fs.renameSync(item.source,item.archived);sync(history);sync(dir);
+ }
+ return planned.map(item=>Object.freeze({...item.record,archivedName:path.basename(item.archived)}));
+ }catch(error){if(error?.message===code)throw error;fail(code);}
+}
 function linuxProcessIdentity(pid){
  if(process.platform!=='linux'||!Number.isSafeInteger(pid)||pid<1||pid>2147483647)return null;
  try{
@@ -254,6 +333,6 @@ function privateProcessLock(file,{code='MANUFACTURING_BUSY'}={}){
  fail(code);
 }
 module.exports={sha256,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,
- privateJson,immutablePrivateJson,privateProcessLock};
+ privateJson,immutablePrivateJson,privateProcessLock,preserveIncompleteStages};
 
 

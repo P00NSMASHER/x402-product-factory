@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const {sha256:hash,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,
- immutablePrivateJson,privateJson,privateProcessLock}=require('../manufacturing/shared-contracts');
+ immutablePrivateJson,privateJson,privateProcessLock,preserveIncompleteStages}=require('../manufacturing/shared-contracts');
 const {spawnSync}=require('node:child_process');
 const {validateRecipe}=require('./kernel'),catalog=require('./recipes.json');
 const SOURCE=path.resolve(__dirname),REPO=path.resolve(__dirname,'../../..');
@@ -86,6 +86,7 @@ function manufactureQuoteBatch({outputRoot,recipes=catalog,accept=acceptQuoteApp
   verification:accept===acceptQuoteApp?'executed-packaged-quote-lifecycle':'injected-test-only',
   realCustomers:null,collectedRevenue:null,transmittedMessages:0,paymentsSent:0,releaseApproved:false};
  try{
+  preserveIncompleteStages(dir,{prefixes:['.candidate-','.quote-stage-']});
   const receipts=path.join(dir,'verification'),quarantine=path.join(dir,'.quarantine');
   for(const d of [receipts,quarantine]){fs.mkdirSync(d,{recursive:true,mode:0o700});validDir(d,'OUTPUT_UNSAFE');}
   for(const recipe of validated){const app=compileQuoteApp(recipe),folder=path.join(dir,recipe.id+'-'+app.digest);
@@ -110,3 +111,4 @@ function manufactureQuoteBatch({outputRoot,recipes=catalog,accept=acceptQuoteApp
  }finally{lock.release();}
 }
 module.exports={compileQuoteApp,writeQuoteApp,verifyQuoteApp,manufactureQuoteBatch,acceptQuoteApp,validAcceptance};
+

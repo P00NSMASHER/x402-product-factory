@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const {privateDirectory:safeDir,privateJson:writeJSON,
-  immutablePrivateJson:writeReceipt,privateProcessLock}=require('./shared-contracts');
+  immutablePrivateJson:writeReceipt,privateProcessLock,preserveIncompleteStages}=require('./shared-contracts');
 const {validateRecipe}=require('../kernel');
 const {compileApplication,writeApplication,verifyApplication}=require('./assembler');
 const {acceptApplication,validReceipt}=require('./acceptance');
@@ -21,6 +21,7 @@ function manufactureBatch({recipes,outputRoot,sourceRoot=ROOT,maxAttempts=2,retr
     verification:accept===acceptApplication?'executed-packaged-workflow':'injected-test-only',
     realCustomers:null,collectedRevenue:null,externalMessagesSent:0,paymentsSent:0,releaseApproved:false};
   try{
+    preserveIncompleteStages(output,{prefixes:['.assembly-']});
     const receiptDir=path.join(output,'verification'),quarantineDir=path.join(output,'.quarantine');
     for(const dir of [receiptDir,quarantineDir]){fs.mkdirSync(dir,{recursive:true,mode:0o700});safeDir(dir);}
     for(const recipe of validated){
@@ -65,3 +66,4 @@ function manufactureBatch({recipes,outputRoot,sourceRoot=ROOT,maxAttempts=2,retr
   }finally{lock.release();}
 }
 module.exports={manufactureBatch};
+

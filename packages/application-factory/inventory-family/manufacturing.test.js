@@ -4,6 +4,17 @@ const recipes=require('./recipes.json');
 let factory={};try{factory=require('./manufacturing');}catch(e){if(e.code!=='MODULE_NOT_FOUND')throw e;}
 function folder(t){const d=fs.mkdtempSync(path.join(os.tmpdir(),'inventory-build-test-'));
  t.after(()=>fs.rmSync(d,{recursive:true,force:true}));return d;}
+test('batch preserves a dead inventory staging tree before continuing',t=>{
+ const outputRoot=folder(t),stage=path.join(outputRoot,'.inventory-stage-dead');
+ fs.mkdirSync(stage,{mode:0o700});fs.writeFileSync(path.join(stage,'partial'),'inventory source',{mode:0o600});
+ const result=factory.manufactureInventoryBatch({outputRoot,catalog:[recipes[0]]});
+ assert.equal(result.accepted,1);assert.equal(fs.existsSync(stage),false);
+ const history=path.join(outputRoot,'.incomplete-history'),
+  archived=fs.readdirSync(history,{withFileTypes:true}).find(entry=>entry.isDirectory());
+ assert.equal(fs.readFileSync(path.join(history,archived.name,'partial'),'utf8'),'inventory source');
+ assert.equal(JSON.parse(fs.readFileSync(path.join(history,archived.name+'.json'),'utf8')).kind,
+  'incomplete-private-build-preserved');
+});
 test('each supported inventory edition is independently compiled, run and audited',t=>{
  assert.equal(typeof factory.manufactureInventoryBatch,'function');
  const outputRoot=folder(t),result=factory.manufactureInventoryBatch({outputRoot});
@@ -41,3 +52,4 @@ test('relative outputs and repository-internal state directories are disallowed'
  assert.throws(()=>factory.manufactureInventoryBatch({outputRoot:'relative'}),/OUTPUT_UNSAFE/);
  assert.throws(()=>factory.manufactureInventoryBatch({outputRoot:__dirname}),/OUTPUT_UNSAFE/);
 });
+
