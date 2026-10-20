@@ -126,6 +126,38 @@ function immutablePrivateJson(file,value,{code='RECEIPT_IMMUTABLE'}={}){
   return {created:true,digest:sha256(body)};
  }finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}
 }
+function linuxProcessIdentity(pid){
+ if(process.platform!=='linux'||!Number.isSafeInteger(pid)||pid<1||pid>2147483647)return null;
+ try{
+  const boot=fs.readFileSync('/proc/sys/kernel/random/boot_id','utf8').trim().toLowerCase();
+  if(!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(boot))return null;
+  const namespacePids=(fs.readFileSync('/proc/self/status','utf8').match(/^NSpid:\s+(.+)$/m)?.[1]||'')
+   .trim().split(/\s+/).filter(Boolean),nested=namespacePids.length>1;
+  let statFile;
+  if(pid===process.pid)statFile='/proc/self/stat';
+  else if(!nested)statFile='/proc/'+pid+'/stat';
+  else{
+   const namespace=fs.readlinkSync('/proc/self/ns/pid'),
+    entries=fs.readdirSync('/proc').filter(name=>/^\d+$/.test(name));
+   if(entries.length>65536)return null;
+   for(const entry of entries){
+    try{
+     if(fs.readlinkSync('/proc/'+entry+'/ns/pid')!==namespace)continue;
+     const ids=(fs.readFileSync('/proc/'+entry+'/status','utf8').match(/^NSpid:\s+(.+)$/m)?.[1]||'')
+      .trim().split(/\s+/).filter(Boolean);
+     if(Number(ids.at(-1))===pid){statFile='/proc/'+entry+'/stat';break;}
+    }catch{}
+   }
+  }
+  if(!statFile)return null;
+  const stat=fs.readFileSync(statFile,'utf8'),end=stat.lastIndexOf(')');
+  if(end<2)return null;
+  // The first token after the executable name is field 3; starttime is field 22.
+  const fields=stat.slice(end+1).trim().split(/\s+/),started=fields[19];
+  if(!/^\d+$/.test(started))return null;
+  return sha256(boot+':'+started);
+ }catch{return null;}
+}
 function privateProcessLock(file,{code='MANUFACTURING_BUSY'}={}){
  if(typeof file!=='string'||!path.isAbsolute(file))fail(code);
  const dir=privateDirectory(path.dirname(file),code),name=path.basename(file);
@@ -140,8 +172,10 @@ function privateProcessLock(file,{code='MANUFACTURING_BUSY'}={}){
       (process.platform!=='win32'&&((st.mode&0o077)!==0||
        (typeof process.getuid==='function'&&st.uid!==process.getuid()))))fail(code);
    const body=fs.readFileSync(file,'utf8'),row=JSON.parse(body),keys=Object.keys(row).sort().join(',');
-   const legacy=keys==='pid,startedAt',current=keys==='pid,schemaVersion,startedAt,token';
-   if((!legacy&&!current)||(current&&(row.schemaVersion!==1||!digest64(row.token)))||
+   const legacy=keys==='pid,startedAt',v1=keys==='pid,schemaVersion,startedAt,token',
+    v2=keys==='pid,processIdentity,schemaVersion,startedAt,token';
+   if((!legacy&&!v1&&!v2)||(v1&&(row.schemaVersion!==1||!digest64(row.token)))||
+      (v2&&(row.schemaVersion!==2||!digest64(row.token)||!digest64(row.processIdentity)))||
       !Number.isSafeInteger(row.pid)||row.pid<1||row.pid>2147483647||
       typeof row.startedAt!=='string'||!/^20\d\d-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(row.startedAt)||
       !Number.isFinite(Date.parse(row.startedAt)))fail(code);
@@ -169,9 +203,18 @@ function privateProcessLock(file,{code='MANUFACTURING_BUSY'}={}){
       body!==JSON.stringify(saved,null,2)+'\n')fail(code);
   }catch(error){if(error?.message===code)throw error;fail(code);}
  };
- const alive=pid=>{try{process.kill(pid,0);return true;}catch(error){return error?.code!=='ESRCH';}};
- const token=crypto.randomBytes(32).toString('hex'),record={schemaVersion:1,pid:process.pid,
-  startedAt:new Date().toISOString(),token},body=JSON.stringify(record)+'\n';
+ const alive=prior=>{
+  try{process.kill(prior.row.pid,0);}catch(error){return error?.code!=='ESRCH';}
+  if(!prior.row.processIdentity)return true;
+  const observed=linuxProcessIdentity(prior.row.pid);
+  // Unsupported or temporarily unreadable identity evidence must never authorize recovery.
+  return observed===null||observed===prior.row.processIdentity;
+ };
+ const token=crypto.randomBytes(32).toString('hex'),identity=linuxProcessIdentity(process.pid),
+  startedAt=new Date().toISOString(),record=identity===null?
+   {schemaVersion:1,pid:process.pid,startedAt,token}:
+   {schemaVersion:2,pid:process.pid,processIdentity:identity,startedAt,token},
+  body=JSON.stringify(record)+'\n';
  for(let attempt=0;attempt<2;attempt++){
   const temp=file+'.'+token+'.tmp';let linked=false;
   try{
@@ -187,7 +230,7 @@ function privateProcessLock(file,{code='MANUFACTURING_BUSY'}={}){
     fs.unlinkSync(file);sync(dir);released=true;
    }});
   }
-  const prior=read();if(alive(prior.row.pid))fail(code);
+  const prior=read();if(alive(prior))fail(code);
   const observedDeadAt=new Date().toISOString();
   if(Date.parse(observedDeadAt)<Date.parse(prior.row.startedAt))fail(code);
   const history=path.join(dir,'.lock-history');fs.mkdirSync(history,{recursive:true,mode:0o700});
@@ -212,4 +255,5 @@ function privateProcessLock(file,{code='MANUFACTURING_BUSY'}={}){
 }
 module.exports={sha256,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,
  privateJson,immutablePrivateJson,privateProcessLock};
+
 

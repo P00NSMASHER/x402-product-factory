@@ -132,12 +132,29 @@ test('accepted receipt writer is write-once and identical rechecks never alter o
 test('shared process lock rejects an active owner and releases only its own exact record',t=>{
  const root=tmp(t),file=path.join(root,'.manufacturing.lock'),first=shared.privateProcessLock(file);
  assert.equal(first.record.pid,process.pid);
+ if(process.platform==='linux'&&first.record.schemaVersion===2)
+  assert.match(first.record.processIdentity,/^[a-f0-9]{64}$/);
  assert.throws(()=>shared.privateProcessLock(file),/MANUFACTURING_BUSY/);
  const original=fs.readFileSync(file,'utf8');
  assert.equal(JSON.parse(original).token,first.record.token);
  first.release();assert.equal(fs.existsSync(file),false);
  const second=shared.privateProcessLock(file);assert.notEqual(second.record.token,first.record.token);
  second.release();
+});
+test('a reused live PID does not pin a dead process-identity lock forever',t=>{
+ if(process.platform!=='linux')return t.skip('Linux process identity acceptance required');
+ const root=tmp(t),file=path.join(root,'.manufacturing.lock'),original={schemaVersion:2,
+  pid:process.pid,processIdentity:'0'.repeat(64),
+  startedAt:new Date(Date.now()-1000).toISOString(),token:'a'.repeat(64)};
+ fs.writeFileSync(file,JSON.stringify(original)+'\n',{mode:0o600});
+ const lease=shared.privateProcessLock(file),history=path.join(root,'.lock-history'),
+  names=fs.readdirSync(history),
+  event=JSON.parse(fs.readFileSync(path.join(history,names.find(name=>name.endsWith('.json'))),'utf8'));
+ assert.deepEqual(event.original,original);
+ assert.equal(event.original.pid,process.pid);
+ assert.equal(event.original.processIdentity,'0'.repeat(64));
+ assert.ok(Date.parse(event.observedDeadAt)>=Date.parse(original.startedAt));
+ lease.release();
 });
 test('interrupted stale-lock recovery resumes without replacing its original observation',t=>{
  if(process.platform==='win32')return t.skip('Linux process ownership acceptance required');
@@ -184,3 +201,4 @@ test('signed-looking but invalid manifest hashes never bypass package contract',
  fs.writeFileSync(path.join(dir,'manifest.json'),JSON.stringify(manifest),{mode:0o600});
  assert.throws(()=>inventory.verifyInventoryPackage(dir,app.digest),/ARTIFACT_INVALID/);
 });
+
