@@ -29,6 +29,18 @@ function outsideRepository(input,{root=ROOT,code='OUTPUT_UNSAFE'}={}){
   fail(code);
  return resolved;
 }
+function privatePackageFile(file,{code='PACKAGE_INVALID',maxBytes=1048576}={}){
+ if(typeof file!=='string'||!path.isAbsolute(file)||!Number.isSafeInteger(maxBytes)||
+   maxBytes<1||maxBytes>16777216)fail(code);
+ try{
+  const resolved=path.resolve(file),st=fs.lstatSync(resolved);
+  if(!st.isFile()||st.isSymbolicLink()||st.nlink!==1||st.size>maxBytes||
+    normalized(fs.realpathSync(resolved))!==normalized(resolved)||
+    (process.platform!=='win32'&&((st.mode&0o077)!==0||
+     (typeof process.getuid==='function'&&st.uid!==process.getuid()))))fail(code);
+  return st;
+ }catch{fail(code);}
+}
 function trustedSourceFiles({sourceRoot,names,maxBytes,code='SOURCE_INVALID'}={}){
  if(typeof sourceRoot!=='string'||!path.isAbsolute(sourceRoot)||
    !Array.isArray(names)||names.length<1||names.length>32||
@@ -58,8 +70,8 @@ function verifyBundledFiles(directory,expectedDigest,{
  try{
   const dir=privateDirectory(directory,code),present=fs.readdirSync(dir).sort();
   if(present.length>maxFiles)fail(code);
-  const name='manifest.json',file=path.join(dir,name),st=fs.lstatSync(file);
-  if(!st.isFile()||st.isSymbolicLink()||st.size<2||st.size>maxManifestBytes)fail(code);
+  const name='manifest.json',file=path.join(dir,name),st=privatePackageFile(file,{code,maxBytes:maxManifestBytes});
+  if(st.size<2)fail(code);
   const json=JSON.parse(fs.readFileSync(file,'utf8'));
   if(!json||typeof json!=='object'||Array.isArray(json))fail(code);
   const {digest,...manifest}=json;
@@ -70,9 +82,9 @@ function verifyBundledFiles(directory,expectedDigest,{
       JSON.stringify([...names,'manifest.json'].sort())!==JSON.stringify(present))fail(code);
   for(const item of names){
    if(!safeName(item)||!digest64(manifest.files[item]))fail(code);
-   const target=path.join(dir,item),info=fs.lstatSync(target);
-   if(!info.isFile()||info.isSymbolicLink()||info.size>maxFileBytes||
-      sha256(fs.readFileSync(target))!==manifest.files[item])fail(code);
+   const target=path.join(dir,item);
+   privatePackageFile(target,{code,maxBytes:maxFileBytes});
+   if(sha256(fs.readFileSync(target))!==manifest.files[item])fail(code);
   }
   return {...manifest,digest};
  }catch{fail(code);}
@@ -371,7 +383,7 @@ function privateProcessLock(file,{code='MANUFACTURING_BUSY'}={}){
  }
  fail(code);
 }
-module.exports={sha256,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,
+module.exports={sha256,privateDirectory,outsideRepository,privatePackageFile,trustedSourceFiles,verifyBundledFiles,
  privateJson,immutablePrivateJson,readManufacturingFailure,writeManufacturingFailure,
  privateProcessLock,preserveIncompleteStages};
 

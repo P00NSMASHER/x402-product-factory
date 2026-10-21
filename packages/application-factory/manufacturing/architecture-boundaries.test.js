@@ -7,7 +7,7 @@ const root=path.resolve(__dirname,'../../..');
 const source=name=>fs.readFileSync(path.join(root,name),'utf8');
 test('shared packaging logic is imported by all family compilers, but never copied into a runtime package',()=>{
  const shared=source('packages/application-factory/manufacturing/shared-contracts.js');
- assert.match(shared,/module\.exports=\{sha256,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,\s+privateJson,immutablePrivateJson,readManufacturingFailure,writeManufacturingFailure,\s+privateProcessLock,preserveIncompleteStages\}/);
+ assert.match(shared,/module\.exports=\{sha256,privateDirectory,outsideRepository,privatePackageFile,trustedSourceFiles,verifyBundledFiles,\s+privateJson,immutablePrivateJson,readManufacturingFailure,writeManufacturingFailure,\s+privateProcessLock,preserveIncompleteStages\}/);
  assert.doesNotMatch(shared,/require\(['"]\.\.\/(?:quote-family|inventory-family|runtime|growth)/);
  for(const file of ['packages/application-factory/quote-family/manufacturing.js',
   'packages/application-factory/inventory-family/manufacturing.js']){
@@ -21,6 +21,9 @@ test('shared packaging logic is imported by all family compilers, but never copi
  assert.match(line,/preserveIncompleteStages\(/);
  assert.match(line,/readManufacturingFailure|readFailure\(quarantine/);
  assert.match(line,/writeManufacturingFailure|writeFailure\(quarantine/);
+ const assembler=source('packages/application-factory/manufacturing/assembler.js');
+ assert.match(assembler,/require\(['"]\.\/shared-contracts['"]\)/);
+ assert.match(assembler,/privatePackageFile\(/);
  const quoteApp=q.compileQuoteApp(qRecipes[0]),stockApp=i.compileInventoryPackage(iRecipes[0]);
  for(const app of [quoteApp,stockApp]){
   assert.equal(Object.keys(app.files).filter(n=>n.includes('shared-contracts')).length,0);

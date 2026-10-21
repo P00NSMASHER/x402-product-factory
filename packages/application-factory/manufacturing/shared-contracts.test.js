@@ -80,6 +80,13 @@ test('package integrity rejects injected top-level files and missing or unreadab
  fs.unlinkSync(path.join(dir,'server.js'));
  assert.throws(()=>quote.verifyQuoteApp(dir,packageApp.digest),/PACKAGE_INVALID/);
 });
+test('shared package verification rejects a hard-linked source alias outside the package',t=>{
+ if(process.platform==='win32')return t.skip('POSIX link-count acceptance required');
+ const root=tmp(t),packageApp=quote.compileQuoteApp(quoteRecipes[0]),dir=fixtureFiles(root,packageApp),
+  source=path.join(dir,'server.js'),alias=path.join(root,'server-alias.js');
+ fs.linkSync(source,alias);assert.equal(fs.statSync(source).nlink,2);
+ assert.throws(()=>quote.verifyQuoteApp(dir,packageApp.digest),/PACKAGE_INVALID/);
+});
 test('source reader rejects symlink injection, duplicates, executable escape and malformed source directories',t=>{
  const root=tmp(t),source=path.join(root,'source');fs.mkdirSync(source,{mode:0o700});
  fs.writeFileSync(path.join(source,'safe.js'),'module.exports={ok:true};',{mode:0o600});
