@@ -22,7 +22,8 @@ async function run(root){
    const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'factory-quote-browser-'));
    let server,store;
    try{
-    store=openStore({filename:path.join(tmp,'state.sqlite'),recipe,clock:()=>Date.parse('2026-10-13T12:00:00Z')});
+    const observedAt=Date.now();
+    store=openStore({filename:path.join(tmp,'state.sqlite'),recipe,clock:()=>observedAt});
     server=createServer({store,pollMs:500});await server.listen(0);const origin='http://127.0.0.1:'+server.port();
     for(const width of [1440,390]){
      const tenant=store.provision('synthetic-'+width);
@@ -40,7 +41,9 @@ async function run(root){
      assert.equal(await page.locator('#title').textContent(),recipe.title);
      await page.locator('#new-quote').click();
      await page.locator('#client-name').fill('Synthetic '+recipe.id+' '+width);
-     await page.locator('#valid-until').fill('2026-10-20');
+     const validUntil=page.locator('#valid-until');
+     assert.match(await validUntil.inputValue(),/^20\d\d-\d\d-\d\d$/);
+     assert.equal(await validUntil.evaluate(input=>input.checkValidity()),true);
      await page.locator('#create-form button[type="submit"]').click();
      await page.locator('#detail-name').waitFor({state:'visible'});
      await page.locator('#quantity').fill('4');
