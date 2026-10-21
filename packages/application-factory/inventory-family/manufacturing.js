@@ -2,7 +2,9 @@
 // Compile complete self-contained synthetic inventory applications and independently execute each package.
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const {sha256:sha,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,
- immutablePrivateJson:saveReceipt,privateJson:saveJson}=require('../manufacturing/shared-contracts');
+ immutablePrivateJson:saveReceipt,privateJson:saveJson,
+ readManufacturingFailure:readFailure,writeManufacturingFailure:writeFailure,privateProcessLock,
+ preserveIncompleteStages}=require('../manufacturing/shared-contracts');
 const {spawnSync}=require('node:child_process');
 const {validateRecipe}=require('./engine'),recipes=require('./recipes.json');
 const ROOT=path.resolve(__dirname,'../../..'),SOURCE=path.resolve(__dirname);
@@ -80,21 +82,23 @@ function manufactureInventoryBatch({outputRoot,catalog=recipes}={}){
  const list=catalog.map(validateRecipe);
  const destinationRoot=outsideRepository(outputRoot,{root:ROOT});
  fs.mkdirSync(destinationRoot,{recursive:true,mode:0o700});safeDir(destinationRoot);
- const lock=path.join(destinationRoot,'.inventory-build.lock');let fd;
- try{fd=fs.openSync(lock,'wx',0o600);}catch(e){if(e.code==='EEXIST')fail('MANUFACTURING_BUSY');throw e;}
+ const lock=privateProcessLock(path.join(destinationRoot,'.inventory-build.lock'));
  const report={kind:'inventory-family-manufacturing',family:'inventory-control',
   accepted:0,failed:0,reused:0,results:[],verification:'executed-packaged-inventory-lifecycle',
   marketValidated:false,realCustomers:null,collectedRevenue:null,
   paymentsSent:0,externalMessagesSent:0,releaseApproved:false};
  try{
+  preserveIncompleteStages(destinationRoot,{prefixes:['.inventory-stage-']});
   const verifyDir=path.join(destinationRoot,'verification'),quarantine=path.join(destinationRoot,'.quarantine');
   for(const dir of [verifyDir,quarantine]){fs.mkdirSync(dir,{recursive:true,mode:0o700});safeDir(dir);}
   for(const recipe of list){
    let pkg;try{pkg=compileInventoryPackage(recipe);}catch(e){report.failed++;report.results.push({id:recipe.id,status:'quarantined',reason:'SOURCE_INVALID'});continue;}
    const artifact=recipe.id+'-'+pkg.digest,dest=path.join(destinationRoot,artifact);
-   const banned=path.join(quarantine,artifact+'.json');
+   const banned=path.join(quarantine,artifact+'.json'),failureKind='inventory-manufacturing-failure',
+    priorFailure=readFailure(banned,{kind:failureKind,id:recipe.id});
+   if(priorFailure&&priorFailure.digest!==pkg.digest)fail('OUTPUT_UNSAFE');
    let result;
-   if(fs.existsSync(banned)){
+   if(priorFailure){
     result={id:recipe.id,digest:pkg.digest,status:'quarantined',reason:'PREVIOUS_FAILURE',attempts:0};
    }else if(fs.existsSync(dest)){
     try{
@@ -119,10 +123,12 @@ function manufactureInventoryBatch({outputRoot,catalog=recipes}={}){
     }
    }
    if(result.status==='accepted'){report.accepted++;if(result.reused)report.reused++;}
-   else{report.failed++;saveJson(banned,result);}
+   else{report.failed++;if(result.reason!=='PREVIOUS_FAILURE')writeFailure(banned,{kind:failureKind,
+    id:recipe.id,digest:pkg.digest,reason:result.reason,attempts:result.attempts});}
    report.results.push(result);saveJson(path.join(destinationRoot,'manufacturing-report.json'),report);
   }
   return report;
- }finally{fs.closeSync(fd);fs.unlinkSync(lock);}
+ }finally{lock.release();}
 }
 module.exports={compileInventoryPackage,verifyInventoryPackage,manufactureInventoryBatch,acceptInventoryPackage,CHECKS};
+

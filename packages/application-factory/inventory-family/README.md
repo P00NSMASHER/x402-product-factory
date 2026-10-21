@@ -17,7 +17,7 @@ All three independently packaged apps contain their own Node.js 22.13+ SQLite st
     node --test packages/application-factory/inventory-family/*.test.js
     node scripts/manufacture-inventory-apps.js --output /absolute/private/inventory-output
 
-Each output package is named id plus source SHA-256 digest. A genuine package acceptance runs in a clean subprocess from the assembled bytes with private synthetic SQLite state, two tenants and two roles, HTTP Host/Origin guards, exact stock balances, manual + automatic nonbinding replenishment, concurrency/idempotence, and restart persistence. A quarantined/modified package is not silently overwritten. The manufacturing report and independent acceptance receipts are saved with the artifacts.
+Each output package is named id plus source SHA-256 digest. A genuine package acceptance runs in a clean subprocess from the assembled bytes with private synthetic SQLite state, two tenants and two roles, HTTP Host/Origin guards, exact stock balances, manual + automatic nonbinding replenishment, concurrency/idempotence, and restart persistence. A quarantined/modified package is not silently overwritten. The original digest-specific failure is written once with its actual observation time; later holds do not replace its reason, bytes or timestamp. The manufacturing report and independent acceptance receipts are saved with the artifacts.
 
 ## Run one assembled app privately
 
@@ -29,3 +29,4 @@ Open http://127.0.0.1:8791/app and enter either the separately stored operator/r
 These are **technically validated synthetic SaaS candidates**, not three proven markets, customers, purchases or profitable stores. Real customers and collected revenue are **null**; commercial release is **false**. The original document and quote families and the factory's existing six-hour task remain unchanged. GitHub Actions on draft PRs run QA but the six-hour GitHub cron is inactive until separately reviewed default-branch merge. No supplier communications, paid APIs, public hosting, bank actions, Product 025+ unlock, live customer data or changes to account schedules are authorized.
 
 The next autonomy upgrade should promote buyer-verified differentiators, source checks and measurable completed outcomes rather than inventing dozens of cosmetically renamed inventory apps. Accepted test receipts are software QA, not market fit or production compliance.
+

@@ -1,6 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto');
+const {spawnSync}=require('node:child_process');
 const shared=require('./shared-contracts');
 const quote=require('../quote-family/manufacturing');
 const inventory=require('../inventory-family/manufacturing');
@@ -79,6 +80,13 @@ test('package integrity rejects injected top-level files and missing or unreadab
  fs.unlinkSync(path.join(dir,'server.js'));
  assert.throws(()=>quote.verifyQuoteApp(dir,packageApp.digest),/PACKAGE_INVALID/);
 });
+test('shared package verification rejects a hard-linked source alias outside the package',t=>{
+ if(process.platform==='win32')return t.skip('POSIX link-count acceptance required');
+ const root=tmp(t),packageApp=quote.compileQuoteApp(quoteRecipes[0]),dir=fixtureFiles(root,packageApp),
+  source=path.join(dir,'server.js'),alias=path.join(root,'server-alias.js');
+ fs.linkSync(source,alias);assert.equal(fs.statSync(source).nlink,2);
+ assert.throws(()=>quote.verifyQuoteApp(dir,packageApp.digest),/PACKAGE_INVALID/);
+});
 test('source reader rejects symlink injection, duplicates, executable escape and malformed source directories',t=>{
  const root=tmp(t),source=path.join(root,'source');fs.mkdirSync(source,{mode:0o700});
  fs.writeFileSync(path.join(source,'safe.js'),'module.exports={ok:true};',{mode:0o600});
@@ -127,6 +135,112 @@ test('accepted receipt writer is write-once and identical rechecks never alter o
  assert.equal(after.ino,before.ino);assert.equal(after.mtimeNs,before.mtimeNs);
  assert.throws(()=>shared.immutablePrivateJson(receipt,{...evidence,passed:false}),/RECEIPT_IMMUTABLE/);
  assert.deepEqual(fs.readFileSync(receipt),original);
+ if(process.platform!=='win32'){
+  const alias=path.join(root,'accepted-alias.json');fs.linkSync(receipt,alias);
+  assert.equal(fs.statSync(receipt).nlink,2);
+  assert.throws(()=>shared.immutablePrivateJson(receipt,evidence),/RECEIPT_IMMUTABLE/);
+  assert.deepEqual(fs.readFileSync(receipt),original);
+ }
+});
+test('shared manufacturing failure evidence preserves its first true-time observation',t=>{
+ const root=tmp(t),file=path.join(root,'failed.json'),kind='inventory-manufacturing-failure',
+  id='synthetic-inventory',digest='a'.repeat(64);
+ const saved=shared.writeManufacturingFailure(file,{kind,id,digest,
+  reason:'EXISTING_ARTIFACT_REJECTED',attempts:1});
+ assert.equal(saved.kind,kind);assert.ok(Number.isFinite(Date.parse(saved.observedFailedAt)));
+ const original=fs.readFileSync(file),before=fs.statSync(file,{bigint:true}),
+  read=shared.readManufacturingFailure(file,{kind,id});
+ assert.equal(read.digest,digest);assert.equal(read.reason,'EXISTING_ARTIFACT_REJECTED');
+ assert.equal(read.legacyRecord,false);
+ assert.throws(()=>shared.writeManufacturingFailure(file,{kind,id,digest,
+  reason:'ACCEPTANCE_FAILED',attempts:1}),/OUTPUT_UNSAFE/);
+ assert.deepEqual(fs.readFileSync(file),original);
+ assert.equal(fs.statSync(file,{bigint:true}).mtimeNs,before.mtimeNs);
+ if(process.platform!=='win32'){
+  const alias=path.join(root,'failure-alias.json');fs.linkSync(file,alias);
+  assert.throws(()=>shared.readManufacturingFailure(file,{kind,id}),/OUTPUT_UNSAFE/);
+ }
+});
+test('shared process lock rejects an active owner and releases only its own exact record',t=>{
+ const root=tmp(t),file=path.join(root,'.manufacturing.lock'),first=shared.privateProcessLock(file);
+ assert.equal(first.record.pid,process.pid);
+ if(process.platform==='linux'&&first.record.schemaVersion===2)
+  assert.match(first.record.processIdentity,/^[a-f0-9]{64}$/);
+ assert.throws(()=>shared.privateProcessLock(file),/MANUFACTURING_BUSY/);
+ const original=fs.readFileSync(file,'utf8');
+ assert.equal(JSON.parse(original).token,first.record.token);
+ first.release();assert.equal(fs.existsSync(file),false);
+ const second=shared.privateProcessLock(file);assert.notEqual(second.record.token,first.record.token);
+ second.release();
+});
+test('a reused live PID does not pin a dead process-identity lock forever',t=>{
+ if(process.platform!=='linux')return t.skip('Linux process identity acceptance required');
+ const root=tmp(t),file=path.join(root,'.manufacturing.lock'),original={schemaVersion:2,
+  pid:process.pid,processIdentity:'0'.repeat(64),
+  startedAt:new Date(Date.now()-1000).toISOString(),token:'a'.repeat(64)};
+ fs.writeFileSync(file,JSON.stringify(original)+'\n',{mode:0o600});
+ const lease=shared.privateProcessLock(file),history=path.join(root,'.lock-history'),
+  names=fs.readdirSync(history),
+  event=JSON.parse(fs.readFileSync(path.join(history,names.find(name=>name.endsWith('.json'))),'utf8'));
+ assert.deepEqual(event.original,original);
+ assert.equal(event.original.pid,process.pid);
+ assert.equal(event.original.processIdentity,'0'.repeat(64));
+ assert.ok(Date.parse(event.observedDeadAt)>=Date.parse(original.startedAt));
+ lease.release();
+});
+test('interrupted incomplete-stage preservation reuses its original observation',t=>{
+ const root=tmp(t),name='.assembly-crash',stage=path.join(root,name),history=path.join(root,'.incomplete-history');
+ fs.mkdirSync(stage,{mode:0o700});const content='unfinished source';
+ fs.writeFileSync(path.join(stage,'partial'),content,{mode:0o600});fs.mkdirSync(history,{mode:0o700});
+ const treeDigest=sha(JSON.stringify([['partial',0o600,Buffer.byteLength(content),sha(content)]])),
+  archivedName=name.slice(1)+'-'+treeDigest,event=path.join(history,archivedName+'.json'),
+  record={schemaVersion:1,kind:'incomplete-private-build-preserved',
+   observedIncompleteAt:new Date().toISOString(),originalName:name,treeDigest,entryCount:1,
+   bytes:Buffer.byteLength(content)};
+ shared.immutablePrivateJson(event,record);const original=fs.readFileSync(event),before=fs.statSync(event,{bigint:true});
+ const recovered=shared.preserveIncompleteStages(root,{prefixes:['.assembly-']});
+ assert.equal(recovered.length,1);assert.equal(recovered[0].observedIncompleteAt,record.observedIncompleteAt);
+ assert.deepEqual(fs.readFileSync(event),original);
+ assert.equal(fs.statSync(event,{bigint:true}).mtimeNs,before.mtimeNs);
+ assert.equal(fs.readFileSync(path.join(history,archivedName,'partial'),'utf8'),content);
+ assert.equal(fs.existsSync(stage),false);
+});
+test('interrupted stale-lock recovery resumes without replacing its original observation',t=>{
+ if(process.platform==='win32')return t.skip('Linux process ownership acceptance required');
+ const root=tmp(t),file=path.join(root,'.manufacturing.lock');
+ const child=spawnSync(process.execPath,['-e',
+  "require(process.argv[1]).privateProcessLock(process.argv[2])",require.resolve('./shared-contracts'),file],
+  {encoding:'utf8'});
+ assert.equal(child.status,0,child.stderr);assert.equal(fs.existsSync(file),true);
+ const original=fs.readFileSync(file),record=JSON.parse(original),history=path.join(root,'.lock-history');
+ fs.mkdirSync(history,{mode:0o700});
+ const stem='manufacturing.lock-'+record.token,archived=path.join(history,stem+'.lock'),
+  event=path.join(history,stem+'.json'),observedDeadAt=new Date().toISOString();
+ fs.linkSync(file,archived);
+ shared.immutablePrivateJson(event,{schemaVersion:1,kind:'stale-private-process-lock-recovery',
+  observedDeadAt,originalDigest:sha(original),
+  legacyRecord:false,original:record});
+ const evidence=fs.readFileSync(event),before=fs.statSync(event,{bigint:true});
+ const resumed=shared.privateProcessLock(file);
+ assert.deepEqual(fs.readFileSync(event),evidence);
+ assert.equal(fs.statSync(event,{bigint:true}).mtimeNs,before.mtimeNs);
+ assert.deepEqual(fs.readFileSync(archived),original);
+ resumed.release();
+});
+test('future-dated dead-owner lock cannot create impossible recovery chronology',t=>{
+ if(process.platform==='win32')return t.skip('Linux process ownership acceptance required');
+ const root=tmp(t),file=path.join(root,'.manufacturing.lock');
+ const child=spawnSync(process.execPath,['-e',
+  "require(process.argv[1]).privateProcessLock(process.argv[2])",require.resolve('./shared-contracts'),file],
+  {encoding:'utf8'});
+ assert.equal(child.status,0,child.stderr);
+ const record=JSON.parse(fs.readFileSync(file,'utf8'));
+ record.startedAt=new Date(Date.now()+3600000).toISOString();
+ const original=Buffer.from(JSON.stringify(record)+String.fromCharCode(10));
+ fs.writeFileSync(file,original,{mode:0o600});
+ assert.throws(()=>shared.privateProcessLock(file),/MANUFACTURING_BUSY/);
+ assert.deepEqual(fs.readFileSync(file),original);
+ assert.equal(fs.existsSync(path.join(root,'.lock-history')),false);
 });
 test('signed-looking but invalid manifest hashes never bypass package contract',t=>{
  const root=tmp(t),app=inventory.compileInventoryPackage(inventoryRecipes[0]);
@@ -136,3 +250,4 @@ test('signed-looking but invalid manifest hashes never bypass package contract',
  fs.writeFileSync(path.join(dir,'manifest.json'),JSON.stringify(manifest),{mode:0o600});
  assert.throws(()=>inventory.verifyInventoryPackage(dir,app.digest),/ARTIFACT_INVALID/);
 });
+

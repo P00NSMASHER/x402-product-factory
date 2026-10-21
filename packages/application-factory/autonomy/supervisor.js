@@ -8,6 +8,8 @@ const ROOT=path.resolve(__dirname,'../../..'),EPOCH=Date.parse('2026-10-13T00:00
 const fail=code=>{throw new Error(code);};
 const sha=v=>crypto.createHash('sha256').update(v).digest('hex');
 const abs=v=>typeof v==='string'&&path.isAbsolute(v);
+const utc=v=>typeof v==='string'&&/^20\d\d-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{3})?Z$/.test(v)&&
+ Number.isFinite(Date.parse(v));
 const location=raw=>{
  if(!abs(raw))fail('OUTPUT_UNSAFE');
  const output=path.resolve(raw),relative=path.relative(ROOT,output);
@@ -48,6 +50,13 @@ function inspect(output,plan){
     saved.digest!==sha(JSON.stringify({...saved,digest:undefined}))||
     !Array.isArray(saved.identities)||saved.identities.length!==1||!Array.isArray(saved.artifacts)||
     saved.artifacts.length!==1)fail('RECOVERY_RECEIPT_INVALID');
+ const scheduledFor=new Date(EPOCH+plan.cycle*INTERVAL).toISOString();
+ const legacy=saved.scheduledFor===undefined&&saved.executedAt===undefined&&
+   saved.recoveredLate===undefined&&saved.executionKind===undefined;
+ if(!legacy&&(!utc(saved.scheduledFor)||!utc(saved.executedAt)||saved.scheduledFor!==scheduledFor||
+   saved.executionKind!=='initial-execution'||
+   saved.recoveredLate!==(Date.parse(saved.executedAt)>=Date.parse(scheduledFor)+INTERVAL)))
+  fail('RECOVERY_RECEIPT_INVALID');
  const recipe=plan.recipes[0],digest=compileApplication(recipe).digest;
  if(saved.ideaDigest!==plan.ideaDigest||saved.identities[0].id!==recipe.id||
     saved.identities[0].digest!==digest)fail('RECOVERY_SOURCE_DRIFT');

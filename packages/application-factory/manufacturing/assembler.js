@@ -1,6 +1,7 @@
 'use strict';
 // Copies only trusted factory implementation files; never crawls live state or arbitrary dependencies.
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+const {privatePackageFile}=require('./shared-contracts');
 const {validateRecipe}=require('../kernel');
 const {buildOffer,renderOffer}=require('../growth/offers');
 const {buildDiscoveryKit}=require('../growth/prospecting');
@@ -77,7 +78,7 @@ function verifyApplication(directory,expectedDigest){
     if(typeof expectedDigest!=='string'||!/^[0-9a-f]{64}$/.test(expectedDigest))fail('ARTIFACT_INVALID');
     canonicalDirectory(directory,'ARTIFACT_INVALID');
     const filename=path.join(directory,'manifest.json');
-    if(fs.lstatSync(filename).size>65536||!fs.lstatSync(filename).isFile()||fs.lstatSync(filename).isSymbolicLink())fail('ARTIFACT_INVALID');
+    if(privatePackageFile(filename,{code:'ARTIFACT_INVALID',maxBytes:65536}).size<2)fail('ARTIFACT_INVALID');
     const {digest,...manifest}=JSON.parse(fs.readFileSync(filename,'utf8'));
     if(digest!==expectedDigest||hash(JSON.stringify(manifest))!==expectedDigest||manifest.schemaVersion!==1||manifest.releaseApproved!==false||
        !manifest.files||typeof manifest.files!=='object'||Array.isArray(manifest.files))fail('ARTIFACT_INVALID');
@@ -85,8 +86,9 @@ function verifyApplication(directory,expectedDigest){
     if(JSON.stringify(expected)!==JSON.stringify(actual))fail('ARTIFACT_INVALID');
     for(const rel of Object.keys(manifest.files)){
       if(!/^[A-Za-z0-9._/-]+$/.test(rel)||rel.startsWith('/')||rel.split('/').some(p=>!p||p==='.'||p==='..'))fail('ARTIFACT_INVALID');
-      const file=path.join(directory,rel),stat=fs.lstatSync(file);
-      if(!stat.isFile()||stat.size>1024*1024||hash(fs.readFileSync(file))!==manifest.files[rel])fail('ARTIFACT_INVALID');
+      const file=path.join(directory,rel);
+      privatePackageFile(file,{code:'ARTIFACT_INVALID',maxBytes:1024*1024});
+      if(hash(fs.readFileSync(file))!==manifest.files[rel])fail('ARTIFACT_INVALID');
     }
     return {...manifest,digest};
   }catch{fail('ARTIFACT_INVALID');}
@@ -111,3 +113,4 @@ function writeApplication(app,destination){
   finally{fs.rmSync(stage,{recursive:true,force:true});}
 }
 module.exports={SOURCE_FILES,compileApplication,writeApplication,verifyApplication};
+

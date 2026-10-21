@@ -60,6 +60,13 @@ test('rejects symbolic-link artifacts and output parents',t=>{
   fs.symlinkSync(root,path.join(root,'redirect'));
   assert.throws(()=>A.writeApplication(app,path.join(root,'redirect','other')),/OUTPUT_UNSAFE/);
 });
+test('rejects a hard-linked assembled source alias outside the package',t=>{
+  if(process.platform==='win32')return t.skip('POSIX link-count acceptance required');
+  const root=unit(t),app=A.compileApplication(recipes[0]),dest=path.join(root,'app');A.writeApplication(app,dest);
+  const file=path.join(dest,'packages/application-factory/runtime/browser.html'),alias=path.join(root,'browser-alias.html');
+  fs.linkSync(file,alias);assert.equal(fs.statSync(file).nlink,2);
+  assert.throws(()=>A.verifyApplication(dest,app.digest),/ARTIFACT_INVALID/);
+});
 test('source allowlist refuses a missing module or symbolic-link source',t=>{
   const root=unit(t),source=path.join(root,'source');
   for(const rel of A.SOURCE_FILES){fs.mkdirSync(path.dirname(path.join(source,rel)),{recursive:true});fs.copyFileSync(path.join(ROOT,rel),path.join(source,rel));}
@@ -68,3 +75,4 @@ test('source allowlist refuses a missing module or symbolic-link source',t=>{
   fs.symlinkSync(path.join(ROOT,'packages/application-factory/runtime/vault.js'),file);
   assert.throws(()=>A.compileApplication(recipes[0],{sourceRoot:source}),/SOURCE_INVALID/);
 });
+
