@@ -135,6 +135,12 @@ test('accepted receipt writer is write-once and identical rechecks never alter o
  assert.equal(after.ino,before.ino);assert.equal(after.mtimeNs,before.mtimeNs);
  assert.throws(()=>shared.immutablePrivateJson(receipt,{...evidence,passed:false}),/RECEIPT_IMMUTABLE/);
  assert.deepEqual(fs.readFileSync(receipt),original);
+ if(process.platform!=='win32'){
+  const alias=path.join(root,'accepted-alias.json');fs.linkSync(receipt,alias);
+  assert.equal(fs.statSync(receipt).nlink,2);
+  assert.throws(()=>shared.immutablePrivateJson(receipt,evidence),/RECEIPT_IMMUTABLE/);
+  assert.deepEqual(fs.readFileSync(receipt),original);
+ }
 });
 test('shared manufacturing failure evidence preserves its first true-time observation',t=>{
  const root=tmp(t),file=path.join(root,'failed.json'),kind='inventory-manufacturing-failure',

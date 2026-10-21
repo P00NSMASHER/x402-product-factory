@@ -120,9 +120,8 @@ function immutablePrivateJson(file,value,{code='RECEIPT_IMMUTABLE'}={}){
  const body=JSON.stringify(value,null,2)+'\n';
  if(fs.existsSync(file)){
   try{
-   const st=fs.lstatSync(file);
-   if(!st.isFile()||st.isSymbolicLink()||st.size<2||st.size>65536||
-      (process.platform!=='win32'&&(st.mode&0o077)!==0)||
+   const st=privatePackageFile(file,{code,maxBytes:65536});
+   if(st.size<2||
       fs.readFileSync(file,'utf8')!==body)fail(code);
    return {created:false,digest:sha256(body)};
   }catch{fail(code);}
