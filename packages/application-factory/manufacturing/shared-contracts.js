@@ -126,6 +126,45 @@ function immutablePrivateJson(file,value,{code='RECEIPT_IMMUTABLE'}={}){
   return {created:true,digest:sha256(body)};
  }finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}
 }
+function readManufacturingFailure(file,{kind,id,code='OUTPUT_UNSAFE'}={}){
+ if(typeof file!=='string'||!path.isAbsolute(file)||typeof kind!=='string'||
+   !/^[a-z][a-z0-9-]{2,63}$/.test(kind)||typeof id!=='string'||
+   !/^[a-z0-9][a-z0-9-]{1,63}$/.test(id))fail(code);
+ const dir=privateDirectory(path.dirname(file),code);
+ if(path.basename(file)!==path.relative(dir,file))fail(code);
+ if(!fs.existsSync(file))return null;
+ try{
+  const st=fs.lstatSync(file);
+  if(!st.isFile()||st.isSymbolicLink()||st.nlink!==1||st.size<2||st.size>65536||
+    (process.platform!=='win32'&&((st.mode&0o077)!==0||
+     (typeof process.getuid==='function'&&st.uid!==process.getuid()))))fail(code);
+  const body=fs.readFileSync(file,'utf8'),row=JSON.parse(body),
+   keys=Object.keys(row).sort().join(','),
+   legacy=keys==='digest,id,reason,status'||keys==='attempts,digest,id,reason,status',
+   v1=keys==='digest,id,kind,observedFailedAt,reason,schemaVersion,status'||
+    keys==='attempts,digest,id,kind,observedFailedAt,reason,schemaVersion,status';
+  if((!legacy&&!v1)||row.id!==id||!digest64(row.digest)||row.status!=='quarantined'||
+    !['ACCEPTANCE_FAILED','EXISTING_ARTIFACT_REJECTED','PREVIOUS_FAILURE'].includes(row.reason)||
+    (Object.hasOwn(row,'attempts')&&(!Number.isSafeInteger(row.attempts)||row.attempts<0||row.attempts>3))||
+    (v1&&(row.schemaVersion!==1||row.kind!==kind||row.reason==='PREVIOUS_FAILURE'||
+     typeof row.observedFailedAt!=='string'||
+     !/^20\d\d-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(row.observedFailedAt)||
+     !Number.isFinite(Date.parse(row.observedFailedAt))||Date.parse(row.observedFailedAt)>Date.now()))||
+    body!==JSON.stringify(row,null,2)+'\n')fail(code);
+  return Object.freeze({...row,legacyRecord:legacy});
+ }catch(error){if(error?.message===code)throw error;fail(code);}
+}
+function writeManufacturingFailure(file,{kind,id,digest,reason,attempts}={},
+ {code='OUTPUT_UNSAFE'}={}){
+ if(typeof kind!=='string'||!/^[a-z][a-z0-9-]{2,63}$/.test(kind)||
+   typeof id!=='string'||!/^[a-z0-9][a-z0-9-]{1,63}$/.test(id)||!digest64(digest)||
+   !['ACCEPTANCE_FAILED','EXISTING_ARTIFACT_REJECTED'].includes(reason)||
+   (attempts!==undefined&&(!Number.isSafeInteger(attempts)||attempts<0||attempts>3)))fail(code);
+ const record={schemaVersion:1,kind,observedFailedAt:new Date().toISOString(),
+  id,digest,status:'quarantined',reason};
+ if(attempts!==undefined)record.attempts=attempts;
+ immutablePrivateJson(file,record,{code});return Object.freeze({...record});
+}
 function preserveIncompleteStages(root,{prefixes,code='MANUFACTURING_BUSY'}={}){
  try{
  const dir=privateDirectory(root,code);
@@ -333,6 +372,7 @@ function privateProcessLock(file,{code='MANUFACTURING_BUSY'}={}){
  fail(code);
 }
 module.exports={sha256,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,
- privateJson,immutablePrivateJson,privateProcessLock,preserveIncompleteStages};
+ privateJson,immutablePrivateJson,readManufacturingFailure,writeManufacturingFailure,
+ privateProcessLock,preserveIncompleteStages};
 
 

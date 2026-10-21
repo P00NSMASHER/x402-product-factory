@@ -47,6 +47,16 @@ test('changing an assembled source file fails content integrity and is not accep
  assert.throws(()=>factory.verifyInventoryPackage(dest,a.results[0].digest),/ARTIFACT_INVALID/);
  const next=factory.manufactureInventoryBatch({outputRoot});assert.equal(next.failed,1);
  assert.equal(next.results[0].status,'quarantined');
+ const failureFile=path.join(outputRoot,'.quarantine',a.results[0].artifact+'.json'),
+  original=fs.readFileSync(failureFile),before=fs.statSync(failureFile,{bigint:true}),
+  firstFailure=JSON.parse(original);
+ assert.equal(firstFailure.reason,'EXISTING_ARTIFACT_REJECTED');
+ const held=factory.manufactureInventoryBatch({outputRoot});
+ assert.equal(held.results[0].reason,'PREVIOUS_FAILURE');
+ assert.deepEqual(fs.readFileSync(failureFile),original);
+ assert.equal(fs.statSync(failureFile,{bigint:true}).mtimeNs,before.mtimeNs);
+ assert.equal(firstFailure.kind,'inventory-manufacturing-failure');
+ assert.ok(Number.isFinite(Date.parse(firstFailure.observedFailedAt)));
 });
 test('relative outputs and repository-internal state directories are disallowed',()=>{
  assert.throws(()=>factory.manufactureInventoryBatch({outputRoot:'relative'}),/OUTPUT_UNSAFE/);

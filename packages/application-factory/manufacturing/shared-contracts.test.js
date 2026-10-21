@@ -129,6 +129,25 @@ test('accepted receipt writer is write-once and identical rechecks never alter o
  assert.throws(()=>shared.immutablePrivateJson(receipt,{...evidence,passed:false}),/RECEIPT_IMMUTABLE/);
  assert.deepEqual(fs.readFileSync(receipt),original);
 });
+test('shared manufacturing failure evidence preserves its first true-time observation',t=>{
+ const root=tmp(t),file=path.join(root,'failed.json'),kind='inventory-manufacturing-failure',
+  id='synthetic-inventory',digest='a'.repeat(64);
+ const saved=shared.writeManufacturingFailure(file,{kind,id,digest,
+  reason:'EXISTING_ARTIFACT_REJECTED',attempts:1});
+ assert.equal(saved.kind,kind);assert.ok(Number.isFinite(Date.parse(saved.observedFailedAt)));
+ const original=fs.readFileSync(file),before=fs.statSync(file,{bigint:true}),
+  read=shared.readManufacturingFailure(file,{kind,id});
+ assert.equal(read.digest,digest);assert.equal(read.reason,'EXISTING_ARTIFACT_REJECTED');
+ assert.equal(read.legacyRecord,false);
+ assert.throws(()=>shared.writeManufacturingFailure(file,{kind,id,digest,
+  reason:'ACCEPTANCE_FAILED',attempts:1}),/OUTPUT_UNSAFE/);
+ assert.deepEqual(fs.readFileSync(file),original);
+ assert.equal(fs.statSync(file,{bigint:true}).mtimeNs,before.mtimeNs);
+ if(process.platform!=='win32'){
+  const alias=path.join(root,'failure-alias.json');fs.linkSync(file,alias);
+  assert.throws(()=>shared.readManufacturingFailure(file,{kind,id}),/OUTPUT_UNSAFE/);
+ }
+});
 test('shared process lock rejects an active owner and releases only its own exact record',t=>{
  const root=tmp(t),file=path.join(root,'.manufacturing.lock'),first=shared.privateProcessLock(file);
  assert.equal(first.record.pid,process.pid);

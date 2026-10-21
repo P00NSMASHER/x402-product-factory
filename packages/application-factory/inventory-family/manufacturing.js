@@ -2,7 +2,8 @@
 // Compile complete self-contained synthetic inventory applications and independently execute each package.
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const {sha256:sha,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,
- immutablePrivateJson:saveReceipt,privateJson:saveJson,privateProcessLock,
+ immutablePrivateJson:saveReceipt,privateJson:saveJson,
+ readManufacturingFailure:readFailure,writeManufacturingFailure:writeFailure,privateProcessLock,
  preserveIncompleteStages}=require('../manufacturing/shared-contracts');
 const {spawnSync}=require('node:child_process');
 const {validateRecipe}=require('./engine'),recipes=require('./recipes.json');
@@ -93,9 +94,11 @@ function manufactureInventoryBatch({outputRoot,catalog=recipes}={}){
   for(const recipe of list){
    let pkg;try{pkg=compileInventoryPackage(recipe);}catch(e){report.failed++;report.results.push({id:recipe.id,status:'quarantined',reason:'SOURCE_INVALID'});continue;}
    const artifact=recipe.id+'-'+pkg.digest,dest=path.join(destinationRoot,artifact);
-   const banned=path.join(quarantine,artifact+'.json');
+   const banned=path.join(quarantine,artifact+'.json'),failureKind='inventory-manufacturing-failure',
+    priorFailure=readFailure(banned,{kind:failureKind,id:recipe.id});
+   if(priorFailure&&priorFailure.digest!==pkg.digest)fail('OUTPUT_UNSAFE');
    let result;
-   if(fs.existsSync(banned)){
+   if(priorFailure){
     result={id:recipe.id,digest:pkg.digest,status:'quarantined',reason:'PREVIOUS_FAILURE',attempts:0};
    }else if(fs.existsSync(dest)){
     try{
@@ -120,7 +123,8 @@ function manufactureInventoryBatch({outputRoot,catalog=recipes}={}){
     }
    }
    if(result.status==='accepted'){report.accepted++;if(result.reused)report.reused++;}
-   else{report.failed++;saveJson(banned,result);}
+   else{report.failed++;if(result.reason!=='PREVIOUS_FAILURE')writeFailure(banned,{kind:failureKind,
+    id:recipe.id,digest:pkg.digest,reason:result.reason,attempts:result.attempts});}
    report.results.push(result);saveJson(path.join(destinationRoot,'manufacturing-report.json'),report);
   }
   return report;
