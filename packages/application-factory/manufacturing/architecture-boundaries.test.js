@@ -16,8 +16,11 @@ test('shared packaging logic is imported by all family compilers, but never copi
   assert.match(source(file),/readManufacturingFailure|readFailure\(banned/);
   assert.match(source(file),/writeManufacturingFailure|writeFailure\(banned/);
  }
- assert.match(source('packages/application-factory/manufacturing/line.js'),/require\(['"]\.\/shared-contracts['"]\)/);
- assert.match(source('packages/application-factory/manufacturing/line.js'),/preserveIncompleteStages\(/);
+ const line=source('packages/application-factory/manufacturing/line.js');
+ assert.match(line,/require\(['"]\.\/shared-contracts['"]\)/);
+ assert.match(line,/preserveIncompleteStages\(/);
+ assert.match(line,/readManufacturingFailure|readFailure\(quarantine/);
+ assert.match(line,/writeManufacturingFailure|writeFailure\(quarantine/);
  const quoteApp=q.compileQuoteApp(qRecipes[0]),stockApp=i.compileInventoryPackage(iRecipes[0]);
  for(const app of [quoteApp,stockApp]){
   assert.equal(Object.keys(app.files).filter(n=>n.includes('shared-contracts')).length,0);

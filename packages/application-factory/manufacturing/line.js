@@ -1,7 +1,8 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const {privateDirectory:safeDir,privateJson:writeJSON,
-  immutablePrivateJson:writeReceipt,privateProcessLock,preserveIncompleteStages}=require('./shared-contracts');
+  immutablePrivateJson:writeReceipt,readManufacturingFailure:readFailure,
+  writeManufacturingFailure:writeFailure,privateProcessLock,preserveIncompleteStages}=require('./shared-contracts');
 const {validateRecipe}=require('../kernel');
 const {compileApplication,writeApplication,verifyApplication}=require('./assembler');
 const {acceptApplication,validReceipt}=require('./acceptance');
@@ -27,16 +28,22 @@ function manufactureBatch({recipes,outputRoot,sourceRoot=ROOT,maxAttempts=2,retr
     for(const recipe of validated){
       let app;
       try{app=compileApplication(recipe,{sourceRoot});}catch{report.failed++;report.results.push({id:recipe.id,status:'quarantined',reason:'SOURCE_INVALID',attempts:0});continue;}
-      const artifact=recipe.id+'-'+app.digest,destination=path.join(output,artifact),quarantine=path.join(quarantineDir,artifact+'.json');
+      const artifact=recipe.id+'-'+app.digest,destination=path.join(output,artifact),
+       quarantine=path.join(quarantineDir,artifact+'.json'),receipt=path.join(receiptDir,artifact+'.json'),
+       failureKind='document-manufacturing-failure',
+       priorFailure=readFailure(quarantine,{kind:failureKind,id:recipe.id});
+      if(priorFailure&&priorFailure.digest!==app.digest)fail('OUTPUT_UNSAFE');
       let outcome=null,attempts=0;
-      if(exists(quarantine)&&!retryFailed){report.failed++;report.results.push({id:recipe.id,digest:app.digest,status:'quarantined',reason:'PREVIOUS_FAILURE',attempts:0});continue;}
+      if(priorFailure&&!retryFailed&&!(exists(destination)&&exists(receipt))){
+       report.failed++;report.results.push({id:recipe.id,digest:app.digest,status:'quarantined',reason:'PREVIOUS_FAILURE',attempts:0});continue;
+      }
       if(exists(destination)){
         try{
           verifyApplication(destination,app.digest);
           const evidence=accept(destination,app.digest);
           if(!validReceipt(evidence,recipe.id,app.digest))fail('ACCEPTANCE_FAILED');
           verifyApplication(destination,app.digest);
-          writeReceipt(path.join(receiptDir,artifact+'.json'),evidence);outcome={id:recipe.id,digest:app.digest,artifact,status:'accepted',reused:true,attempts:1};
+          writeReceipt(receipt,evidence);outcome={id:recipe.id,digest:app.digest,artifact,status:'accepted',reused:true,attempts:1};
         }catch{outcome={id:recipe.id,digest:app.digest,status:'quarantined',reason:'EXISTING_ARTIFACT_REJECTED',attempts:1};}
       }else{
         for(;attempts<maxAttempts&&!outcome;){
@@ -47,7 +54,7 @@ function manufactureBatch({recipes,outputRoot,sourceRoot=ROOT,maxAttempts=2,retr
             verifyApplication(candidate,app.digest);
             if(exists(destination))fail('OUTPUT_EXISTS');
             fs.renameSync(candidate,destination);
-            writeReceipt(path.join(receiptDir,artifact+'.json'),evidence);
+            writeReceipt(receipt,evidence);
             outcome={id:recipe.id,digest:app.digest,artifact,status:'accepted',reused:false,attempts};
           }catch{
             // Once a directory exists it is never overwritten by an automatic retry.
@@ -57,8 +64,8 @@ function manufactureBatch({recipes,outputRoot,sourceRoot=ROOT,maxAttempts=2,retr
       }
       if(outcome.status==='accepted'){
         report.accepted++;if(outcome.reused)report.reused++;
-        if(exists(quarantine)){const stat=fs.lstatSync(quarantine);if(!stat.isFile()||stat.isSymbolicLink())fail('OUTPUT_UNSAFE');fs.unlinkSync(quarantine);}
-      }else{report.failed++;writeJSON(quarantine,outcome);}
+      }else{report.failed++;if(!priorFailure)writeFailure(quarantine,{kind:failureKind,
+        id:recipe.id,digest:app.digest,reason:outcome.reason,attempts:outcome.attempts});}
       report.results.push(outcome);
       writeJSON(path.join(output,'manufacturing-report.json'),report);
     }

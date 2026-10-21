@@ -35,6 +35,25 @@ test('a repeatedly failing edition is quarantined while healthy editions complet
  const next=L.manufactureBatch({recipes,outputRoot,accept});assert.equal(next.results[1].status,'quarantined');assert.equal(badAttempts,2);
  const retry=L.manufactureBatch({recipes,outputRoot,retryFailed:true,accept:receipt});assert.equal(retry.accepted,3);
 });
+test('explicit retries preserve the first document-family failure observation',t=>{
+ const outputRoot=setup(t),selected=[recipes[0]],reject=()=>{throw new Error('PRIVATE_FAILURE');};
+ const failed=L.manufactureBatch({recipes:selected,outputRoot,accept:reject}),
+  failureFile=path.join(outputRoot,'.quarantine',failed.results[0].id+'-'+failed.results[0].digest+'.json'),
+  original=fs.readFileSync(failureFile),before=fs.statSync(failureFile,{bigint:true}),
+  firstFailure=JSON.parse(original);
+ assert.equal(firstFailure.kind,'document-manufacturing-failure');
+ assert.equal(firstFailure.reason,'ACCEPTANCE_FAILED');
+ assert.ok(Number.isFinite(Date.parse(firstFailure.observedFailedAt)));
+ const rejectedAgain=L.manufactureBatch({recipes:selected,outputRoot,retryFailed:true,accept:reject});
+ assert.equal(rejectedAgain.failed,1);assert.deepEqual(fs.readFileSync(failureFile),original);
+ assert.equal(fs.statSync(failureFile,{bigint:true}).mtimeNs,before.mtimeNs);
+ const recovered=L.manufactureBatch({recipes:selected,outputRoot,retryFailed:true,accept:receipt});
+ assert.equal(recovered.accepted,1);assert.deepEqual(fs.readFileSync(failureFile),original);
+ assert.equal(fs.statSync(failureFile,{bigint:true}).mtimeNs,before.mtimeNs);
+ const routine=L.manufactureBatch({recipes:selected,outputRoot,accept:receipt});
+ assert.equal(routine.accepted,1);assert.equal(routine.reused,1);
+ assert.deepEqual(fs.readFileSync(failureFile),original);
+});
 test('corrupted accepted artifact is never silently overwritten or counted as passing',t=>{
  const outputRoot=setup(t),r=L.manufactureBatch({recipes,outputRoot,accept:receipt}),file=path.join(outputRoot,r.results[0].artifact,'README.md');fs.appendFileSync(file,'tampered');
  const next=L.manufactureBatch({recipes,outputRoot,accept:receipt});assert.equal(next.accepted,2);assert.equal(next.failed,1);assert.match(fs.readFileSync(file,'utf8'),/tampered$/);
