@@ -61,7 +61,7 @@ test("caller-supplied ticker and CIK are not silently allowed to conflict", asyn
 });
 
 test("missing ticker list is not acceptable evidence for a ticker-based lookup", async () => {
-  const { adapter } = mockedSec({ tickers: undefined });
+  const { adapter } = mockedSec({ tickers: null });
   await assert.rejects(() => adapter.lookup({ ticker: "AAPL" }), isSourceContractError);
 });
 
