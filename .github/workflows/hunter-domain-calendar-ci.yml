@@ -1,0 +1,30 @@
+name: Hunter domain-calendar regression
+on:
+  pull_request:
+    paths:
+      - 'products/domain-registration-age/decision.js'
+      - 'products/domain-registration-age/decision.test.js'
+      - '.github/workflows/hunter-domain-calendar-ci.yml'
+  push:
+    branches:
+      - 'hunter/domain-registration-calendar-*'
+    paths:
+      - 'products/domain-registration-age/decision.js'
+      - 'products/domain-registration-age/decision.test.js'
+      - '.github/workflows/hunter-domain-calendar-ci.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Record runtime
+        run: node --version
+      - name: Domain-registration calendar regressions
+        run: node --test products/domain-registration-age/decision.test.js
+      - name: Full factory unit suite
+        run: node scripts/run-all-tests.js
+      - name: Syntax verification
+        run: node scripts/validate-js-syntax.js
