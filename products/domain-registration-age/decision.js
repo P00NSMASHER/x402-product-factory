@@ -5,7 +5,7 @@ function dateOnlyMs(value){
   const date=value.slice(0,10);
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return null;
   const ms=Date.parse(date+"T00:00:00Z");
-  return Number.isFinite(ms)?ms:null;
+  return Number.isFinite(ms)&&new Date(ms).toISOString().slice(0,10)===date?ms:null;
 }
 
 function utcDayStartMs(value){
@@ -36,6 +36,11 @@ function assessDomainAge(evidence,{minAgeDays=90,now=new Date().toISOString()}={
   const registrationMs=dateOnlyMs(registrationDate);
   if(registrationMs==null){
     return {decision:"human_review",reasonCodes:["REGISTRATION_DATE_UNAVAILABLE"],registrationDate:null,ageDays:null,minAgeDays,cutoffDate,checkedAt};
+  }
+
+  // A future registration cannot establish historical domain age.
+  if(registrationMs>today){
+    return {decision:"human_review",reasonCodes:["REGISTRATION_DATE_IN_FUTURE"],registrationDate:null,ageDays:null,minAgeDays,cutoffDate,checkedAt};
   }
 
   const ageDays=Math.floor((today-registrationMs)/86400000);
