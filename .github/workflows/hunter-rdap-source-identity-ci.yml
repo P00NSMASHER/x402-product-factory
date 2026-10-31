@@ -6,6 +6,8 @@ on:
       - 'packages/sources/live-pa-identity.js'
       - 'packages/sources/live-pa-identity.test.js'
       - 'packages/sources/rdap-identity-binding.test.js'
+      - 'packages/sources/appdeploy-public.test.js'
+      - 'operations/HUNTER_RDAP_IDENTITY_BINDING_2026-10-31.md'
       - '.github/workflows/hunter-rdap-source-identity-ci.yml'
   workflow_dispatch:
 
