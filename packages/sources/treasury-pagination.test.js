@@ -70,3 +70,19 @@ test("two months on first page do not trigger unnecessary requests",async()=>{
   assert.equal(calls,1);
   assert.equal(result.points.length,2);
 });
+
+test("truncated paid Treasury trend evidence fails closed without charging",async()=>{
+  const {createTreasuryRateTrendService}=require("../../products/treasury-average-rate-trend/service");
+  let calls=0;
+  const records=[row("2026-09-30","Total Marketable"),...Array.from({length:299},()=>row("2026-09-30"))];
+  const adapter=createTreasuryAverageRatesAdapter({fetchImpl:async()=>{
+    calls++;
+    return response(records,20,"https://elsewhere.invalid");
+  }});
+  const service=createTreasuryRateTrendService({treasury:adapter,now:()=>"2026-10-31T12:00:00Z"});
+  const result=await service.check({security:"Total Marketable"});
+  assert.equal(calls,5);
+  assert.equal(result.chargeable,false);
+  assert.equal(result.decision,"human_review");
+  assert.equal(result.sourceFailures[0].detail,"SOURCE_CONTRACT_INVALID");
+});
