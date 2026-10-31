@@ -18,7 +18,7 @@ test("source failure throws SOURCE_HTTP_ERROR",async()=>{
 });
 
 
-function sdnRow(name){return '1,"'+name+'",Individual,TEST,,,,,,,,remark\\n'.replace(/\\n/g,"\\n");}
+function sdnRow(name){return '1,"'+name+'",Individual,TEST,,,,,,,,remark\n';}
 
 test("OFAC cache refreshes both list files at TTL instead of screening forever against a stale SDN list",async()=>{
  let now=0,sdnLoads=0,calls=0;
