@@ -1,0 +1,28 @@
+name: Hunter RDAP source identity CI
+
+on:
+  pull_request:
+    paths:
+      - 'packages/sources/live-pa-identity.js'
+      - 'packages/sources/live-pa-identity.test.js'
+      - 'packages/sources/rdap-identity-binding.test.js'
+      - '.github/workflows/hunter-rdap-source-identity-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-and-factory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Runtime
+        run: node --version
+      - name: JavaScript syntax
+        run: node scripts/validate-js-syntax.js
+      - name: Focused RDAP source and paid-boundary tests
+        run: node --test packages/sources/live-pa-identity.test.js packages/sources/rdap-identity-binding.test.js products/domain-registration-age/service.test.js products/domain-expiration-horizon/service.test.js
+      - name: Complete discovered factory regression suite
+        run: node scripts/run-all-tests.js
