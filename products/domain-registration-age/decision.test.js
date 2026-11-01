@@ -69,3 +69,47 @@ test("same-day and established registration outcomes remain unchanged",()=>{
   );
   assert.equal(old.decision,"established");
 });
+
+
+test("RFC3339 time-zone offsets map to the actual UTC registration day",()=>{
+  assert.equal(dateOnlyMs("2026-03-03T23:45:00-05:00"),Date.parse("2026-03-04T00:00:00Z"));
+  assert.equal(dateOnlyMs("2026-03-03T00:30:00+14:00"),Date.parse("2026-03-02T00:00:00Z"));
+  assert.equal(dateOnlyMs("2026-03-04T00:10:00+14:00"),Date.parse("2026-03-03T00:00:00Z"));
+  assert.equal(dateOnlyMs("2026-03-03T00:00:00z"),Date.parse("2026-03-03T00:00:00Z"));
+});
+
+test("future date after UTC offset conversion must not pass as a historical registration",()=>{
+  const result=assessDomainAge(
+    {available:true,registered:true,events:{registration:"2026-03-03T23:45:00-05:00"}},
+    {now:"2026-03-03T23:59:00Z"}
+  );
+  assert.equal(result.decision,"human_review");
+  assert.deepEqual(result.reasonCodes,["REGISTRATION_DATE_IN_FUTURE"]);
+  assert.equal(result.ageDays,null);
+  const alreadyRegistered=assessDomainAge(
+    {available:true,registered:true,events:{registration:"2026-03-04T00:10:00+14:00"}},
+    {now:"2026-03-03T23:59:00Z"}
+  );
+  assert.equal(alreadyRegistered.decision,"recent_registration");
+  assert.equal(alreadyRegistered.ageDays,0);
+});
+
+test("registration timestamps cannot hide malformed suffixes or clock fields",()=>{
+  for(const malformed of [
+    "2026-03-03not-really-a-date",
+    "2026-03-03T99:99:99Z",
+    "2026-03-03T23:61:00Z",
+    "2026-03-03T00:00:00+24:00",
+    "2026-03-03T00:00:00+00:99",
+    "2026-02-30T00:00:00Z",
+    "2026-03-03T12:00:00",
+  ]){
+    assert.equal(dateOnlyMs(malformed),null,malformed);
+    const verdict=assessDomainAge(
+      {available:true,registered:true,events:{registration:malformed}},
+      {now:"2026-03-04T00:00:00Z"}
+    );
+    assert.equal(verdict.decision,"human_review",malformed);
+    assert.ok(verdict.reasonCodes.includes("REGISTRATION_DATE_UNAVAILABLE"),malformed);
+  }
+});
