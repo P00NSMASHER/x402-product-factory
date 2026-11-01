@@ -1,7 +1,11 @@
 "use strict";
 
 function finiteRate(value){
-  const n=typeof value==="number"?value:Number(value);
+  // Missing source evidence must never become an observed 0% interest rate.
+  if(value==null||typeof value==="boolean")return null;
+  if(typeof value!=="number"&&typeof value!=="string")return null;
+  if(typeof value==="string"&&!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value.trim()))return null;
+  const n=Number(value);
   return Number.isFinite(n)?n:null;
 }
 

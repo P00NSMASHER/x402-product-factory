@@ -93,7 +93,13 @@ function createSecFilingsAdapter({
         typeof row === "object" &&
         String(row.ticker ?? "").toUpperCase() === wanted
       ) {
-        return normalizeCik(String(row.cik_str ?? ""));
+        const resolvedCik = normalizeCik(row.cik_str);
+        if (!resolvedCik) {
+          const error = new Error("sec_ticker_map_cik_invalid");
+          error.code = "SOURCE_CONTRACT_INVALID";
+          throw error;
+        }
+        return resolvedCik;
       }
     }
     return null;
@@ -147,6 +153,24 @@ function createSecFilingsAdapter({
 
       if (!data || typeof data !== "object") {
         const error = new Error("sec_submission_invalid");
+        error.code = "SOURCE_CONTRACT_INVALID";
+        throw error;
+      }
+
+      // Source records must refer to the same company we resolved or requested.
+      // Never mark inconsistent SEC evidence as a completed found/not-found result:
+      // the paid composition layer treats SOURCE_CONTRACT_INVALID as nonchargeable.
+      if (data.cik != null && normalizeCik(data.cik) !== normalizedCik) {
+        const error = new Error("sec_submission_cik_mismatch");
+        error.code = "SOURCE_CONTRACT_INVALID";
+        throw error;
+      }
+      if (
+        normalizedTicker &&
+        (!Array.isArray(data.tickers) ||
+          !data.tickers.some((value) => normalizeTicker(value) === normalizedTicker))
+      ) {
+        const error = new Error("sec_submission_ticker_mismatch");
         error.code = "SOURCE_CONTRACT_INVALID";
         throw error;
       }

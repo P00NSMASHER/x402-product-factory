@@ -212,6 +212,8 @@ test("RDAP adapter resolves IANA bootstrap then authoritative registry", async (
       }
       assert.equal(url, "https://rdap.example/domain/example.com");
       return response({
+        objectClassName: "domain",
+        ldhName: "example.com",
         entities: [
           {
             roles: ["registrar"],

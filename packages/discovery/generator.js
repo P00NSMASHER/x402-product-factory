@@ -16,12 +16,22 @@ function managedProducts(){
 }
 
 function normalizeBase(base){
-  if(typeof base!=="string"||!/^https:\/\//.test(base)){
-    throw new TypeError("https base URL is required");
+  // Discovery URLs are public buyer-facing payment endpoints, not arbitrary hyperlinks.
+  if(typeof base!=="string"||!/^https:\/\//.test(base)||/[\u0000-\u0020\u007f\\@?#]/.test(base)){
+    throw new TypeError("https base URL without credentials, query, fragment, or whitespace is required");
   }
-  return base.replace(/\/$/,"");
+  let parsed;
+  try{
+    parsed=new URL(base);
+  }catch{
+    throw new TypeError("valid https base URL is required");
+  }
+  if(parsed.protocol!=="https:"||!parsed.hostname||parsed.username||parsed.password){
+    throw new TypeError("https base URL without credentials is required");
+  }
+  // Preserve optional reverse-proxy path prefixes, but avoid double-slash route URLs.
+  return base.replace(/\/+$/,"");
 }
-
 function buildCatalog(base){
   const normalized=normalizeBase(base);
   const products=managedProducts();
@@ -128,6 +138,7 @@ function validateCompiled(base){
 module.exports={
   MODULES,
   managedProducts,
+  normalizeBase,
   buildCatalog,
   buildOpenApi,
   buildProductIndex,
