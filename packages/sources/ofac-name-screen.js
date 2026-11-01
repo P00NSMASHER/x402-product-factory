@@ -28,16 +28,104 @@ async function fetchText(fetchImpl,url,userAgent,timeoutMs){
  finally{clearTimeout(timer);}
 }
 
-function createOfacNameAdapter({fetchImpl=fetch,timeoutMs=15000,userAgent=DEFAULT_USER_AGENT}={}){
- let cache=null;
- async function load(){if(cache)return cache;const [sdn,alt]=await Promise.all([fetchText(fetchImpl,OFAC_BASE+"/SDN.CSV",userAgent,timeoutMs),fetchText(fetchImpl,OFAC_BASE+"/ALT.CSV",userAgent,timeoutMs)]);const map=new Map();
-  for(const cols of parseCsv(sdn)){const uid=String(cols[0]??"").trim(),name=String(cols[1]??"").trim();if(uid&&name)map.set(uid,{uid,name,type:clean(cols[2]),program:clean(cols[3]),title:clean(cols[4]),remarks:clean(cols[11]),aliases:[]});}
-  for(const cols of parseCsv(alt)){const uid=String(cols[0]??"").trim(),name=String(cols[3]??"").trim(),entry=map.get(uid);if(entry&&name)entry.aliases.push({type:clean(cols[2]),name,remarks:clean(cols[4])});}
-  cache=[...map.values()];if(!cache.length){const e=new Error("ofac_empty_dataset");e.code="SOURCE_CONTRACT_INVALID";throw e;}return cache;}
- return {async lookup({name,minScore=90,limit=3}){const query=String(name||"").trim().replace(/\s+/g," ");if(query.length<2||query.length>160){const e=new Error("invalid_name");e.code="INVALID_INPUT";throw e;}if(!Number.isInteger(minScore)||minScore<70||minScore>100){const e=new Error("invalid_min_score");e.code="INVALID_INPUT";throw e;}const bounded=Math.max(1,Math.min(Number(limit)||3,10)),candidates=[];
-  for(const entry of await load()){let best=scoreName(query,entry.name),matchedOn="primary",matchedName=entry.name;for(const alias of entry.aliases){const s=scoreName(query,alias.name);if(s>best){best=s;matchedOn="alias";matchedName=alias.name;}}if(best>=minScore)candidates.push({uid:entry.uid,primaryName:entry.name,type:entry.type,program:entry.program,title:entry.title,remarks:entry.remarks,matchedOn,matchedName,score:Math.round(best)});}
-  candidates.sort((a,b)=>b.score-a.score||a.primaryName.localeCompare(b.primaryName));
-  return {available:true,query,minScore,totalCandidatesAboveThreshold:candidates.length,candidates:candidates.slice(0,bounded),provenance:{source:"U.S. Treasury OFAC Specially Designated Nationals (SDN) List",files:["SDN.CSV","ALT.CSV"],base:OFAC_BASE}};
- }};
+function createOfacNameAdapter({
+  fetchImpl=fetch,
+  timeoutMs=15000,
+  userAgent=DEFAULT_USER_AGENT,
+  cacheTtlMs=60*60*1000,
+  nowMs=()=>Date.now()
+}={}){
+  if(!Number.isSafeInteger(cacheTtlMs)||cacheTtlMs<1000||cacheTtlMs>24*60*60*1000){
+    const error=new Error("invalid_ofac_cache_ttl");
+    error.code="INVALID_INPUT";
+    throw error;
+  }
+
+  let cache=null;
+  let cacheLoadedAt=NaN;
+  let loading=null;
+
+  async function download(){
+    const [sdn,alt]=await Promise.all([
+      fetchText(fetchImpl,OFAC_BASE+"/SDN.CSV",userAgent,timeoutMs),
+      fetchText(fetchImpl,OFAC_BASE+"/ALT.CSV",userAgent,timeoutMs)
+    ]);
+    const map=new Map();
+    for(const cols of parseCsv(sdn)){
+      const uid=String(cols[0]??"").trim(),name=String(cols[1]??"").trim();
+      if(uid&&name)map.set(uid,{
+        uid,name,type:clean(cols[2]),program:clean(cols[3]),
+        title:clean(cols[4]),remarks:clean(cols[11]),aliases:[]
+      });
+    }
+    for(const cols of parseCsv(alt)){
+      const uid=String(cols[0]??"").trim(),name=String(cols[3]??"").trim(),entry=map.get(uid);
+      if(entry&&name)entry.aliases.push({type:clean(cols[2]),name,remarks:clean(cols[4])});
+    }
+    const fresh=[...map.values()];
+    if(!fresh.length){
+      const error=new Error("ofac_empty_dataset");
+      error.code="SOURCE_CONTRACT_INVALID";
+      throw error;
+    }
+    return fresh;
+  }
+
+  async function load(){
+    const current=Number(nowMs());
+    if(cache!==null&&Number.isFinite(current)&&Number.isFinite(cacheLoadedAt)
+       &&current>=cacheLoadedAt&&current-cacheLoadedAt<cacheTtlMs){
+      return cache;
+    }
+    if(loading)return loading;
+    loading=(async()=>{
+      const fresh=await download();
+      const loadedAt=Number(nowMs());
+      if(!Number.isFinite(loadedAt)){
+        const error=new Error("ofac_invalid_cache_clock");
+        error.code="SOURCE_CONTRACT_INVALID";
+        throw error;
+      }
+      cache=fresh;
+      cacheLoadedAt=loadedAt;
+      return fresh;
+    })();
+    try{return await loading;}
+    finally{loading=null;}
+  }
+
+  return {
+    async lookup({name,minScore=90,limit=3}){
+      const query=String(name||"").trim().replace(/\s+/g," ");
+      if(query.length<2||query.length>160){
+        const error=new Error("invalid_name");error.code="INVALID_INPUT";throw error;
+      }
+      if(!Number.isInteger(minScore)||minScore<70||minScore>100){
+        const error=new Error("invalid_min_score");error.code="INVALID_INPUT";throw error;
+      }
+      const bounded=Math.max(1,Math.min(Number(limit)||3,10)),candidates=[];
+      for(const entry of await load()){
+        let best=scoreName(query,entry.name),matchedOn="primary",matchedName=entry.name;
+        for(const alias of entry.aliases){
+          const score=scoreName(query,alias.name);
+          if(score>best){best=score;matchedOn="alias";matchedName=alias.name;}
+        }
+        if(best>=minScore)candidates.push({
+          uid:entry.uid,primaryName:entry.name,type:entry.type,
+          program:entry.program,title:entry.title,remarks:entry.remarks,
+          matchedOn,matchedName,score:Math.round(best)
+        });
+      }
+      candidates.sort((x,y)=>y.score-x.score||x.primaryName.localeCompare(y.primaryName));
+      return {
+        available:true,query,minScore,totalCandidatesAboveThreshold:candidates.length,
+        candidates:candidates.slice(0,bounded),
+        provenance:{
+          source:"U.S. Treasury OFAC Specially Designated Nationals (SDN) List",
+          files:["SDN.CSV","ALT.CSV"],base:OFAC_BASE
+        }
+      };
+    }
+  };
 }
 module.exports={OFAC_BASE,DEFAULT_USER_AGENT,parseCsv,normalizeName,scoreName,createOfacNameAdapter};

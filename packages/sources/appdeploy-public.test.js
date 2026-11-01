@@ -47,6 +47,8 @@ test("compatibility adapters now use only authoritative public sources",async()=
     }
     if(value==="https://rdap.example/domain/example.com"){
       return response({
+        objectClassName:"domain",
+        ldhName:"example.com",
         events:[{eventAction:"registration",eventDate:"1995-08-14T00:00:00Z"}],
         entities:[]
       });

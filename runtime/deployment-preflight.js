@@ -7,8 +7,18 @@ function validateEnv(name,value){
   if(typeof value!=="string"||!value.trim()){
     return {ok:false,reason:"missing"};
   }
-  if(name==="SEC_USER_AGENT"&&!hasContactEmail(value)){
-    return {ok:false,reason:"must_include_contact_email"};
+  if(name==="SEC_USER_AGENT"){
+    // Match the header-value rules enforced by fetch before a release can begin.
+    // SEC contact identity can match our email regex yet still contain CR/LF,
+    // NUL, or non-ByteString characters rejected by the HTTP client.
+    try{
+      new Headers({"user-agent":value});
+    }catch{
+      return {ok:false,reason:"invalid_http_header_value"};
+    }
+    if(!hasContactEmail(value)){
+      return {ok:false,reason:"must_include_contact_email"};
+    }
   }
   return {ok:true,reason:null};
 }

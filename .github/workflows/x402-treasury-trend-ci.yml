@@ -1,0 +1,24 @@
+name: Treasury rate evidence regression
+
+on:
+  pull_request:
+    paths:
+      - "products/treasury-average-rate-trend/**"
+      - ".github/workflows/x402-treasury-trend-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  treasury-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JavaScript syntax
+        run: node scripts/validate-js-syntax.js
+      - name: Reproduce missing-rate protections
+        run: node --test products/treasury-average-rate-trend/decision.test.js
+      - name: Run complete factory regression suite
+        run: node scripts/run-all-tests.js

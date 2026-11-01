@@ -1,0 +1,37 @@
+name: x402 facilitator payment trust boundary
+
+on:
+  push:
+    branches:
+      - hunter/x402-facilitator-http-boundary-20261031
+    paths:
+      - 'packages/x402/payment.js'
+      - 'packages/x402/payment.test.js'
+      - 'products/domain-last-changed-recency/paid-handler.test.js'
+      - '.github/workflows/x402-payment-boundary-ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/x402/payment.js'
+      - 'packages/x402/payment.test.js'
+      - 'products/domain-last-changed-recency/paid-handler.test.js'
+      - '.github/workflows/x402-payment-boundary-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  payment-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Verify runtime and JavaScript syntax
+        run: |
+          node --version
+          node scripts/validate-js-syntax.js
+      - name: Run focused payment and paid-endpoint regression tests
+        run: node --test packages/x402/payment.test.js products/domain-last-changed-recency/paid-handler.test.js
+      - name: Run all discovered factory tests
+        run: node scripts/run-all-tests.js
