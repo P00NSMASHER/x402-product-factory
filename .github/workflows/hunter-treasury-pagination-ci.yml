@@ -1,0 +1,27 @@
+name: Hunter Treasury history pagination CI
+
+on:
+  pull_request:
+    paths:
+      - 'packages/sources/treasury-average-rates.js'
+      - 'packages/sources/treasury-average-rates.test.js'
+      - 'packages/sources/treasury-pagination.test.js'
+      - 'research/HUNTER_TREASURY_PAGINATION_2026-10-31.md'
+      - '.github/workflows/hunter-treasury-pagination-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-and-factory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Source syntax
+        run: node scripts/validate-js-syntax.js
+      - name: Focused historical-source regression
+        run: node --test packages/sources/treasury-average-rates.test.js packages/sources/treasury-pagination.test.js
+      - name: Complete discovered factory regression suite
+        run: node scripts/run-all-tests.js

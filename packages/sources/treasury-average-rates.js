@@ -3,6 +3,8 @@
 const TREASURY_API =
   "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/avg_interest_rates";
 const SOURCE_TIMEOUT_MS = 10000;
+const TREASURY_PAGE_SIZE = 300;
+const MAX_HISTORY_PAGES = 5;
 
 async function fetchJson(fetchImpl,url,init={},timeoutMs=SOURCE_TIMEOUT_MS){
   const controller=new AbortController();
@@ -23,11 +25,13 @@ function normalizeSecurity(value){
 }
 
 function createTreasuryAverageRatesAdapter({fetchImpl=fetch,timeoutMs=SOURCE_TIMEOUT_MS}={}){
-  async function rows(){
+  async function fetchPage(pageNumber=1){
     const url=new URL(TREASURY_API);
     url.searchParams.set("fields","record_date,security_type_desc,security_desc,avg_interest_rate_amt");
     url.searchParams.set("sort","-record_date");
-    url.searchParams.set("page[size]","300");
+    url.searchParams.set("page[size]",String(TREASURY_PAGE_SIZE));
+    // Never follow a source-provided pagination URL: preserve official origin.
+    if(pageNumber>1)url.searchParams.set("page[number]",String(pageNumber));
 
     const payload=await fetchJson(fetchImpl,url.toString(),{
       headers:{
@@ -42,7 +46,17 @@ function createTreasuryAverageRatesAdapter({fetchImpl=fetch,timeoutMs=SOURCE_TIM
       error.code="SOURCE_CONTRACT_INVALID";
       throw error;
     }
-    return data;
+    const totalPages=Number(payload?.meta?.["total-pages"]);
+    const hasMore=Number.isSafeInteger(totalPages)&&totalPages>=pageNumber
+      ? pageNumber<totalPages
+      : typeof payload?.links?.next==="string"&&payload.links.next.length>0
+        ? true
+        : data.length===TREASURY_PAGE_SIZE;
+    return {data,hasMore};
+  }
+
+  async function rows(){
+    return (await fetchPage()).data;
   }
 
   function chooseDescription(data,wanted){
@@ -138,7 +152,8 @@ function createTreasuryAverageRatesAdapter({fetchImpl=fetch,timeoutMs=SOURCE_TIM
         throw error;
       }
 
-      const data=await rows();
+      let page=await fetchPage();
+      const data=page.data;
       const choice=chooseDescription(data,wanted);
       if(!choice.found||choice.ambiguous||!choice.selected){
         return {
@@ -156,19 +171,33 @@ function createTreasuryAverageRatesAdapter({fetchImpl=fetch,timeoutMs=SOURCE_TIM
         };
       }
 
-      const selectedRows=data
-        .filter(row=>String(row?.security_desc??"").trim()===choice.selected)
-        .map(normalizeRow)
-        .filter(row=>/^\d{4}-\d{2}-\d{2}$/.test(row.recordDate))
-        .sort((a,b)=>b.recordDate.localeCompare(a.recordDate));
-
       const distinct=[];
       const seen=new Set();
-      for(const row of selectedRows){
-        if(seen.has(row.recordDate))continue;
-        seen.add(row.recordDate);
-        distinct.push(row);
-        if(distinct.length>=count)break;
+      function appendDistinct(rows){
+        const selected=rows
+          .filter(row=>String(row?.security_desc??"").trim()===choice.selected)
+          .map(normalizeRow)
+          .filter(row=>/^\d{4}-\d{2}-\d{2}$/.test(row.recordDate))
+          .sort((a,b)=>b.recordDate.localeCompare(a.recordDate));
+        for(const row of selected){
+          if(seen.has(row.recordDate))continue;
+          seen.add(row.recordDate);
+          distinct.push(row);
+          if(distinct.length>=count)break;
+        }
+      }
+      appendDistinct(data);
+      let pageNumber=1;
+      while(distinct.length<count&&page.hasMore&&pageNumber<MAX_HISTORY_PAGES){
+        page=await fetchPage(++pageNumber);
+        appendDistinct(page.data);
+      }
+      // An exhausted query is a valid incomplete history; a truncated scan
+      // is a source failure and must never be interpreted as a full result.
+      if(distinct.length<count&&page.hasMore){
+        const error=new Error("treasury_history_pagination_limit");
+        error.code="SOURCE_CONTRACT_INVALID";
+        throw error;
       }
 
       return {

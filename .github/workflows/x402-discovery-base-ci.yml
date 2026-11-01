@@ -1,0 +1,42 @@
+name: x402 discovery base URL security regression
+
+on:
+  push:
+    branches:
+      - hunter/x402-discovery-base-url-20261031-r2
+    paths:
+      - 'packages/discovery/generator.js'
+      - 'packages/discovery/generator.test.js'
+      - 'runtime/create-runtime.js'
+      - 'runtime/create-runtime.test.js'
+      - '.github/workflows/x402-discovery-base-ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/discovery/generator.js'
+      - 'packages/discovery/generator.test.js'
+      - 'runtime/create-runtime.js'
+      - 'runtime/create-runtime.test.js'
+      - '.github/workflows/x402-discovery-base-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  discovery-base:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Verify syntax and generated module registry
+        run: |
+          node --version
+          node scripts/validate-js-syntax.js
+          node scripts/generate-product-module-registry.js --check
+      - name: Exercise security and compatibility regressions
+        run: node --test packages/discovery/generator.test.js runtime/create-runtime.test.js
+      - name: Validate compiled metadata surfaces
+        run: node scripts/validate-discovery.js
+      - name: Run all discovered factory tests
+        run: node scripts/run-all-tests.js

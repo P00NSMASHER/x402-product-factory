@@ -119,3 +119,68 @@ test("terminal settlement error does not retry", async () => {
   assert.equal(calls,1);
   assert.deepEqual(result,{kind:"terminal",reason:"insufficient_funds"});
 });
+
+test("facilitator error responses cannot verify payment even with isValid true", async () => {
+  for (const status of [400, 401, 422, 429, 503]) {
+    const result = await verifyPayment({
+      paymentPayload: { x402Version: 2 },
+      paymentRequirements: requirements("5000"),
+      fetchImpl: async () => response({ isValid: true }, status),
+    });
+    assert.equal(result.kind, "unresolved", "HTTP " + status);
+  }
+});
+
+test("facilitator outages do not turn negative flags into terminal payment failures", async () => {
+  for (const status of [401, 429, 503]) {
+    const result = await verifyPayment({
+      paymentPayload: { x402Version: 2 },
+      paymentRequirements: requirements("5000"),
+      fetchImpl: async () => response({ isValid: false, invalidReason: "bad_signature" }, status),
+    });
+    assert.equal(result.kind, "unresolved", "HTTP " + status);
+  }
+  for (const status of [200, 400, 422]) {
+    const result = await verifyPayment({
+      paymentPayload: { x402Version: 2 },
+      paymentRequirements: requirements("5000"),
+      fetchImpl: async () => response({ isValid: false, invalidReason: "bad_signature" }, status),
+    });
+    assert.deepEqual(result, { kind: "terminal", reason: "bad_signature" }, "HTTP " + status);
+  }
+});
+
+test("success-shaped facilitator errors never yield settled receipts", async () => {
+  for (const status of [400, 401, 422, 429, 503]) {
+    let calls = 0;
+    const result = await settleSamePayment({
+      paymentPayload: { x402Version: 2 },
+      paymentRequirements: requirements("5000"),
+      fetchImpl: async () => {
+        calls += 1;
+        return response({ success: true, transaction: "NOT_SETTLED" }, status);
+      },
+      sleepImpl: async () => {},
+    });
+    assert.notEqual(result.kind, "settled", "HTTP " + status);
+    assert.equal(calls, [429, 503].includes(status) ? 3 : 1, "HTTP " + status);
+  }
+});
+
+test("retry after contradictory HTTP 503 succeeds only on later HTTP 200", async () => {
+  let calls = 0;
+  const result = await settleSamePayment({
+    paymentPayload: { x402Version: 2 },
+    paymentRequirements: requirements("5000"),
+    fetchImpl: async () => {
+      calls += 1;
+      return calls === 1
+        ? response({ success: true, transaction: "NOT_SETTLED" }, 503)
+        : response({ success: true, transaction: "0xconfirmed" }, 200);
+    },
+    sleepImpl: async () => {},
+  });
+  assert.equal(calls, 2);
+  assert.equal(result.kind, "settled");
+  assert.equal(result.receipt.transaction, "0xconfirmed");
+});

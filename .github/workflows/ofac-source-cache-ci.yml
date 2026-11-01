@@ -1,0 +1,35 @@
+name: OFAC source snapshot regressions
+
+on:
+  push:
+    branches:
+      - hunter/ofac-source-cache-freshness-20261031
+    paths:
+      - 'packages/sources/ofac-name-screen.js'
+      - 'packages/sources/ofac-name-screen.test.js'
+      - '.github/workflows/ofac-source-cache-ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/sources/ofac-name-screen.js'
+      - 'packages/sources/ofac-name-screen.test.js'
+      - '.github/workflows/ofac-source-cache-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  ofac-source-cache:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Verify Node and JavaScript source syntax
+        run: |
+          node --version
+          node scripts/validate-js-syntax.js
+      - name: Verify OFAC freshness, concurrency and fail-closed snapshots
+        run: node --test packages/sources/ofac-name-screen.test.js
+      - name: Run complete factory test suite
+        run: node scripts/run-all-tests.js

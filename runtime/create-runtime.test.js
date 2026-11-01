@@ -18,6 +18,25 @@ function adapters(){
   };
 }
 
+test("runtime refuses ambiguous public payment URL before constructing paid routes",()=>{
+  for(const publicApiBase of [
+    "https://trusted.example@evil.example",
+    "https://candidate.example?paid=1",
+    "https://candidate.example#paid",
+    "https://candidate.example:broken",
+    "http://candidate.example"
+  ]){
+    assert.throws(()=>createFactoryRuntime({publicApiBase,adapters:adapters()}),TypeError,publicApiBase);
+  }
+});
+
+test("runtime keeps legitimate HTTPS reverse proxy prefix",()=>{
+  const runtime=createFactoryRuntime({
+    publicApiBase:"https://candidate.example/proxy///",adapters:adapters()
+  });
+  assert.equal(runtime.base,"https://candidate.example/proxy");
+});
+
 test("runtime wires exactly every modular staging product",()=>{
   const runtime=createFactoryRuntime({publicApiBase:"https://candidate.example",adapters:adapters(),fetchImpl:async()=>{throw new Error("network should not run");}});
   const expected=managedProducts();

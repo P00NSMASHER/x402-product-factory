@@ -170,10 +170,12 @@ async function verifyPayment({
     return { kind: "unresolved", reason: "payment_verifier_unavailable" };
   }
 
-  if (result.body?.isValid === true) {
+  const httpOk = Number.isInteger(result.status) && result.status >= 200 && result.status < 300;
+  // HTTP failures can contain success-shaped JSON. Never treat one as valid payment.
+  if (httpOk && result.body?.isValid === true) {
     return { kind: "valid", detail: result.body };
   }
-  if (result.body?.isValid === false) {
+  if ((httpOk || result.status === 400 || result.status === 422) && result.body?.isValid === false) {
     return {
       kind: "terminal",
       reason: String(
@@ -212,17 +214,18 @@ async function settleSamePayment({
       continue;
     }
 
-    if (result.body?.success === true) {
+    // Only 2xx with an explicit success is proof of settlement.
+    if (Number.isInteger(result.status) && result.status >= 200 && result.status < 300 && result.body?.success === true) {
       return { kind: "settled", receipt: result.body };
     }
 
     const reason =
-      typeof result.body?.errorReason === "string"
-        ? result.body.errorReason
-        : result.status === 429
-          ? "rate_limited"
-          : result.status >= 500
-            ? "facilitator_unavailable"
+      result.status === 429
+        ? "rate_limited"
+        : result.status >= 500
+          ? "facilitator_unavailable"
+          : typeof result.body?.errorReason === "string"
+            ? result.body.errorReason
             : "payment_settlement_failed";
 
     if (
