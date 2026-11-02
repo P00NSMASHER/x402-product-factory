@@ -10,6 +10,7 @@ const IDS=Object.freeze([2,5,6,7,8,9,11,13,14,16,17,19,20,21]);
 const CI="Factory product CI";
 const CANDIDATE_PR=59;
 const CANDIDATE_REF="factory/main-synchronized-private-app-candidate-20261015";
+const CANDIDATE_BASE_REF="factory/production-integration-preflight-20261015";
 const PUBLIC="Factory 018 public source compatibility";
 const CI_PATH=Object.freeze({
   [CI]:".github/workflows/factory-pa-vendor-gate-ci.yml",
@@ -99,7 +100,7 @@ function latestExactHeadRun(runs,node,name){
 function historicalRootAlreadyIntegrated(doc,snapshot){
   const proof=snapshot?.root_candidate_proof;
   return proof?.number===CANDIDATE_PR&&
-    proof.head_ref===CANDIDATE_REF&&proof.base_ref==="main"&&
+    proof.head_ref===CANDIDATE_REF&&proof.base_ref===CANDIDATE_BASE_REF&&
     proof.state==="open"&&proof.draft===true&&proof.merged===false&&
     /^[a-f0-9]{40}$/.test(proof.head_sha||"")&&
     proof.head_sha===proof.action_head_sha&&

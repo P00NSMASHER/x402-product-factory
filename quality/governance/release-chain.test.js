@@ -44,7 +44,7 @@ function verifiedHistoricalRootProof(){
   const expected=doc.chain[0].pinned_head_sha;
   return {
     number:59,head_ref:"factory/main-synchronized-private-app-candidate-20261015",
-    base_ref:"main",head_sha:"f".repeat(40),action_head_sha:"f".repeat(40),
+    base_ref:"factory/production-integration-preflight-20261015",head_sha:"f".repeat(40),action_head_sha:"f".repeat(40),
     state:"open",draft:true,merged:false,ancestor_sha:expected,
     compare:{status:"ahead",ahead_by:330,behind_by:0}
   };
@@ -107,7 +107,7 @@ test("live readback binds root ancestry to GitHub PR59 and action SHA",async()=>
     if(n){
       data=Number(n[1])===59?
         {number:59,head:{ref:proof.head_ref,sha:proof.head_sha},
-          base:{ref:"main"},state:"open",draft:true,merged:false}:
+          base:{ref:"factory/production-integration-preflight-20261015"},state:"open",draft:true,merged:false}:
         s.pulls[n[1]];
     }else if(u.pathname.includes("/actions/runs")){
       const node=doc.chain.find(x=>x.pinned_head_sha===u.searchParams.get("head_sha"));
