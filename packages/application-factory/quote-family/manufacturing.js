@@ -1,7 +1,8 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const {sha256:hash,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,
- immutablePrivateJson,privateJson}=require('../manufacturing/shared-contracts');
+ immutablePrivateJson,privateJson,readManufacturingFailure,writeManufacturingFailure,
+ privateProcessLock,preserveIncompleteStages}=require('../manufacturing/shared-contracts');
 const {spawnSync}=require('node:child_process');
 const {validateRecipe}=require('./kernel'),catalog=require('./recipes.json');
 const SOURCE=path.resolve(__dirname),REPO=path.resolve(__dirname,'../../..');
@@ -81,17 +82,23 @@ function manufactureQuoteBatch({outputRoot,recipes=catalog,accept=acceptQuoteApp
  const dir=outsideRepo(outputRoot),validated=recipes.map(validateRecipe);
  if(!Array.isArray(recipes)||recipes.length<1||recipes.length>12||new Set(validated.map(r=>r.id)).size!==validated.length)fail('BATCH_INVALID');
  fs.mkdirSync(dir,{recursive:true,mode:0o700});validDir(dir,'OUTPUT_UNSAFE');
- const lock=path.join(dir,'.quote-build.lock');let fd;
- try{fd=fs.openSync(lock,'wx',0o600);}catch(e){if(e.code==='EEXIST')fail('MANUFACTURING_BUSY');throw e;}
+ const lock=privateProcessLock(path.join(dir,'.quote-build.lock'));
  const result={kind:'quote-family-manufacturing',accepted:0,failed:0,reused:0,apps:[],
   verification:accept===acceptQuoteApp?'executed-packaged-quote-lifecycle':'injected-test-only',
   realCustomers:null,collectedRevenue:null,transmittedMessages:0,paymentsSent:0,releaseApproved:false};
  try{
+  preserveIncompleteStages(dir,{prefixes:['.candidate-','.quote-stage-']});
   const receipts=path.join(dir,'verification'),quarantine=path.join(dir,'.quarantine');
   for(const d of [receipts,quarantine]){fs.mkdirSync(d,{recursive:true,mode:0o700});validDir(d,'OUTPUT_UNSAFE');}
   for(const recipe of validated){const app=compileQuoteApp(recipe),folder=path.join(dir,recipe.id+'-'+app.digest);
-   const denied=path.join(quarantine,recipe.id+'.json');let accepted=false,reused=false,proof,reason='ACCEPTANCE_FAILED';
-   if(fs.existsSync(denied))reason='PREVIOUS_FAILURE';
+   const denied=path.join(quarantine,recipe.id+'-'+app.digest+'.json'),
+    failureKind='quote-manufacturing-failure',
+    exactFailure=readManufacturingFailure(denied,{kind:failureKind,id:recipe.id}),
+    legacyFailure=readManufacturingFailure(path.join(quarantine,recipe.id+'.json'),
+     {kind:failureKind,id:recipe.id});
+   if(exactFailure&&exactFailure.digest!==app.digest)fail('OUTPUT_UNSAFE');
+   let accepted=false,reused=false,proof,reason='ACCEPTANCE_FAILED';
+   if(exactFailure||legacyFailure?.digest===app.digest)reason='PREVIOUS_FAILURE';
    else try{
     if(fs.existsSync(folder)){reused=true;verifyQuoteApp(folder,app.digest);proof=accept(folder,app.digest);}
     else{const staging=fs.mkdtempSync(path.join(dir,'.candidate-'));
@@ -105,9 +112,13 @@ function manufactureQuoteBatch({outputRoot,recipes=catalog,accept=acceptQuoteApp
     immutablePrivateJson(path.join(receipts,recipe.id+'-'+app.digest+'.json'),proof);accepted=true;
    }catch{reason=fs.existsSync(folder)?'EXISTING_ARTIFACT_REJECTED':'ACCEPTANCE_FAILED';}
    if(accepted){result.accepted++;if(reused)result.reused++;result.apps.push({id:recipe.id,digest:app.digest,status:'accepted',reused});}
-   else{result.failed++;const record={id:recipe.id,digest:app.digest,status:'quarantined',reason};privateJson(denied,record);result.apps.push(record);}
+   else{result.failed++;const record={id:recipe.id,digest:app.digest,status:'quarantined',reason};
+    if(reason!=='PREVIOUS_FAILURE')writeManufacturingFailure(denied,{kind:failureKind,
+     id:recipe.id,digest:app.digest,reason,attempts:1});
+    result.apps.push(record);}
   }
   privateJson(path.join(dir,'manufacturing-report.json'),result);return result;
- }finally{fs.closeSync(fd);fs.unlinkSync(lock);}
+ }finally{lock.release();}
 }
 module.exports={compileQuoteApp,writeQuoteApp,verifyQuoteApp,manufactureQuoteBatch,acceptQuoteApp,validAcceptance};
+

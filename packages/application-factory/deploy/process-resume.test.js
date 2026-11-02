@@ -1,12 +1,14 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),crypto=require('node:crypto');
+const {spawnSync}=require('node:child_process');
 const {manufactureBatch}=require('../manufacturing/line');
 const {manufactureQuoteBatch}=require('../quote-family/manufacturing');
 const {manufactureInventoryBatch}=require('../inventory-family/manufacturing');
 const docs=require('../recipes.json'),quotes=require('../quote-family/recipes.json');
 const inventory=require('../inventory-family/recipes.json');
 const {launchPrivateFleet,resumePrivateFleet}=require('./fleet-preview');
+const {createPrivateFleetSupervisor}=require('./private-supervisor');
 const {acquireSession}=require('./session-lock');
 const {parseHost,exerciseCrash,watch,readCheckpoint}=require('../../../scripts/supervise-private-fleet');
 function fixture(t){
@@ -37,6 +39,27 @@ test('full private fleet can be reopened after graceful exit without reprovision
  }
  await restarted.stop();
  assert.equal(fs.existsSync(path.join(f.stateRoot,'.factory-private-session-owner.json')),false);
+});
+test('resume CLI releases its session lease when watchdog checkpoint validation fails',async t=>{
+ if(process.platform==='win32')return t.skip('Linux process-state acceptance required');
+ const f=fixture(t),fleet=await launchPrivateFleet({sources:f.sources,stateRoot:f.stateRoot});
+ const supervisor=createPrivateFleetSupervisor({fleet,maxRestarts:2});
+ await supervisor.tick();supervisor.stop();await fleet.stop();
+ const receipt=sha(path.join(f.stateRoot,'preview-report.json'));
+ const credentials=fleet.apps.map(app=>({file:app.privateCredentialFile,digest:sha(app.privateCredentialFile)}));
+ const checkpoint=path.join(f.stateRoot,'private-watchdog-report.json');
+ const unsupported=fs.readFileSync(checkpoint,'utf8').replace('"schemaVersion": 2','"schemaVersion": 1');
+ fs.writeFileSync(checkpoint,unsupported,{mode:0o600});
+ const cli=path.resolve(__dirname,'../../../scripts/run-private-fleet-preview.js');
+ const result=spawnSync(process.execPath,[cli,'--resume','--document',f.sources.document,
+  '--quote',f.sources.quote,'--inventory',f.sources.inventory,'--state-root',f.stateRoot],
+ {encoding:'utf8',timeout:5000});
+ assert.equal(result.error,undefined);
+ assert.equal(result.status,1);
+ assert.match(result.stderr,/SUPERVISOR_CHECKPOINT_INVALID/);
+ assert.equal(fs.existsSync(path.join(f.stateRoot,'.factory-private-session-owner.json')),false);
+ assert.equal(sha(path.join(f.stateRoot,'preview-report.json')),receipt);
+ for(const credential of credentials)assert.equal(sha(credential.file),credential.digest);
 });
 test('real child SIGKILL and independently resumed host preserve tenant data, credentials and authorization',async t=>{
  if(process.platform==='win32')return t.skip('Linux process-state acceptance required');
