@@ -334,6 +334,36 @@ Products follow:
 
 Required-source transport failure is non-chargeable and must not settle.
 
+## Paid-settlement economics (review-only)
+
+The October 2 [factory economics baseline](docs/ECONOMICS_BASELINE_2026-10-02.md)
+is a preserved historical record. The October 10
+[Base facilitator rate refresh](docs/ECONOMICS_RATE_REFRESH_2026-10-10.md)
+uses the then-published PayAI Base exact/EIP-3009 paid fee of **$0.00218**
+per settlement and assesses all 24 existing product prices **without changing
+any price or production payment behavior**.
+
+Run `node economics/live-fee-economics.js --check` for deterministic
+offline verification, `--snapshot` for the archived 24-product report, or
+`--live` for a bounded read-only public GET of current PayAI rates. Historical
+snapshots are not substitutes for launch-time pricing. The calculation is
+a *fee-only optimistic contribution ceiling*, not measured net profit.
+The seller wallet's free-credit balance, source/hosting/retry costs and
+genuine customer demand are not established by the economics report.
+
+The read-only [Supabase usage evidence guide](docs/SUPABASE_USAGE_EVIDENCE_2026-10-10.md)
+and `node economics/supabase-usage-readiness.js /ABSOLUTE/PRIVATE/aggregates.json`
+classify **private, already aggregated** x402 Edge Function logs. HTTP 402
+challenges consume invocation capacity but are not purchases; paid-route HTTP
+200 alone does not prove settlement. Actual organization invoice charges,
+source costs and hosting cost per verified sale remain unknown. Do not commit
+the private aggregate input, customer requests, wallet identifiers or billing
+records into this public repository.
+
+Products 025+ remain frozen pending independently proven outside demand.
+No command above buys credits, moves funds, modifies prices, registers products,
+or deploys a seller.
+
 ## Deployment readiness
 
 A candidate deployment must pass all of the following from the same registry head:
