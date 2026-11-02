@@ -277,7 +277,7 @@ async function fetchGithubJson(apiPath,{fetchImpl=fetch,token}={}){
   if(typeof token!=="string"||token.length<15){
     fail("GitHub read-only audit token unavailable");
   }
-  if(!/^\/repos\/P00NSMASHER\/x402-product-factory\/(pulls\/\d+|actions\/runs\?head_sha=[a-f0-9]{40}&per_page=50|compare\/[a-f0-9]{40}\.\.\.[a-f0-9]{40})$/.test(apiPath)){
+  if(!/^\/repos\/P00NSMASHER\/x402-product-factory\/(pulls\/\d+|actions\/runs\?head_sha=[a-f0-9]{40}&per_page=50|compare\/[a-f0-9]{40}\.\.\.[a-f0-9]{40}(?:\?per_page=1&page=2)?)$/.test(apiPath)){
     fail("unapproved GitHub API read path");
   }
   const url="https://api.github.com"+apiPath;
@@ -348,7 +348,7 @@ async function collectLive(doc,{fetchImpl=fetch,token,candidateHeadSha}={}){
     let ancestry=null;
     if(candidate?.head?.sha===candidateHeadSha){
       ancestry=await fetchGithubJson(base+"/compare/"+
-        doc.chain[0].pinned_head_sha+"..."+candidateHeadSha,{fetchImpl,token});
+        doc.chain[0].pinned_head_sha+"..."+candidateHeadSha+"?per_page=1&page=2",{fetchImpl,token});
     }
     root_candidate_proof={
       number:candidate.number,head_ref:candidate.head?.ref,

@@ -114,7 +114,7 @@ test("live readback binds root ancestry to GitHub PR59 and action SHA",async()=>
       data={workflow_runs:s.runs[node.number]};
     }else if(u.pathname.includes("/compare/")){
       const tail=u.pathname.split("/compare/")[1];
-      if(tail===doc.chain[0].pinned_head_sha+"..."+proof.head_sha){
+      if(tail===doc.chain[0].pinned_head_sha+"..."+proof.head_sha+"?per_page=1&page=2"){
         data=proof.compare;
       }else{
         const node=doc.chain.find(x=>tail.endsWith("..."+x.pinned_head_sha));
@@ -278,6 +278,29 @@ test("mocked GitHub API audit captures parent comparisons and exact-source CI",a
 });
 
 
+test("private ancestry compare uses bounded GitHub page without relaxing size checks",async()=>{
+  const root=doc.chain[0].pinned_head_sha,candidate="f".repeat(40);
+  const url="/repos/P00NSMASHER/x402-product-factory/compare/"+root+"..."+candidate+"?per_page=1&page=2";
+  const result=await chain.fetchGithubJson(url,{
+    token:"TEST_MOCK_GITHUB_TOKEN_DO_NOT_LOG",
+    fetchImpl:async(actual,options)=>{
+      assert.equal(actual,"https://api.github.com"+url);
+      assert.equal(options.method,"GET");
+      return {ok:true,headers:{get(name){return name==="content-length"?"11000":null;}},
+        async text(){return JSON.stringify({status:"ahead",behind_by:0,ahead_by:292});}};
+    }
+  });
+  assert.equal(result.ahead_by,292);
+  for(const wrong of [
+    "/repos/P00NSMASHER/x402-product-factory/compare/"+root+"..."+candidate+"?per_page=100&page=1",
+    "/repos/P00NSMASHER/x402-product-factory/compare/"+root+"..."+candidate+"?per_page=1&page=1"
+  ]){
+    await assert.rejects(chain.fetchGithubJson(wrong,{
+      token:"TEST_MOCK_GITHUB_TOKEN_DO_NOT_LOG",
+      fetchImpl:async()=>{throw Error("unexpected outbound GET");}
+    }),/RELEASE_CHAIN_GATE/);
+  }
+});
 test("latest five source and cache safety PRs cannot lose exact-head green checks",()=>{
   for(const id of [16,17,19,20,21]){
     const broken=snapshot();
