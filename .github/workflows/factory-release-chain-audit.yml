@@ -30,6 +30,7 @@ jobs:
       - name: Audit exact-head CI of 14 stacked draft PRs (read-only GitHub)
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          CANDIDATE_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: node quality/governance/release-chain.js --audit-live
 
       - name: Verify independent PR18 history source and exact checks (GitHub GET-only)
