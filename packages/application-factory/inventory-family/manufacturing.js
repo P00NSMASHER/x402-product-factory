@@ -1,29 +1,16 @@
 'use strict';
 // Compile complete self-contained synthetic inventory applications and independently execute each package.
-const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),os=require('node:os');
+const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
+const {sha256:sha,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,privateJson:saveJson}=require('../manufacturing/shared-contracts');
 const {spawnSync}=require('node:child_process');
 const {validateRecipe}=require('./engine'),recipes=require('./recipes.json');
 const ROOT=path.resolve(__dirname,'../../..'),SOURCE=path.resolve(__dirname);
 const NAMES=['engine.js','store.js','server.js','client.js','index.html','style.css','run.js'];
-const sha=v=>crypto.createHash('sha256').update(v).digest('hex');
 const fail=code=>{throw Error(code);};
-const normalized=p=>process.platform==='win32'?p.toLowerCase():p;
-function safeDir(p){const st=fs.lstatSync(p);if(!st.isDirectory()||st.isSymbolicLink()||
- normalized(fs.realpathSync(p))!==normalized(path.resolve(p))||
- (process.platform!=='win32'&&(st.mode&0o077)))fail('OUTPUT_UNSAFE');}
+const safeDir=privateDirectory;
 function compileInventoryPackage(raw,{sourceRoot=SOURCE}={}){
  const recipe=validateRecipe(raw);
- if(typeof sourceRoot!=='string'||!path.isAbsolute(sourceRoot))fail('SOURCE_INVALID');
- const sourceInfo=fs.lstatSync(sourceRoot);
- if(!sourceInfo.isDirectory()||sourceInfo.isSymbolicLink()||
-    normalized(fs.realpathSync(sourceRoot))!==normalized(path.resolve(sourceRoot)))fail('SOURCE_INVALID');
- const files={};
- for(const name of NAMES){
-  const file=path.join(sourceRoot,name),st=fs.lstatSync(file);
-  if(!st.isFile()||st.isSymbolicLink()||st.size>1024*1024||
-    normalized(fs.realpathSync(file))!==normalized(file))fail('SOURCE_INVALID');
-  files[name]=fs.readFileSync(file,'utf8');
- }
+ const files={...trustedSourceFiles({sourceRoot,names:NAMES,maxBytes:1024*1024})};
  files['recipe.json']=JSON.stringify(recipe,null,2)+'\n';
  files['package.json']=JSON.stringify({name:'factory-'+recipe.id,version:'0.0.0',private:true,
   engines:{node:'>=22.13.0'},scripts:{start:'node run.js serve',provision:'node run.js provision',sweep:'node run.js sweep'}},null,2)+'\n';
@@ -45,28 +32,20 @@ function compileInventoryPackage(raw,{sourceRoot=SOURCE}={}){
 }
 function verifyInventoryPackage(directory,digest){
  try{
-  if(typeof digest!=='string'||!/^[a-f0-9]{64}$/.test(digest))fail('ARTIFACT_INVALID');
-  safeDir(directory);
-  const names=fs.readdirSync(directory).sort(),manifestFile=path.join(directory,'manifest.json'),
-    stat=fs.lstatSync(manifestFile);
-  if(!stat.isFile()||stat.isSymbolicLink()||stat.size>65536)fail('ARTIFACT_INVALID');
-  const {digest:provided,...body}=JSON.parse(fs.readFileSync(manifestFile,'utf8'));
-  if(provided!==digest||sha(JSON.stringify(body))!==digest||body.schemaVersion!==1||
-    body.family!=='inventory-control'||body.releaseApproved!==false||body.marketValidated!==false||
-    body.supplierPurchaseEnabled!==false||body.paymentEnabled!==false||
-    body.realCustomers!==null||body.collectedRevenue!==null||
-    !body.files||typeof body.files!=='object'||Array.isArray(body.files))fail('ARTIFACT_INVALID');
-  if(names.length>20||JSON.stringify(names)!==JSON.stringify([...Object.keys(body.files),'manifest.json'].sort()))fail('ARTIFACT_INVALID');
-  for(const [name,expected] of Object.entries(body.files)){
-   if(!/^[A-Za-z0-9._-]+$/.test(name)||!NAMES.includes(name)&&!['README.md','recipe.json','package.json'].includes(name)||
-    !/^[a-f0-9]{64}$/.test(expected))fail('ARTIFACT_INVALID');
-   const f=path.join(directory,name),stat=fs.lstatSync(f);
-   if(!stat.isFile()||stat.isSymbolicLink()||stat.size>1024*1024||sha(fs.readFileSync(f))!==expected)fail('ARTIFACT_INVALID');
-  }
-  validateRecipe(JSON.parse(fs.readFileSync(path.join(directory,'recipe.json'),'utf8')));
-  return {...body,digest};
+  const manifest=verifyBundledFiles(directory,digest,{
+   code:'ARTIFACT_INVALID',requiredNames:[...NAMES,'recipe.json','package.json','README.md'],
+   maxFiles:20,maxManifestBytes:65536,maxFileBytes:1024*1024
+  });
+  if(manifest.schemaVersion!==1||manifest.family!=='inventory-control'||
+   manifest.releaseApproved!==false||manifest.marketValidated!==false||
+   manifest.supplierPurchaseEnabled!==false||manifest.paymentEnabled!==false||
+   manifest.realCustomers!==null||manifest.collectedRevenue!==null)fail('ARTIFACT_INVALID');
+  const recipe=validateRecipe(JSON.parse(fs.readFileSync(path.join(directory,'recipe.json'),'utf8')));
+  if(recipe.id!==manifest.recipeId)fail('ARTIFACT_INVALID');
+  return manifest;
  }catch{fail('ARTIFACT_INVALID');}
 }
+
 function stagePackage(compiled,directory){
  fs.mkdirSync(directory,{mode:0o700});safeDir(directory);
  for(const [name,content] of Object.entries(compiled.files))
@@ -94,18 +73,11 @@ function acceptInventoryPackage(root,digest){
   verifyInventoryPackage(root,digest);return result;
  }finally{fs.rmSync(scratch,{recursive:true,force:true});}
 }
-function saveJson(file,value){
- const temp=file+'.'+crypto.randomBytes(8).toString('hex')+'.tmp';
- try{fs.writeFileSync(temp,JSON.stringify(value,null,2)+'\n',{flag:'wx',mode:0o600});fs.renameSync(temp,file);}
- finally{if(fs.existsSync(temp))fs.unlinkSync(temp);}
-}
 function manufactureInventoryBatch({outputRoot,catalog=recipes}={}){
  if(!Array.isArray(catalog)||catalog.length<1||catalog.length>12||
   new Set(catalog.map(r=>r?.id)).size!==catalog.length)fail('BATCH_INVALID');
  const list=catalog.map(validateRecipe);
- if(typeof outputRoot!=='string'||!path.isAbsolute(outputRoot))fail('OUTPUT_UNSAFE');
- const destinationRoot=path.resolve(outputRoot),relative=path.relative(ROOT,destinationRoot);
- if(!relative||(!relative.startsWith('..'+path.sep)&&relative!=='..'&&!path.isAbsolute(relative)))fail('OUTPUT_UNSAFE');
+ const destinationRoot=outsideRepository(outputRoot,{root:ROOT});
  fs.mkdirSync(destinationRoot,{recursive:true,mode:0o700});safeDir(destinationRoot);
  const lock=path.join(destinationRoot,'.inventory-build.lock');let fd;
  try{fd=fs.openSync(lock,'wx',0o600);}catch(e){if(e.code==='EEXIST')fail('MANUFACTURING_BUSY');throw e;}

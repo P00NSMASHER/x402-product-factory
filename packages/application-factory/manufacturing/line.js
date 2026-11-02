@@ -1,17 +1,12 @@
 'use strict';
-const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+const fs=require('node:fs'),path=require('node:path');
+const {privateDirectory:safeDir,privateJson:writeJSON}=require('./shared-contracts');
 const {validateRecipe}=require('../kernel');
 const {compileApplication,writeApplication,verifyApplication}=require('./assembler');
 const {acceptApplication,validReceipt}=require('./acceptance');
 const ROOT=path.resolve(__dirname,'../../..');
 const fail=code=>{throw new Error(code);};
 const exists=p=>{try{fs.lstatSync(p);return true;}catch(e){if(e.code==='ENOENT')return false;throw e;}};
-function safeDir(dir){const s=fs.lstatSync(dir);if(!s.isDirectory()||s.isSymbolicLink()||fs.realpathSync(dir)!==path.resolve(dir)||(process.platform!=='win32'&&(s.mode&0o077)))fail('OUTPUT_UNSAFE');}
-function writeJSON(file,value){
-  if(exists(file)){const s=fs.lstatSync(file);if(!s.isFile()||s.isSymbolicLink())fail('OUTPUT_UNSAFE');}
-  const temp=file+'.'+crypto.randomBytes(8).toString('hex')+'.tmp';
-  try{fs.writeFileSync(temp,JSON.stringify(value,null,2)+'\n',{flag:'wx',mode:0o600});fs.renameSync(temp,file);}finally{if(exists(temp))fs.unlinkSync(temp);}
-}
 function manufactureBatch({recipes,outputRoot,sourceRoot=ROOT,maxAttempts=2,retryFailed=false,accept=acceptApplication}={}){
   if(!Array.isArray(recipes)||recipes.length<1||recipes.length>100||new Set(recipes.map(r=>r?.id)).size!==recipes.length||
     !Number.isSafeInteger(maxAttempts)||maxAttempts<1||maxAttempts>3||typeof retryFailed!=='boolean'||typeof accept!=='function')fail('BATCH_INVALID');
