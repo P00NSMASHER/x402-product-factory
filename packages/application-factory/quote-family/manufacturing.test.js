@@ -55,3 +55,13 @@ test('batch prevents accidental repeat generation by verifying instead of rewrit
  assert.equal(c.failed,1);assert.equal(c.accepted,2);
  assert.equal(c.apps.find(v=>v.id===a.apps[0].id).status,'quarantined');
 });
+
+test('native quote acceptance never submits an expired hard-coded calendar date',()=>{
+ const browser=fs.readFileSync(path.join(__dirname,'../../../quality/browser/quote-applications.cjs'),'utf8');
+ assert.match(browser,/const runAt=Date\.now\(\)/);
+ assert.match(browser,/clock:\(\)=>runAt/);
+ assert.match(browser,/const validUntil=new Date\(runAt\+3\*86400000\)\.toISOString\(\)\.slice\(0,10\)/);
+ assert.match(browser,/await page\.locator\('#valid-until'\)\.fill\(validUntil\)/);
+ assert.doesNotMatch(browser,/#valid-until'\)\.fill\('2026-/);
+ for(const recipe of recipes)assert.ok(recipe.validDays>=7,'three-day shared expiry must be valid in every real candidate family');
+});

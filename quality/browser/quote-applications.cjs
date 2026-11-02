@@ -22,7 +22,11 @@ async function run(root){
    const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'factory-quote-browser-'));
    let server,store;
    try{
-    store=openStore({filename:path.join(tmp,'state.sqlite'),recipe,clock:()=>Date.parse('2026-10-13T12:00:00Z')});
+    // Use one shared reference day for browser and fixture store. A hard-coded
+    // October 2026 expiry eventually falls before the browser's input min and
+    // silently blocks form submission, leaving #detail-name hidden.
+    const runAt=Date.now();
+    store=openStore({filename:path.join(tmp,'state.sqlite'),recipe,clock:()=>runAt});
     server=createServer({store,pollMs:500});await server.listen(0);const origin='http://127.0.0.1:'+server.port();
     for(const width of [1440,390]){
      const tenant=store.provision('synthetic-'+width);
@@ -40,7 +44,10 @@ async function run(root){
      assert.equal(await page.locator('#title').textContent(),recipe.title);
      await page.locator('#new-quote').click();
      await page.locator('#client-name').fill('Synthetic '+recipe.id+' '+width);
-     await page.locator('#valid-until').fill('2026-10-20');
+     // Every family allows at least seven days. Three days handles clock
+     // boundaries without coupling this executable QA to a calendar month.
+     const validUntil=new Date(runAt+3*86400000).toISOString().slice(0,10);
+     await page.locator('#valid-until').fill(validUntil);
      await page.locator('#create-form button[type="submit"]').click();
      await page.locator('#detail-name').waitFor({state:'visible'});
      await page.locator('#quantity').fill('4');
