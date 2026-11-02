@@ -43,12 +43,20 @@ function createOfacNameAdapter({
  timeoutMs=15000,
  userAgent=DEFAULT_USER_AGENT,
  cacheTtlMs=DEFAULT_OFAC_CACHE_TTL_MS,
- now=()=>Date.now()
+ now=()=>Date.now(),
+ // Legacy 2026-10 source contract also supplied nowMs for a deterministic clock.
+ // Preserve both authorized clock injection forms during private integration.
+ nowMs
 }={}){
- if(!Number.isSafeInteger(cacheTtlMs)||cacheTtlMs<1||
+ if(!Number.isSafeInteger(cacheTtlMs)||cacheTtlMs<1000||
     cacheTtlMs>MAX_OFAC_CACHE_TTL_MS){
    const e=new RangeError("invalid_ofac_cache_ttl");
-   e.code="ADAPTER_CONTRACT_INVALID";
+   e.code="INVALID_INPUT";
+   throw e;
+ }
+ if(nowMs!==undefined&&typeof nowMs!=="function"){
+   const e=new TypeError("invalid_ofac_clock_alias");
+   e.code="INVALID_INPUT";
    throw e;
  }
  if(typeof now!=="function"){
@@ -56,12 +64,13 @@ function createOfacNameAdapter({
    e.code="ADAPTER_CONTRACT_INVALID";
    throw e;
  }
+ const clockProvider=nowMs===undefined?now:nowMs;
  // A completed data snapshot is atomic: SDN and ALT must BOTH load before
  // any cache is activated. Never serve a prior snapshot after TTL expiry.
  let cache=null;
  let inFlight=null;
  function clock(){
-   const ms=now();
+   const ms=clockProvider();
    if(typeof ms!=="number"||!Number.isSafeInteger(ms)||
       ms<0||ms>8640000000000000){
      throw sourceContractFailure("ofac_clock_unavailable");
