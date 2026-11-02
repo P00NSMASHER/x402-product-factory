@@ -1,0 +1,239 @@
+{
+  "schemaVersion": 1,
+  "kind": "factory-readonly-production-integration-manifest",
+  "repository": "P00NSMASHER/x402-product-factory",
+  "defaultBranch": "main",
+  "rootParent": "factory/ofac-refresh-failclosed-20261012",
+  "candidate": {
+    "prNumber": 56,
+    "headRef": "factory/shared-package-contracts-20261015",
+    "pinnedHeadSha": "38e78360ca107bfc7612ddf7108c720542158ab8"
+  },
+  "stack": [
+    {
+      "number": 22,
+      "headRef": "factory/integrated-release-graph-v2-20261012",
+      "baseRef": "factory/ofac-refresh-failclosed-20261012"
+    },
+    {
+      "number": 23,
+      "headRef": "factory/domain-evidence-integrity-20261012",
+      "baseRef": "factory/integrated-release-graph-v2-20261012"
+    },
+    {
+      "number": 24,
+      "headRef": "factory/rdap-raw-identity-20261012",
+      "baseRef": "factory/domain-evidence-integrity-20261012"
+    },
+    {
+      "number": 25,
+      "headRef": "factory/application-family-v1-20261013",
+      "baseRef": "factory/rdap-raw-identity-20261012"
+    },
+    {
+      "number": 26,
+      "headRef": "factory/durable-application-autonomy-20261013",
+      "baseRef": "factory/application-family-v1-20261013"
+    },
+    {
+      "number": 28,
+      "headRef": "factory/connected-browser-autonomy-20261013",
+      "baseRef": "factory/durable-application-autonomy-20261013"
+    },
+    {
+      "number": 29,
+      "headRef": "factory/encrypted-evidence-vault-20261013",
+      "baseRef": "factory/connected-browser-autonomy-20261013"
+    },
+    {
+      "number": 30,
+      "headRef": "factory/verified-recovery-20261013",
+      "baseRef": "factory/encrypted-evidence-vault-20261013"
+    },
+    {
+      "number": 31,
+      "headRef": "factory/full-stack-manufacturing-20261013",
+      "baseRef": "factory/verified-recovery-20261013"
+    },
+    {
+      "number": 32,
+      "headRef": "factory/demand-driven-growth-20261013",
+      "baseRef": "factory/full-stack-manufacturing-20261013"
+    },
+    {
+      "number": 33,
+      "headRef": "factory/private-pilot-lifecycle-20261013",
+      "baseRef": "factory/demand-driven-growth-20261013"
+    },
+    {
+      "number": 34,
+      "headRef": "factory/operator-acquisition-drafts-20261013",
+      "baseRef": "factory/private-pilot-lifecycle-20261013"
+    },
+    {
+      "number": 35,
+      "headRef": "factory/sales-command-center-20261013",
+      "baseRef": "factory/operator-acquisition-drafts-20261013"
+    },
+    {
+      "number": 36,
+      "headRef": "factory/autonomous-safe-production-20261013",
+      "baseRef": "factory/sales-command-center-20261013"
+    },
+    {
+      "number": 37,
+      "headRef": "factory/continuous-idea-supply-20261013",
+      "baseRef": "factory/autonomous-safe-production-20261013"
+    },
+    {
+      "number": 38,
+      "headRef": "factory/resilient-build-backlog-20261013",
+      "baseRef": "factory/continuous-idea-supply-20261013"
+    },
+    {
+      "number": 39,
+      "headRef": "factory/cross-run-autonomy-checkpoints-20261013",
+      "baseRef": "factory/resilient-build-backlog-20261013"
+    },
+    {
+      "number": 40,
+      "headRef": "factory/quote-to-order-app-family-20261013",
+      "baseRef": "factory/cross-run-autonomy-checkpoints-20261013"
+    },
+    {
+      "number": 41,
+      "headRef": "factory/inventory-replenishment-family-20261013",
+      "baseRef": "factory/quote-to-order-app-family-20261013"
+    },
+    {
+      "number": 42,
+      "headRef": "factory/unattended-missed-cycle-backfill-20261013",
+      "baseRef": "factory/inventory-replenishment-family-20261013"
+    },
+    {
+      "number": 43,
+      "headRef": "factory/research-scout-deployment-rehearsal-20261013",
+      "baseRef": "factory/unattended-missed-cycle-backfill-20261013"
+    },
+    {
+      "number": 44,
+      "headRef": "factory/cross-family-research-and-canary-qa-20261013",
+      "baseRef": "factory/research-scout-deployment-rehearsal-20261013"
+    },
+    {
+      "number": 45,
+      "headRef": "factory/versioned-local-rollback-20261014",
+      "baseRef": "factory/cross-family-research-and-canary-qa-20261013"
+    },
+    {
+      "number": 47,
+      "headRef": "factory/version-state-compatibility-20261014",
+      "baseRef": "factory/versioned-local-rollback-20261014"
+    },
+    {
+      "number": 48,
+      "headRef": "factory/one-command-private-preview-fleet-20261014",
+      "baseRef": "factory/version-state-compatibility-20261014"
+    },
+    {
+      "number": 49,
+      "headRef": "factory/private-remote-preview-tailnet-20261014",
+      "baseRef": "factory/one-command-private-preview-fleet-20261014"
+    },
+    {
+      "number": 50,
+      "headRef": "factory/unattended-self-healing-private-fleet-20261014",
+      "baseRef": "factory/private-remote-preview-tailnet-20261014"
+    },
+    {
+      "number": 51,
+      "headRef": "factory/resumable-private-host-supervisor-20261014",
+      "baseRef": "factory/unattended-self-healing-private-fleet-20261014"
+    },
+    {
+      "number": 52,
+      "headRef": "factory/self-healing-private-gateway-20261014",
+      "baseRef": "factory/resumable-private-host-supervisor-20261014"
+    },
+    {
+      "number": 53,
+      "headRef": "factory/checkpointed-cross-family-director-20261014",
+      "baseRef": "factory/self-healing-private-gateway-20261014"
+    },
+    {
+      "number": 54,
+      "headRef": "factory/bounded-cross-family-history-repair-20261014",
+      "baseRef": "factory/checkpointed-cross-family-director-20261014"
+    },
+    {
+      "number": 55,
+      "headRef": "factory/evergreen-source-pinned-idea-intake-20261014",
+      "baseRef": "factory/bounded-cross-family-history-repair-20261014"
+    },
+    {
+      "number": 56,
+      "headRef": "factory/shared-package-contracts-20261015",
+      "baseRef": "factory/evergreen-source-pinned-idea-intake-20261014"
+    }
+  ],
+  "separateDrafts": [
+    {
+      "number": 27,
+      "disposition": "independent-draft-review-required"
+    },
+    {
+      "number": 46,
+      "disposition": "independent-draft-review-required"
+    }
+  ],
+  "requiredCandidateWorkflows": [
+    {
+      "name": "Autonomous App Candidate Factory",
+      "path": ".github/workflows/factory-autonomy-ci.yml"
+    },
+    {
+      "name": "Factory product CI",
+      "path": ".github/workflows/factory-pa-vendor-gate-ci.yml"
+    },
+    {
+      "name": "Full-stack application manufacturing",
+      "path": ".github/workflows/factory-manufacturing-ci.yml"
+    },
+    {
+      "name": "Factory connected browser acceptance",
+      "path": ".github/workflows/factory-browser-ci.yml"
+    },
+    {
+      "name": "Synthetic remote-preview gateway CI",
+      "path": ".github/workflows/factory-remote-preview-ci.yml"
+    },
+    {
+      "name": "Private pilot lifecycle",
+      "path": ".github/workflows/factory-pilot-ci.yml"
+    },
+    {
+      "name": "Second application family - Quote to Order",
+      "path": ".github/workflows/factory-quote-family-ci.yml"
+    },
+    {
+      "name": "Third Application Family - Inventory Replenishment",
+      "path": ".github/workflows/factory-inventory-ci.yml"
+    },
+    {
+      "name": "Factory acquisition research safety",
+      "path": ".github/workflows/factory-acquisition-ci.yml"
+    }
+  ],
+  "maxApiRequests": 90,
+  "commercialHold": {
+    "independentBuyerValidation": null,
+    "independentSecurityPrivacyReview": null,
+    "dataCustodyAndMigrationApproval": null,
+    "publicIngressAuthorization": null,
+    "reconciledRealPaymentSettlement": null,
+    "independentHostingUnitEconomics": null,
+    "explicitProductionReleaseApproval": null,
+    "product025Unlocked": false
+  },
+  "allowedActions": "GET_GITHUB_ONLY_NO_MERGE_DEPLOY_CONTACT_OR_PAYMENT"
+}
