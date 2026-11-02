@@ -1,0 +1,29 @@
+name: SEC source identity binding QA
+
+on:
+  pull_request:
+    paths:
+      - 'packages/sources/sec-filings.js'
+      - 'packages/sources/sec-identity-binding.test.js'
+      - 'products/sec-filing-freshness/**'
+      - 'products/sec-company-identity-match/**'
+      - '.github/workflows/hunter-sec-identity-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sec-identity-source-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate source JavaScript syntax
+        run: node --check packages/sources/sec-filings.js && node --check packages/sources/sec-identity-binding.test.js
+      - name: Adversarial SEC identity regression
+        run: node --test packages/sources/sec-identity-binding.test.js packages/sources/sec-filings.test.js
+      - name: Factory-wide JavaScript syntax
+        run: node scripts/validate-js-syntax.js
+      - name: Factory-wide regression tests
+        run: node scripts/run-all-tests.js

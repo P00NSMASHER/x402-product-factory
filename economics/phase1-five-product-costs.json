@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-10-02",
+  "registry_revision": "22688407b05a8b2dbc3badc7ed126d0e605e70a0",
+  "settlement": {
+    "provider": "PayAI",
+    "network": "eip155:8453",
+    "scheme": "exact",
+    "transfer_method": "eip3009",
+    "usd_per_successful_settlement": "0.002310",
+    "rate_id": "3d1394f6-cae6-4a75-ae3b-1a3c29d428cb",
+    "pricing_snapshot_as_of": "2026-10-02T20:28:31.618Z",
+    "credit_usd": "0.001000",
+    "credits_per_successful_settlement": "2.31",
+    "free_allowance_terms": {
+      "current_default_credits_per_receiving_wallet": 1000,
+      "allowance_scope": "lifetime",
+      "current_base_eip3009_full_settlement_ceiling_if_entire_default_allowance_is_available": 432,
+      "exact_fractional_settlement_equivalent": "432.9004329004329",
+      "shared_pool_can_exhaust_earlier": true,
+      "legacy_wallet_allowance_may_be_credits": 10000,
+      "seller_wallet_specific_entitlement_verified": false,
+      "seller_wallet_remaining_free_credits": null,
+      "notes": [
+        "Current PayAI documentation says new receiving wallets receive 1,000 free credits lifetime, not a monthly reset.",
+        "Shared hosts or IP addresses also draw from a shared pool and can reach the applicable limit sooner.",
+        "Some older receiving wallets retain a 10,000-credit legacy allowance.",
+        "Wallet-specific entitlement and remaining free credits require account-specific evidence and are intentionally not inferred from public documentation."
+      ],
+      "public_remaining_credit_endpoint_available": false,
+      "public_exhaustion_signal": "POST /settle returns HTTP 403 with errorReason beginning free_tier_exhausted when the applicable free tier is exhausted.",
+      "wallet_specific_verification_boundary": "The public facilitator reference exposes health, supported, verify, settle, and discovery/statistics endpoints, but no public wallet credit-balance endpoint. Remaining entitlement requires account-specific evidence rather than inference."
+    }
+  },
+  "source_fee_method": {
+    "configured_direct_source_fee_usd_per_request": "0.000000",
+    "basis": "The measured implementations call public PA, Census, SEC, IANA/RDAP endpoints directly and contain no paid source credential or source-billing path. This records configured direct cash source fees, not a guarantee of unlimited upstream capacity.",
+    "excludes": [
+      "seller hosting compute and bandwidth",
+      "source throttling or future provider pricing",
+      "payment verification/settlement retry overhead",
+      "failed request and refund costs",
+      "development and maintenance"
+    ]
+  },
+  "hosting": {
+    "factory_products_003_007": {
+      "deployment_status": "staging_not_deployed",
+      "candidate_provider": "AppDeploy",
+      "direct_cash_spend_for_current_staging_host_usd": "0.000000",
+      "incremental_hosting_cost_usd_per_sale": null,
+      "measurement_status": "unknown_until_live_shared_runtime_is_available",
+      "reason": "The current free-tier deployment pause prevents runtime cost and capacity measurement for these staged routes."
+    },
+    "production_reference_origin": {
+      "provider": "Floot",
+      "plan_observed": "free",
+      "published": true,
+      "origin": "https://pa-entity-x402.floot.app",
+      "scope": "Reference live seller hosting Products 001/002; this does not establish capacity or per-request economics for Products 003-007."
+    }
+  },
+  "products": [
+    {
+      "number": "003",
+      "id": "pa-vendor-identity-match",
+      "price_usdc": "0.005",
+      "sources": [
+        {
+          "id": "pa_registry",
+          "normal_requests_min": 1,
+          "normal_requests_max": 2,
+          "retry_ceiling_requests": 4,
+          "cache": "none"
+        },
+        {
+          "id": "census_address",
+          "normal_requests_min": 2,
+          "normal_requests_max": 2,
+          "retry_ceiling_requests": 2,
+          "cache": "none"
+        },
+        {
+          "id": "rdap",
+          "normal_requests_cold_min": 2,
+          "normal_requests_cold_max": 2,
+          "normal_requests_warm_min": 1,
+          "normal_requests_warm_max": 1,
+          "retry_ceiling_requests": 2,
+          "cache": "IANA bootstrap only, in-memory for adapter lifetime; authoritative domain result is not cached"
+        }
+      ],
+      "normal_source_requests": {
+        "cold_min": 5,
+        "cold_max": 6,
+        "warm_min": 4,
+        "warm_max": 5
+      },
+      "configured_direct_source_fee_usd_per_sale": "0.000000",
+      "incremental_hosting_cost_usd_per_sale": null,
+      "lower_bound_contribution_usd_after_settlement_and_configured_source_fees": "0.002690",
+      "lower_bound_margin_pct": "53.800",
+      "complete_unit_economics": false
+    },
+    {
+      "number": "004",
+      "id": "pa-business-address-match",
+      "price_usdc": "0.003",
+      "sources": [
+        {
+          "id": "pa_registry",
+          "normal_requests_min": 1,
+          "normal_requests_max": 2,
+          "retry_ceiling_requests": 4,
+          "cache": "none"
+        },
+        {
+          "id": "census_address",
+          "normal_requests_min": 2,
+          "normal_requests_max": 2,
+          "retry_ceiling_requests": 2,
+          "cache": "none"
+        }
+      ],
+      "normal_source_requests": {
+        "cold_min": 3,
+        "cold_max": 4,
+        "warm_min": 3,
+        "warm_max": 4
+      },
+      "configured_direct_source_fee_usd_per_sale": "0.000000",
+      "incremental_hosting_cost_usd_per_sale": null,
+      "lower_bound_contribution_usd_after_settlement_and_configured_source_fees": "0.000690",
+      "lower_bound_margin_pct": "23.000",
+      "complete_unit_economics": false
+    },
+    {
+      "number": "005",
+      "id": "pa-business-domain-match",
+      "price_usdc": "0.003",
+      "sources": [
+        {
+          "id": "pa_registry",
+          "normal_requests_min": 1,
+          "normal_requests_max": 2,
+          "retry_ceiling_requests": 4,
+          "cache": "none"
+        },
+        {
+          "id": "rdap",
+          "normal_requests_cold_min": 2,
+          "normal_requests_cold_max": 2,
+          "normal_requests_warm_min": 1,
+          "normal_requests_warm_max": 1,
+          "retry_ceiling_requests": 2,
+          "cache": "IANA bootstrap only, in-memory for adapter lifetime; authoritative domain result is not cached"
+        }
+      ],
+      "normal_source_requests": {
+        "cold_min": 3,
+        "cold_max": 4,
+        "warm_min": 2,
+        "warm_max": 3
+      },
+      "configured_direct_source_fee_usd_per_sale": "0.000000",
+      "incremental_hosting_cost_usd_per_sale": null,
+      "lower_bound_contribution_usd_after_settlement_and_configured_source_fees": "0.000690",
+      "lower_bound_margin_pct": "23.000",
+      "complete_unit_economics": false
+    },
+    {
+      "number": "006",
+      "id": "sec-filing-freshness",
+      "price_usdc": "0.005",
+      "sources": [
+        {
+          "id": "sec_edgar",
+          "normal_requests_min": 1,
+          "normal_requests_max": 2,
+          "retry_ceiling_requests": 2,
+          "cache": "none",
+          "notes": "CIK input fetches submissions once; ticker input first fetches company_tickers.json then submissions. Live use requires SEC_USER_AGENT containing a contact email."
+        }
+      ],
+      "normal_source_requests": {
+        "cold_min": 1,
+        "cold_max": 2,
+        "warm_min": 1,
+        "warm_max": 2
+      },
+      "configured_direct_source_fee_usd_per_sale": "0.000000",
+      "incremental_hosting_cost_usd_per_sale": null,
+      "lower_bound_contribution_usd_after_settlement_and_configured_source_fees": "0.002690",
+      "lower_bound_margin_pct": "53.800",
+      "complete_unit_economics": false
+    },
+    {
+      "number": "007",
+      "id": "domain-registration-age",
+      "price_usdc": "0.002",
+      "sources": [
+        {
+          "id": "rdap",
+          "normal_requests_cold_min": 2,
+          "normal_requests_cold_max": 2,
+          "normal_requests_warm_min": 1,
+          "normal_requests_warm_max": 1,
+          "retry_ceiling_requests": 2,
+          "cache": "IANA bootstrap only, in-memory for adapter lifetime; authoritative domain result is not cached"
+        }
+      ],
+      "normal_source_requests": {
+        "cold_min": 2,
+        "cold_max": 2,
+        "warm_min": 1,
+        "warm_max": 1
+      },
+      "configured_direct_source_fee_usd_per_sale": "0.000000",
+      "incremental_hosting_cost_usd_per_sale": null,
+      "lower_bound_contribution_usd_after_settlement_and_configured_source_fees": "-0.000310",
+      "lower_bound_margin_pct": "-15.500",
+      "complete_unit_economics": false
+    }
+  ]
+}
