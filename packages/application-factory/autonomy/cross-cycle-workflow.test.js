@@ -25,3 +25,17 @@ test('source-pinned director creates no new scheduled task or outbound communica
   assert.doesNotMatch(text,/https\.request|http\.request|fetch\(|sendEmail|sendMessage|createAutomation|scheduleTask|child_process/);
  }
 });
+
+test('restoration selects only nonexpired source-run artifacts and never silently resets production',()=>{
+ const workflow=fs.readFileSync(filename,'utf8');
+ assert.match(workflow,/while IFS= read -r run_id/);
+ assert.match(workflow,/gh api "repos\/\$\{GITHUB_REPOSITORY\}\/actions\/runs\/\$\{run_id\}\/artifacts\?per_page=100"/);
+ assert.match(workflow,/\.expired == false/);
+ assert.match(workflow,/\.name == \$expected/);
+ assert.match(workflow,/gh run download "\$previous"/);
+ assert.match(workflow,/AMBIGUOUS_RESTORABLE_ARTIFACT/);
+ assert.match(workflow,/HISTORICAL_STATE_UNAVAILABLE/);
+ assert.match(workflow,/if \[ "\$GITHUB_EVENT_NAME" = "pull_request" \]; then/);
+ assert.match(workflow,/refuse silent reset on main\/schedule/);
+ assert.doesNotMatch(workflow,/\[0\]\.databaseId \/\/ empty/);
+});

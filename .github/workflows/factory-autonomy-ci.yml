@@ -45,15 +45,49 @@ jobs:
           TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
           set -euo pipefail
-          previous="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow factory-autonomy-ci.yml --branch "$TARGET_BRANCH" --limit 20 --json databaseId,conclusion --jq '[.[] | select(.conclusion=="success")][0].databaseId // empty')"
+          # Enumerate successful same-branch runs, but restore only a verified,
+          # unexpired artifact belonging to the exact run. A successful run may
+          # have had its seven-day artifact removed; never pick it blindly.
+          successes="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow factory-autonomy-ci.yml --branch "$TARGET_BRANCH" --limit 20 --json databaseId,conclusion --jq '[.[] | select(.conclusion=="success") | .databaseId] | .[]')"
+          previous=""
+          if [ -n "$successes" ]; then
+            while IFS= read -r run_id; do
+              [ -n "$run_id" ] || continue
+              if ! [[ "$run_id" =~ ^[0-9]+$ ]]; then
+                echo "INVALID_RESTORE_RUN_ID" >&2
+                exit 1
+              fi
+              metadata="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/artifacts?per_page=100")"
+              printf '%s' "$metadata" | jq -e '(.artifacts|type=="array") and (.total_count|type=="number") and (.total_count<=100)' >/dev/null
+              artifact="$(printf '%s' "$metadata" | jq -r --arg expected "autonomous-apps-$run_id" '.artifacts[] | select(.name == $expected and .expired == false) | .id')"
+              if [ -n "$artifact" ]; then
+                if ! [[ "$artifact" =~ ^[0-9]+$ ]]; then
+                  echo "AMBIGUOUS_RESTORABLE_ARTIFACT" >&2
+                  exit 1
+                fi
+                previous="$run_id"
+                break
+              fi
+            done <<< "$successes"
+          fi
           if [ -n "$previous" ]; then
             source="$RUNNER_TEMP/previous-autonomy"
             mkdir -p "$source"
+            # Any download, integrity or restoration error is fatal. Never
+            # downgrade a known checkpoint corruption into a clean build.
             gh run download "$previous" --repo "$GITHUB_REPOSITORY" --name "autonomous-apps-$previous" --dir "$source"
             find "$source" -type d -exec chmod 700 {} +
             find "$source" -type f -exec chmod 600 {} +
             node scripts/restore-autonomous-checkpoint.js --source "$source" --output "$RUNNER_TEMP/autonomous-apps" --max-cycles 32
             node scripts/restore-cross-family-checkpoint.js --source "$source" --output "$RUNNER_TEMP/autonomous-apps" --max-slots 24
+          elif [ -n "$successes" ]; then
+            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+              echo "HISTORICAL_STATE_UNAVAILABLE: PR-only synthetic build; no continuity verified."
+              echo "Production/scheduled state recovery remains BLOCKED until an authenticated checkpoint is available."
+            else
+              echo "HISTORICAL_STATE_UNAVAILABLE: previous success without restorable artifact; refuse silent reset on main/schedule." >&2
+              exit 1
+            fi
           else
             echo "No earlier successful same-branch artifact. Starting from clean private state."
           fi
