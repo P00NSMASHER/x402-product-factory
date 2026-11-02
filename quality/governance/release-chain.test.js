@@ -113,7 +113,7 @@ test("live readback binds root ancestry to GitHub PR59 and action SHA",async()=>
       const node=doc.chain.find(x=>x.pinned_head_sha===u.searchParams.get("head_sha"));
       data={workflow_runs:s.runs[node.number]};
     }else if(u.pathname.includes("/compare/")){
-      const tail=u.pathname.split("/compare/")[1];
+      const tail=u.pathname.split("/compare/")[1]+u.search;
       if(tail===doc.chain[0].pinned_head_sha+"..."+proof.head_sha+"?per_page=1&page=2"){
         data=proof.compare;
       }else{
