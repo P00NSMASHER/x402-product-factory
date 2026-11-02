@@ -1,30 +1,16 @@
 'use strict';
-const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto');
+const fs=require('node:fs'),path=require('node:path');
+const {sha256:hash,privateDirectory,outsideRepository,trustedSourceFiles,verifyBundledFiles,privateJson}=require('../manufacturing/shared-contracts');
 const {spawnSync}=require('node:child_process');
 const {validateRecipe}=require('./kernel'),catalog=require('./recipes.json');
 const SOURCE=path.resolve(__dirname),REPO=path.resolve(__dirname,'../../..');
 const BASE_FILES=['kernel.js','store.js','server.js','index.html','style.css','client.js','run.js'];
 const fail=code=>{throw Error(code);};
-const hash=value=>crypto.createHash('sha256').update(value).digest('hex');
-function validDir(dir,code){
- const stat=fs.lstatSync(dir),real=fs.realpathSync(dir);
- if(!stat.isDirectory()||stat.isSymbolicLink()||
-  (process.platform==='win32'?real.toLowerCase():real)!==(process.platform==='win32'?path.resolve(dir).toLowerCase():path.resolve(dir))||
-  (process.platform!=='win32'&&(stat.mode&0o077)))fail(code);
-}
-function outsideRepo(dir){
- if(typeof dir!=='string'||!path.isAbsolute(dir))fail('OUTPUT_UNSAFE');
- const dest=path.resolve(dir),r=path.relative(REPO,dest);
- if(!r||(!r.startsWith('..'+path.sep)&&r!=='..'&&!path.isAbsolute(r)))fail('OUTPUT_UNSAFE');
- return dest;
-}
+const validDir=privateDirectory;
+const outsideRepo=dir=>outsideRepository(dir,{root:REPO});
 function compileQuoteApp(raw,{sourceRoot=SOURCE}={}){
  if(typeof sourceRoot!=='string'||path.resolve(sourceRoot)!==SOURCE)fail('SOURCE_INVALID');
- const recipe=validateRecipe(raw),files=Object.create(null);
- for(const filename of BASE_FILES){const abs=path.join(SOURCE,filename),stat=fs.lstatSync(abs);
-  if(!stat.isFile()||stat.isSymbolicLink()||stat.size>256*1024)fail('SOURCE_INVALID');
-  files[filename]=fs.readFileSync(abs,'utf8');
- }
+ const recipe=validateRecipe(raw),files=trustedSourceFiles({sourceRoot:SOURCE,names:BASE_FILES,maxBytes:256*1024});
  files['recipe.json']=JSON.stringify(recipe,null,2)+'\n';
  files['package.json']=JSON.stringify({name:'factory-'+recipe.id,version:'0.0.0',private:true,
   description:recipe.outcome,engines:{node:'>=22.13.0'},scripts:{start:'node run.js serve',
@@ -48,27 +34,21 @@ function compileQuoteApp(raw,{sourceRoot=SOURCE}={}){
 }
 function verifyQuoteApp(dir,expectedDigest){
  try{
-  if(!/^[a-f0-9]{64}$/.test(expectedDigest)||typeof dir!=='string'||!path.isAbsolute(dir))fail('PACKAGE_INVALID');
-  validDir(dir,'PACKAGE_INVALID');
-  const names=fs.readdirSync(dir).sort();if(names.length>40)fail('PACKAGE_INVALID');
-  const stat=fs.lstatSync(path.join(dir,'manifest.json'));if(!stat.isFile()||stat.isSymbolicLink()||stat.size>32768)fail('PACKAGE_INVALID');
-  const {digest,...manifest}=JSON.parse(fs.readFileSync(path.join(dir,'manifest.json'),'utf8'));
-  if(digest!==expectedDigest||hash(JSON.stringify(manifest))!==digest||manifest.schemaVersion!==1||
-   manifest.generator!=='isolated-quote-to-order-v1'||manifest.family!=='quote-to-order'||
-   manifest.billingEnabled!==false||manifest.checkoutEnabled!==false||manifest.externalDelivery!==false||
-   manifest.releaseApproved!==false||manifest.marketValidated!==false||manifest.realCustomers!==null||
-   manifest.collectedRevenue!==null||!manifest.files||Array.isArray(manifest.files))fail('PACKAGE_INVALID');
-  const expected=[...Object.keys(manifest.files),'manifest.json'].sort();if(JSON.stringify(expected)!==JSON.stringify(names))fail('PACKAGE_INVALID');
-  for(const name of Object.keys(manifest.files)){
-   if(!/^[a-zA-Z0-9._-]+$/.test(name)||name==='manifest.json')fail('PACKAGE_INVALID');
-   const p=path.join(dir,name),s=fs.lstatSync(p);
-   if(!s.isFile()||s.isSymbolicLink()||s.size>256*1024||hash(fs.readFileSync(p))!==manifest.files[name])fail('PACKAGE_INVALID');
-  }
+  const manifest=verifyBundledFiles(dir,expectedDigest,{
+   code:'PACKAGE_INVALID',requiredNames:[...BASE_FILES,'recipe.json','package.json','README.md'],
+   maxFiles:40,maxManifestBytes:32768,maxFileBytes:256*1024
+  });
+  if(manifest.schemaVersion!==1||manifest.generator!=='isolated-quote-to-order-v1'||
+   manifest.family!=='quote-to-order'||manifest.billingEnabled!==false||
+   manifest.checkoutEnabled!==false||manifest.externalDelivery!==false||
+   manifest.releaseApproved!==false||manifest.marketValidated!==false||
+   manifest.realCustomers!==null||manifest.collectedRevenue!==null)fail('PACKAGE_INVALID');
   const recipe=validateRecipe(JSON.parse(fs.readFileSync(path.join(dir,'recipe.json'),'utf8')));
-  if(recipe.id!==manifest.recipeId)return fail('PACKAGE_INVALID');
-  return {...manifest,digest};
+  if(recipe.id!==manifest.recipeId)fail('PACKAGE_INVALID');
+  return manifest;
  }catch{fail('PACKAGE_INVALID');}
 }
+
 function writeQuoteApp(app,outputDir){
  const output=outsideRepo(outputDir),parent=path.dirname(output);
  fs.mkdirSync(parent,{recursive:true,mode:0o700});validDir(parent,'OUTPUT_UNSAFE');
@@ -95,11 +75,6 @@ function acceptQuoteApp(root,digest){
  let result;try{result=JSON.parse(child.stdout);}catch{fail('ACCEPTANCE_FAILED');}
  if(!validAcceptance(result,app.recipeId,digest))fail('ACCEPTANCE_FAILED');
  verifyQuoteApp(root,digest);return result;
-}
-function privateJson(file,value){
- const tmp=file+'.'+crypto.randomBytes(7).toString('hex')+'.tmp';
- try{fs.writeFileSync(tmp,JSON.stringify(value,null,2)+'\n',{flag:'wx',mode:0o600});fs.renameSync(tmp,file);}
- finally{if(fs.existsSync(tmp))fs.unlinkSync(tmp);}
 }
 function manufactureQuoteBatch({outputRoot,recipes=catalog,accept=acceptQuoteApp}={}){
  const dir=outsideRepo(outputRoot),validated=recipes.map(validateRecipe);

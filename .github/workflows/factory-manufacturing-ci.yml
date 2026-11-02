@@ -41,11 +41,11 @@ jobs:
       - name: Rehearse actual synthetic local deployments across all three SaaS families
         run: |
           node scripts/rehearse-private-deployments.js --document "$RUNNER_TEMP/manufactured-applications" --quote "$RUNNER_TEMP/quote-to-order-apps" --inventory "$RUNNER_TEMP/inventory-apps" --output "$RUNNER_TEMP/deployment-rehearsal"
-      - name: Generate eight additional researched quote and inventory SaaS candidates
+      - name: Generate fourteen differentiated quote and inventory research SaaS candidates
         run: |
           node scripts/manufacture-cross-family-ideas.js --check
           node scripts/manufacture-cross-family-ideas.js --build --quote-output "$RUNNER_TEMP/research-quote-apps" --inventory-output "$RUNNER_TEMP/research-inventory-apps"
-      - name: Probe all eleven expanded private research and baseline document applications
+      - name: Probe all seventeen expanded private research and baseline document applications
         run: |
           node scripts/rehearse-private-deployments.js --document "$RUNNER_TEMP/manufactured-applications" --quote "$RUNNER_TEMP/research-quote-apps" --inventory "$RUNNER_TEMP/research-inventory-apps" --output "$RUNNER_TEMP/research-deployment-rehearsal"
       - name: Validate distinct-version synthetic rollback against accepted packages
@@ -56,17 +56,17 @@ jobs:
           set -euo pipefail
           node scripts/run-private-fleet-preview.js --exercise --document "$RUNNER_TEMP/manufactured-applications" --quote "$RUNNER_TEMP/quote-to-order-apps" --inventory "$RUNNER_TEMP/inventory-apps" --state-root "$RUNNER_TEMP/private-baseline-fleet" > "$RUNNER_TEMP/baseline-preview-proof.json"
           node scripts/run-private-fleet-preview.js --exercise --document "$RUNNER_TEMP/manufactured-applications" --quote "$RUNNER_TEMP/research-quote-apps" --inventory "$RUNNER_TEMP/research-inventory-apps" --state-root "$RUNNER_TEMP/private-research-fleet" > "$RUNNER_TEMP/research-preview-proof.json"
-          node -e 'const fs=require("fs"),path=require("path");for(const [name,count] of [["baseline",9],["research",11]]){const p=JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP,name+"-preview-proof.json"),"utf8"));if(p.kind!=="executed-private-fleet-preview"||p.passed!==true||p.apps!==count||p.portalLoopbackOnly!==true||p.sourceDigestsVerified!==true||p.distinctLocalServiceOrigins!==true||p.watchdogRecoveriesVerified!==count||p.watchdogQuarantines!==0||p.externalContacts!==0||p.publicHostingEnabled!==false||p.releaseApproved!==false||p.externalMessagesSent!==0||p.paymentsSent!==0||p.realCustomers!==null||p.collectedRevenue!==null)throw Error("PRIVATE_FLEET_GATE_FAILED");}'
+          node -e 'const fs=require("fs"),path=require("path");for(const [name,count] of [["baseline",9],["research",17]]){const p=JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP,name+"-preview-proof.json"),"utf8"));if(p.kind!=="executed-private-fleet-preview"||p.passed!==true||p.apps!==count||p.portalLoopbackOnly!==true||p.sourceDigestsVerified!==true||p.distinctLocalServiceOrigins!==true||p.watchdogRecoveriesVerified!==count||p.watchdogQuarantines!==0||p.externalContacts!==0||p.publicHostingEnabled!==false||p.releaseApproved!==false||p.externalMessagesSent!==0||p.paymentsSent!==0||p.realCustomers!==null||p.collectedRevenue!==null)throw Error("PRIVATE_FLEET_GATE_FAILED");}'
           mkdir -m 700 "$RUNNER_TEMP/private-fleet-evidence"
           cp "$RUNNER_TEMP/baseline-preview-proof.json" "$RUNNER_TEMP/private-fleet-evidence/baseline.json"
           cp "$RUNNER_TEMP/research-preview-proof.json" "$RUNNER_TEMP/private-fleet-evidence/research.json"
           chmod 600 "$RUNNER_TEMP/private-fleet-evidence/"*.json
-      - name: Crash entire private host process and resume all 9 plus 11 accepted applications
+      - name: Crash entire private host process and resume baseline 9 plus research 17 applications
         run: |
           set -euo pipefail
           node scripts/supervise-private-fleet.js --exercise-crash --document "$RUNNER_TEMP/manufactured-applications" --quote "$RUNNER_TEMP/quote-to-order-apps" --inventory "$RUNNER_TEMP/inventory-apps" --state-root "$RUNNER_TEMP/baseline-crash-session" > "$RUNNER_TEMP/baseline-crash-proof.json"
           node scripts/supervise-private-fleet.js --exercise-crash --document "$RUNNER_TEMP/manufactured-applications" --quote "$RUNNER_TEMP/research-quote-apps" --inventory "$RUNNER_TEMP/research-inventory-apps" --state-root "$RUNNER_TEMP/research-crash-session" > "$RUNNER_TEMP/research-crash-proof.json"
-          node -e 'const fs=require("fs"),path=require("path");for(const [name,count] of [["baseline",9],["research",11]]){const p=JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP,name+"-crash-proof.json"),"utf8"));if(p.kind!=="unattended-private-host-crash-recovery"||p.apps!==count||p.killedLauncher!==true||p.newLauncherBooted!==true||p.sqliteRecordStatePreserved!==true||p.syntheticCredentialHashesPreserved!==true||p.sourcePackageIdentitiesUnchanged!==true||p.tenantApiBoundariesVerified!==true||p.privateLoopbackOnly!==true||p.externalContacts!==0||p.paymentsSent!==0||p.releaseApproved!==false||p.realCustomers!==null||p.collectedRevenue!==null)throw Error("HOST_CRASH_GATE_FAILED");}'
+          node -e 'const fs=require("fs"),path=require("path");for(const [name,count] of [["baseline",9],["research",17]]){const p=JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP,name+"-crash-proof.json"),"utf8"));if(p.kind!=="unattended-private-host-crash-recovery"||p.apps!==count||p.killedLauncher!==true||p.newLauncherBooted!==true||p.sqliteRecordStatePreserved!==true||p.syntheticCredentialHashesPreserved!==true||p.sourcePackageIdentitiesUnchanged!==true||p.tenantApiBoundariesVerified!==true||p.privateLoopbackOnly!==true||p.externalContacts!==0||p.paymentsSent!==0||p.releaseApproved!==false||p.realCustomers!==null||p.collectedRevenue!==null)throw Error("HOST_CRASH_GATE_FAILED");}'
           cp "$RUNNER_TEMP/baseline-crash-proof.json" "$RUNNER_TEMP/private-fleet-evidence/host-crash-baseline.json"
           cp "$RUNNER_TEMP/research-crash-proof.json" "$RUNNER_TEMP/private-fleet-evidence/host-crash-research.json"
           chmod 600 "$RUNNER_TEMP/private-fleet-evidence/"host-crash-*.json

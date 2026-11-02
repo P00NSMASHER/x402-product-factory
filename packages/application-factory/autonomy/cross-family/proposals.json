@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "kind": "cross-family-hypothesis-queue",
-  "observedOn": "2026-10-13",
+  "observedOn": "2026-10-14",
   "license": "background-context-not-demand-proof",
   "proposals": [
     {
@@ -289,6 +289,222 @@
           "id": "relay-boxes",
           "label": "Relay replacement boxes",
           "unit": "box"
+        }
+      ]
+    },
+    {
+      "key": "facility-water-survey",
+      "family": "quote-to-order",
+      "title": "Facility Water Walkthrough Estimate",
+      "buyer": "Commercial facility water-use assessment coordinators",
+      "problem": "Building facilities teams may need a consistent way to estimate meter mapping, plumbing walkthroughs and water-use observations before internal scope review.",
+      "trigger": "A building maintenance planner requests a structured water-use inspection estimate prior to scheduling internal work.",
+      "sourceStatus": "background_only_unverified",
+      "sources": [
+        {
+          "url": "https://www.epa.gov/watersense/tools-ci-facilities",
+          "observedOn": "2026-10-14"
+        },
+        {
+          "url": "https://www.epa.gov/watersense/getting-started",
+          "observedOn": "2026-10-14"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "water-meter-mapping-hours",
+          "label": "Water meter mapping labor",
+          "unit": "hour"
+        },
+        {
+          "id": "fixture-flow-assessments",
+          "label": "Fixture flow assessments",
+          "unit": "unit"
+        },
+        {
+          "id": "walkthrough-leak-zones",
+          "label": "Walkthrough leak zones",
+          "unit": "unit"
+        }
+      ]
+    },
+    {
+      "key": "compressed-air-leak-survey",
+      "family": "quote-to-order",
+      "title": "Compressed Air Leak Survey Estimate",
+      "buyer": "Industrial compressed-air maintenance service coordinators",
+      "problem": "Manufacturing maintenance groups may need a reviewed estimate for locating air leaks and examining pressure-loss causes before repair authorization.",
+      "trigger": "A production facility requests an internal scope estimate after observing unexpectedly high compressed-air consumption.",
+      "sourceStatus": "background_only_unverified",
+      "sources": [
+        {
+          "url": "https://www.energy.gov/cmei/femp/operations-and-maintenance-federal-facilities",
+          "observedOn": "2026-10-14"
+        },
+        {
+          "url": "https://www.energy.gov/cmei/femp/operations-and-maintenance-challenges-and-solutions",
+          "observedOn": "2026-10-14"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "acoustic-air-leak-zones",
+          "label": "Acoustic air leak survey zones",
+          "unit": "unit"
+        },
+        {
+          "id": "pressure-trend-reviews",
+          "label": "Pressure trend analysis reviews",
+          "unit": "job"
+        },
+        {
+          "id": "pneumatic-valve-workhours",
+          "label": "Pneumatic valve inspection hours",
+          "unit": "hour"
+        }
+      ]
+    },
+    {
+      "key": "building-controls-recommission-review",
+      "family": "quote-to-order",
+      "title": "Building Controls Review Estimate",
+      "buyer": "Commercial building controls maintenance planning teams",
+      "problem": "Building automation teams may require separated labor and diagnostic activities when preparing an internal estimate for equipment control loop reviews.",
+      "trigger": "A facility planner requests work estimates after control settings or sensor readings become inconsistent.",
+      "sourceStatus": "background_only_unverified",
+      "sources": [
+        {
+          "url": "https://www.energy.gov/cmei/femp/equipment-operations-and-maintenance-summaries",
+          "observedOn": "2026-10-14"
+        },
+        {
+          "url": "https://www1.eere.energy.gov/manufacturing/eguide/iso_step_3_5.html",
+          "observedOn": "2026-10-14"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "control-loop-inspection-hours",
+          "label": "Control loop inspection labor",
+          "unit": "hour"
+        },
+        {
+          "id": "sensor-calibration-visits",
+          "label": "Sensor inspection visits",
+          "unit": "visit"
+        },
+        {
+          "id": "panel-label-replacement-sets",
+          "label": "Panel label replacement sets",
+          "unit": "item"
+        }
+      ]
+    },
+    {
+      "key": "air-handler-service-parts",
+      "family": "inventory-control",
+      "title": "Air Handler Service Parts Shelf",
+      "buyer": "Building air-handling equipment maintenance supervisors",
+      "problem": "Maintenance teams may have gaps in availability of small service components when air-handling equipment work orders are scheduled.",
+      "trigger": "A work-order coordinator checks local spares before authorizing a planned air-handler service visit.",
+      "sourceStatus": "background_only_unverified",
+      "sources": [
+        {
+          "url": "https://www.energy.gov/cmei/femp/equipment-operations-and-maintenance-summaries",
+          "observedOn": "2026-10-14"
+        },
+        {
+          "url": "https://www.energy.gov/cmei/femp/operations-and-maintenance-federal-facilities",
+          "observedOn": "2026-10-14"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "damper-actuator-units",
+          "label": "Damper actuator units",
+          "unit": "unit"
+        },
+        {
+          "id": "filter-gasket-packs",
+          "label": "Filter gasket packs",
+          "unit": "pack"
+        },
+        {
+          "id": "temperature-sensor-sets",
+          "label": "Temperature sensor sets",
+          "unit": "kit"
+        }
+      ]
+    },
+    {
+      "key": "facility-leak-survey-kits",
+      "family": "inventory-control",
+      "title": "Facility Leak Inspection Supply Desk",
+      "buyer": "Commercial institutional facility water conservation teams",
+      "problem": "Facilities staff may need to track reusable observation and inspection supplies before planned water-use walkthroughs.",
+      "trigger": "A facility starts a periodic water-meter and suspected-leak inspection and checks its internal supply kit.",
+      "sourceStatus": "background_only_unverified",
+      "sources": [
+        {
+          "url": "https://www.epa.gov/watersense/tools-ci-facilities",
+          "observedOn": "2026-10-14"
+        },
+        {
+          "url": "https://www.epa.gov/watersense/leak-detection-and-flow-monitoring-devices",
+          "observedOn": "2026-10-14"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "meter-marker-label-packs",
+          "label": "Water meter marker labels",
+          "unit": "pack"
+        },
+        {
+          "id": "flow-check-cup-sets",
+          "label": "Flow check cup sets",
+          "unit": "kit"
+        },
+        {
+          "id": "leak-survey-clipboard-kits",
+          "label": "Leak survey clipboard kits",
+          "unit": "kit"
+        }
+      ]
+    },
+    {
+      "key": "machine-lubrication-supplies",
+      "family": "inventory-control",
+      "title": "Machine Lubrication Supply Review",
+      "buyer": "Industrial preventive maintenance stockroom coordinators",
+      "problem": "Plant maintenance programs may fail to align local lubrication and filter consumable stock with equipment inspection schedules.",
+      "trigger": "A weekly equipment care route begins and the maintenance planner reviews its stock of service consumables.",
+      "sourceStatus": "background_only_unverified",
+      "sources": [
+        {
+          "url": "https://www1.eere.energy.gov/manufacturing/eguide/iso_step_3_5.html",
+          "observedOn": "2026-10-14"
+        },
+        {
+          "url": "https://www.energy.gov/cmei/femp/operations-and-maintenance-challenges-and-solutions",
+          "observedOn": "2026-10-14"
+        }
+      ],
+      "inputs": [
+        {
+          "id": "bearing-grease-cartridge-cases",
+          "label": "Bearing grease cartridge cases",
+          "unit": "case"
+        },
+        {
+          "id": "lubricant-sampling-vial-packs",
+          "label": "Lubricant sampling vial packs",
+          "unit": "pack"
+        },
+        {
+          "id": "filter-indicator-tag-sets",
+          "label": "Filter indicator tag sets",
+          "unit": "kit"
         }
       ]
     }

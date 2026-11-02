@@ -11,7 +11,7 @@ test('unattended planner balances document-adjacent research across two differen
  assert.equal(a.cycle,0);assert.equal(b.cycle,1);
  assert.equal(a.selected.family,'quote-to-order');
  assert.equal(b.selected.family,'inventory-control');
- assert.equal(a.available,8);assert.equal(a.completed,0);
+ assert.equal(a.available,14);assert.equal(a.completed,0);
  assert.equal(a.buyerDemandValidated,false);
  assert.equal(a.transmittedMessages,0);assert.equal(b.paymentsSent,0);
 });

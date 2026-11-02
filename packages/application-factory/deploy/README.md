@@ -10,7 +10,7 @@ CI rehearsals are linked only to successfully manufactured packages; the artifac
 
 ## Source-backed cross-family research and failover checks
 
-The factory additionally derives four quote-to-internal-order and four inventory applications from bounded research hypotheses, verifies their actual assembled HTTP+SQLite lifecycles and creates a separate **11-application research rehearsal** (three original document apps plus eight new candidates). Existing default applications are unchanged. Both the original and research rehearsals verify an actual loopback-only same-hash canary lane switch, inject an outage, and observe recovery to a healthy private baseline. This is **not** tested cross-version database migration, remote TLS, uptime assurance, commercial validation, a public deployment or production rollback. These remain explicitly unapproved. The GitHub CI artifacts expire after seven days.
+The factory additionally derives seven quote-to-internal-order and seven inventory applications from bounded research hypotheses, verifies their actual assembled HTTP+SQLite lifecycles and creates a separate **17-application research rehearsal** (three original document apps plus fourteen unverified research candidates). Existing default applications are unchanged. Both the original and research rehearsals verify an actual loopback-only same-hash canary lane switch, inject an outage, and observe recovery to a healthy private baseline. This is **not** tested cross-version database migration, remote TLS, uptime assurance, commercial validation, a public deployment or production rollback. These remain explicitly unapproved. The GitHub CI artifacts expire after seven days.
 
 ## Distinct-version local traffic rollback
 
@@ -18,7 +18,7 @@ CI now also assembles meaningful alternative versions of the original document, 
 
 ## Run and inspect all apps from one local portal
 
-An independent private launcher starts every accepted SaaS package with isolated synthetic SQLite data, a separate localhost-only service and its own owner-private credentials. A responsive static portal links to the apps without displaying keys. CI executes both the original 9-app and researched 11-app fleets and performs native desktop/mobile portal navigation. The only retained CI reports and screenshots are sanitized; private credentials are **not uploaded**. See [FLEET_PREVIEW.md](FLEET_PREVIEW.md). This is local synthetic access, not a public deployment or security release approval.
+An independent private launcher starts every accepted SaaS package with isolated synthetic SQLite data, a separate localhost-only service and its own owner-private credentials. A responsive static portal links to the apps without displaying keys. CI executes both the original 9-app and researched 17-app fleets and performs native desktop/mobile portal navigation. The only retained CI reports and screenshots are sanitized; private credentials are **not uploaded**. See [FLEET_PREVIEW.md](FLEET_PREVIEW.md). This is local synthetic access, not a public deployment or security release approval.
 
 ## Automatic private-service recovery
 
