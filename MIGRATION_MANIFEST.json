@@ -69,14 +69,13 @@
     "020",
     "021",
     "022",
-    "023"
+    "023",
+    "024"
   ],
   "production_products": [
     "001",
     "002"
   ],
-  "design_products": [
-    "024"
-  ],
+  "design_products": [],
   "migration_source_commit": "6c93c1ca17f2ca75039f671667a72bca3b262492"
 }

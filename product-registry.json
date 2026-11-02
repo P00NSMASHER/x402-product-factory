@@ -13,10 +13,14 @@
       "id": "pa-vendor-intake-gate",
       "number": "002",
       "status": "production-reference",
+      "module_directory": "pa-vendor-gate",
       "method": "GET",
-      "path": "/api/vendor-intake-gate",
+      "path": "/_api/vendor-intake-gate",
       "price_usdc": "0.020",
-      "production_origin": "https://api-v2.appdeploy.ai/app/pa-entity-lookup-x402-4fbm4s",
+      "production_origin": "https://pa-entity-x402.floot.app",
+      "historical_production_origin": "https://api-v2.appdeploy.ai/app/pa-entity-lookup-x402-4fbm4s",
+      "live_status": "paid route and same-origin discovery verified on Floot for server-to-server x402; browser preflight compatibility is not claimed",
+      "release_gate": "scripts/validate-product-002.js",
       "decision_values": [
         "proceed",
         "human_review"
@@ -374,7 +378,7 @@
     {
       "id": "pa-vendor-distance-gate",
       "number": "024",
-      "status": "design",
+      "status": "live-source-verified-staging",
       "method": "GET",
       "path": "/api/pa-vendor-distance-gate",
       "price_usdc": "0.004",
@@ -383,7 +387,10 @@
         "outside_radius",
         "company_not_found",
         "human_review"
-      ]
+      ],
+      "release_gate": "scripts/validate-product-024.js",
+      "deployment_blocker": "AppDeploy deployment unavailable under current Free-tier limit",
+      "live_source_status": "PA Department of State + U.S. Census smoke resolved OpenAI OpCo to Openai Opco, Llc; both origin and registry addresses matched to 600 N 2ND ST, Harrisburg, PA 17101; distance 0 miles; within_radius for maxDistanceMiles 25 with zero source failures"
     }
   ]
 }

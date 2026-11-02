@@ -517,6 +517,19 @@ function createRdapAdapter({
       }
 
       const data = await response.json();
+      // RFC 9083 domain responses require objectClassName and ldhName.
+      // A 200 from the correct RDAP endpoint is not evidence about the
+      // requested domain if the returned object identifies another domain.
+      if (
+        !data ||
+        data.objectClassName !== "domain" ||
+        typeof data.ldhName !== "string" ||
+        data.ldhName.toLowerCase() !== requested
+      ) {
+        const error = new Error("rdap_domain_identity_mismatch");
+        error.code = "SOURCE_CONTRACT_INVALID";
+        throw error;
+      }
       const registrarEntity = Array.isArray(data?.entities)
         ? data.entities.find(
             (entity) =>

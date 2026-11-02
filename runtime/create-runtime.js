@@ -1,6 +1,6 @@
 "use strict";
 
-const {managedProducts,buildCatalog,buildOpenApi,buildProductIndex,buildLlmsText}=require("../packages/discovery/generator");
+const {managedProducts,normalizeBase,buildCatalog,buildOpenApi,buildProductIndex,buildLlmsText}=require("../packages/discovery/generator");
 const {createPaRegistryAdapter,createCensusAddressAdapter,createRdapAdapter}=require("../packages/sources/live-pa-identity");
 const {createSecFilingsAdapter}=require("../packages/sources/sec-filings");
 const {createTreasuryAverageRatesAdapter}=require("../packages/sources/treasury-average-rates");
@@ -89,10 +89,7 @@ function createFactoryRuntime({
   adapters,
   now=()=>new Date().toISOString()
 }={}){
-  if(typeof publicApiBase!=="string"||!/^https:\/\//.test(publicApiBase)){
-    throw new TypeError("https publicApiBase is required");
-  }
-  const base=publicApiBase.replace(/\/$/,"");
+  const base=normalizeBase(publicApiBase);
   const a=adapters||defaultAdapters({fetchImpl,secUserAgent});
   const products=managedProducts();
   const wiring=discoverRuntimeWiring(products);
