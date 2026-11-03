@@ -64,8 +64,7 @@ function restoreCrossCheckpoint({sourceRoot,outputRoot,maxSlots=24}={}){
     if(!srcStat.isDirectory()||srcStat.isSymbolicLink())fail('CROSS_CHECKPOINT_INVALID');
     const dstArtifact=path.join(destPackage,row.key+'-'+row.packageDigest);
     fs.cpSync(srcArtifact,dstArtifact,{recursive:true,dereference:false,errorOnExist:true,force:false});
-    const proofName=row.family==='quote-to-order'?row.key+'.json':
-      row.key+'-'+row.packageDigest+'.json';
+    const proofName=row.key+'-'+row.packageDigest+'.json';
     const proofDir=privateDir(path.join(destPackage,'verification'));
     fs.copyFileSync(path.join(fromPackage,'verification',proofName),
       path.join(proofDir,proofName),fs.constants.COPYFILE_EXCL);

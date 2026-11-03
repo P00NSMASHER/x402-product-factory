@@ -2,9 +2,9 @@
 
 Offline QA only. All 40 gold labels were authored as **synthetic test expectations**; no independently labeled real-world evidence or actual buyer validation exists.
 
-- Baseline synthetic oracle matches: **22/40**.
+- Baseline synthetic oracle matches: **25/40**.
 - Offline hardened candidate synthetic oracle matches: **40/40**.
-- Baseline synthetic incorrect `proceed`: **18**.
+- Baseline synthetic incorrect `proceed`: **15**.
 - Hardened candidate synthetic incorrect `proceed`: **0**.
 - Release: **HOLD_OFFLINE_CANDIDATE_REQUIRES_INDEPENDENT_REVIEW**; no production change.
 
@@ -43,13 +43,13 @@ Offline QA only. All 40 gold labels were authored as **synthetic test expectatio
 | domain_registration_unknown | human_review | human_review | human_review |
 | domain_name_mismatch | human_review | human_review | human_review |
 | domain_date_missing | human_review | human_review | human_review |
-| domain_invalid_calendar | human_review | proceed | human_review |
-| domain_malformed_timestamp | human_review | proceed | human_review |
+| domain_invalid_calendar | human_review | human_review | human_review |
+| domain_malformed_timestamp | human_review | human_review | human_review |
 | domain_future_registration | human_review | human_review | human_review |
 | domain_threshold_equal | proceed | proceed | proceed |
 | domain_threshold_just_below | human_review | human_review | human_review |
 | dual_ofac_and_recent_domain | human_review | human_review | human_review |
-| dual_ofac_bad_count_and_bad_date | human_review | proceed | human_review |
+| dual_ofac_bad_count_and_bad_date | human_review | human_review | human_review |
 
 ## Decision-design findings
 

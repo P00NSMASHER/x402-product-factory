@@ -45,7 +45,18 @@ jobs:
           TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
         run: |
           set -euo pipefail
-          previous="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow factory-autonomy-ci.yml --branch "$TARGET_BRANCH" --limit 20 --json databaseId,conclusion --jq '[.[] | select(.conclusion=="success")][0].databaseId // empty')"
+          # A successful run does not prove a seven-day artifact still exists.
+          # Select newest exact-name, unexpired artifact; API errors fail closed.
+          successes="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow factory-autonomy-ci.yml --branch "$TARGET_BRANCH" --limit 20 --json databaseId,conclusion --jq '.[] | select(.conclusion=="success") | .databaseId')"
+          previous=""
+          while IFS= read -r run_id; do
+            [ -n "$run_id" ] || continue
+            artifact_names="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts?per_page=100" --jq '.artifacts[] | select(.expired==false) | .name')"
+            if grep -Fxq "autonomous-apps-$run_id" <<< "$artifact_names"; then
+              previous="$run_id"
+              break
+            fi
+          done <<< "$successes"
           if [ -n "$previous" ]; then
             source="$RUNNER_TEMP/previous-autonomy"
             mkdir -p "$source"
@@ -54,8 +65,13 @@ jobs:
             find "$source" -type f -exec chmod 600 {} +
             node scripts/restore-autonomous-checkpoint.js --source "$source" --output "$RUNNER_TEMP/autonomous-apps" --max-cycles 32
             node scripts/restore-cross-family-checkpoint.js --source "$source" --output "$RUNNER_TEMP/autonomous-apps" --max-slots 24
+            echo "PRIVATE_CHECKPOINT_RECOVERY=RESTORED_EXACT_ARTIFACT" >> "$GITHUB_ENV"
+          elif [ -n "$successes" ]; then
+            echo "::warning title=Historical checkpoint unavailable::All recent successful runs lack an unexpired exact-name artifact. Beginning a new private synthetic CI state; older work was NOT restored."
+            echo "PRIVATE_CHECKPOINT_RECOVERY=HISTORICAL_UNVERIFIED" >> "$GITHUB_ENV"
           else
-            echo "No earlier successful same-branch artifact. Starting from clean private state."
+            echo "No prior successful same-branch run. Beginning a new private synthetic state."
+            echo "PRIVATE_CHECKPOINT_RECOVERY=FIRST_RUN" >> "$GITHUB_ENV"
           fi
       - name: Manufacture one independent synthetic edition per cycle
         run: |

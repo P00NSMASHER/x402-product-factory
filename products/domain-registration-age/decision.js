@@ -2,10 +2,21 @@
 
 function dateOnlyMs(value){
   if(typeof value!=="string")return null;
-  const date=value.slice(0,10);
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return null;
-  const ms=Date.parse(date+"T00:00:00Z");
-  return Number.isFinite(ms)?ms:null;
+  // RDAP eventDate is an RFC 3339 instant. Comparing its first ten
+  // characters incorrectly assigns offset timestamps to the local day.
+  const timestamp=/^(\d{4}-\d{2}-\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/.exec(value);
+  const date=/^\d{4}-\d{2}-\d{2}$/.test(value)?value:timestamp?.[1];
+  if(!date)return null;
+  const midnight=Date.parse(date+"T00:00:00Z");
+  if(!Number.isFinite(midnight)||new Date(midnight).toISOString().slice(0,10)!==date)return null;
+  if(!timestamp)return midnight;
+  if(Number(timestamp[2])>23||Number(timestamp[3])>59||Number(timestamp[4])>59)return null;
+  const zone=timestamp[5];
+  if(zone!=="Z"&&zone!=="z"&&(Number(zone.slice(1,3))>23||Number(zone.slice(4,6))>59))return null;
+  // Canonicalize permitted lower-case delimiters for consistent runtimes.
+  const instant=Date.parse(value.replace("t","T").replace(/z$/,"Z"));
+  if(!Number.isFinite(instant))return null;
+  return Date.parse(new Date(instant).toISOString().slice(0,10)+"T00:00:00Z");
 }
 
 function utcDayStartMs(value){
@@ -36,6 +47,11 @@ function assessDomainAge(evidence,{minAgeDays=90,now=new Date().toISOString()}={
   const registrationMs=dateOnlyMs(registrationDate);
   if(registrationMs==null){
     return {decision:"human_review",reasonCodes:["REGISTRATION_DATE_UNAVAILABLE"],registrationDate:null,ageDays:null,minAgeDays,cutoffDate,checkedAt};
+  }
+
+  // A future registration cannot establish historical domain age.
+  if(registrationMs>today){
+    return {decision:"human_review",reasonCodes:["REGISTRATION_DATE_IN_FUTURE"],registrationDate:null,ageDays:null,minAgeDays,cutoffDate,checkedAt};
   }
 
   const ageDays=Math.floor((today-registrationMs)/86400000);

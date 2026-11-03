@@ -9,3 +9,24 @@ test("Product 012 terms are $0.002 / 2000 atomic",()=>{const d=productPaymentDoc
 test("unpaid returns 402 before RDAP work",async()=>{let c=0;const h=createPaidDomainLastChangedHandler({publicApiBase:"https://example.test",service:{async check(){c++;}},fetchImpl:async()=>response({})});const r=await h({query:query(),event:{headers:{}}});assert.equal(r.statusCode,402);assert.equal(c,0);});
 test("valid payment verifies then settles after result",async()=>{const urls=[];const h=createPaidDomainLastChangedHandler({publicApiBase:"https://example.test",service:{async check(){return{decision:"stable_since_window",sourceFailures:[],chargeable:true};}},fetchImpl:async url=>{urls.push(url);return url.endsWith("/verify")?response({isValid:true}):response({success:true,transaction:"0x012"});}});const r=await h({query:query(),event:{headers:{"payment-signature":sig()}}});assert.equal(r.statusCode,200);assert.deepEqual(urls.map(x=>x.split("/").pop()),["verify","settle"]);});
 test("RDAP source failure does not settle",async()=>{const urls=[];const h=createPaidDomainLastChangedHandler({publicApiBase:"https://example.test",service:{async check(){return{decision:"human_review",sourceFailures:[{source:"rdap",detail:"SOURCE_HTTP_ERROR"}],chargeable:false};}},fetchImpl:async url=>{urls.push(url);return response({isValid:true});}});const r=await h({query:query(),event:{headers:{"payment-signature":sig()}}});assert.equal(r.statusCode,502);assert.equal(urls.length,1);});
+
+test("Product 012 does not deliver paid data on HTTP 503 success-shaped settlement",async()=>{
+ let calls=0,sourceChecks=0;
+ const h=createPaidDomainLastChangedHandler({
+  publicApiBase:"https://example.test",
+  service:{async check(){sourceChecks++;return{decision:"stable_since_window",sourceFailures:[],chargeable:true};}},
+  fetchImpl:async url=>{
+   calls++;
+   return url.endsWith("/verify")
+    ?response({isValid:true},200)
+    :response({success:true,transaction:"NOT_SETTLED"},503);
+  }
+ });
+ const r=await h({query:query(),event:{headers:{"payment-signature":sig()}}});
+ assert.equal(r.statusCode,503);
+ assert.equal(JSON.parse(r.body).paymentState,"unresolved");
+ assert.equal(r.headers["x402-settled"],undefined);
+ assert.equal(JSON.parse(r.body).paid,undefined);
+ assert.equal(sourceChecks,1);
+ assert.equal(calls,4); // one verification, three bounded settlement attempts
+});

@@ -1,0 +1,37 @@
+name: SEC identity HTTP header preflight
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'runtime/deployment-preflight.js'
+      - 'runtime/deployment-preflight.test.js'
+      - '.github/workflows/hunter-sec-header-preflight-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'runtime/deployment-preflight.js'
+      - 'runtime/deployment-preflight.test.js'
+      - '.github/workflows/hunter-sec-header-preflight-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sec-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Run adversarial SEC header compatibility tests
+        run: node --test runtime/deployment-preflight.test.js
+      - name: Run all factory unit tests
+        run: node scripts/run-all-tests.js
+      - name: Verify real deployment preflight with non-secret test identity
+        env:
+          SEC_USER_AGENT: x402-product-factory-ci/1.0 ci@example.com
+          PUBLIC_API_BASE: https://candidate.example
+        run: node runtime/validate-deploy-candidate.js

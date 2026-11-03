@@ -1,0 +1,44 @@
+name: Factory economics verification
+
+on:
+  pull_request:
+    paths:
+      - 'economics/**'
+      - 'docs/ECONOMICS_*.md'
+      - 'docs/SUPABASE_USAGE_EVIDENCE_*.md'
+      - 'product-registry.json'
+      - 'production-topology.json'
+      - 'README.md'
+      - '.github/workflows/factory-economics-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'economics/**'
+      - 'docs/ECONOMICS_*.md'
+      - 'docs/SUPABASE_USAGE_EVIDENCE_*.md'
+      - 'product-registry.json'
+      - 'production-topology.json'
+      - 'README.md'
+      - '.github/workflows/factory-economics-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verified-economics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.23.4'
+      - name: Verify historical five-product economics and live-rate screening
+        run: |
+          node --test economics/phase1-five-product-costs.test.js economics/live-fee-economics.test.js economics/supabase-usage-readiness.test.js economics/hosting-cost-evidence.test.js
+      - name: Reproduce saved snapshot fee-only economics without network calls
+        run: node economics/live-fee-economics.js --check

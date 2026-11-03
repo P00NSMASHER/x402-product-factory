@@ -29,7 +29,7 @@ const definitions={
   rows:r=>r.results,verify:verifyApplication,receiptName:row=>row.artifact+'.json',
   receipt:(p,id,digest)=>validReceipt(p,id,digest)},
  quote:{kind:'quote-family-manufacturing',verification:'executed-packaged-quote-lifecycle',
-  rows:r=>r.apps,verify:verifyQuoteApp,receiptName:row=>row.id+'.json',
+  rows:r=>r.apps,verify:verifyQuoteApp,receiptName:row=>row.id+'-'+row.digest+'.json',
   receipt:(p,id,digest)=>validAcceptance(p,id,digest)},
  inventory:{kind:'inventory-family-manufacturing',verification:'executed-packaged-inventory-lifecycle',
   rows:r=>r.results,verify:verifyInventoryPackage,receiptName:row=>row.artifact+'.json',

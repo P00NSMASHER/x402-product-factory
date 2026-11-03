@@ -74,7 +74,7 @@ function verifySlot(output,receipt,entries){
  try{
   if(entry.family==='quote-to-order'){
    verified=quote.verifyQuoteApp(pkg,receipt.packageDigest);
-   evidence=readPrivate(path.join(root,'verification',entry.key+'.json'));
+   evidence=readPrivate(path.join(root,'verification',entry.key+'-'+receipt.packageDigest+'.json'));
    if(!quote.validAcceptance(evidence,entry.key,receipt.packageDigest))fail('CROSS_EVIDENCE_INVALID');
    if(report.kind!=='quote-family-manufacturing'||report.accepted!==1||report.failed!==0||
       report.verification!==receipt.verification||!Array.isArray(report.apps)||

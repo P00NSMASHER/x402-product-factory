@@ -1,0 +1,32 @@
+# Local credentials and developer-specific configuration (never commit).
+.env
+.env.*
+!.env.example
+*.local.env
+*.local.json
+
+# Installed dependencies, caches, and test artifacts.
+node_modules/
+.npm/
+.pnpm-store/
+.cache/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+__pycache__/
+.pytest_cache/
+.venv/
+
+# Local build bundles, temporary files, and logs.
+# generated/product-modules.js is version-controlled on purpose; do not ignore generated/.
+dist/
+build/
+tmp/
+temp/
+*.log
+*.tmp
+*.swp
+
+# Operating-system and editor debris.
+.DS_Store
+Thumbs.db

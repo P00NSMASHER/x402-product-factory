@@ -8,6 +8,9 @@ const MANIFEST=path.join(__dirname,"release-chain.json");
 const REPOSITORY="P00NSMASHER/x402-product-factory";
 const IDS=Object.freeze([2,5,6,7,8,9,11,13,14,16,17,19,20,21]);
 const CI="Factory product CI";
+const CANDIDATE_PR=59;
+const CANDIDATE_REF="factory/main-synchronized-private-app-candidate-20261015";
+const CANDIDATE_BASE_REF="factory/production-integration-preflight-20261015";
 const PUBLIC="Factory 018 public source compatibility";
 const CI_PATH=Object.freeze({
   [CI]:".github/workflows/factory-pa-vendor-gate-ci.yml",
@@ -90,6 +93,21 @@ function latestExactHeadRun(runs,node,name){
   matching.sort((a,b)=>b.id-a.id);
   return matching[0]||null;
 }
+// A historical draft can conflict with today's main even after its exact commit
+// became an ancestor of this isolated candidate. This exception requires a
+// fresh GitHub readback of PR #59 plus an exact-head, ancestry-checked compare.
+// It never authorizes the old PR to merge or the candidate to release.
+function historicalRootAlreadyIntegrated(doc,snapshot){
+  const proof=snapshot?.root_candidate_proof;
+  return proof?.number===CANDIDATE_PR&&
+    proof.head_ref===CANDIDATE_REF&&proof.base_ref===CANDIDATE_BASE_REF&&
+    proof.state==="open"&&proof.draft===true&&proof.merged===false&&
+    /^[a-f0-9]{40}$/.test(proof.head_sha||"")&&
+    proof.head_sha===proof.action_head_sha&&
+    proof.ancestor_sha===doc.chain[0].pinned_head_sha&&
+    proof.compare?.status==="ahead"&&proof.compare.behind_by===0&&
+    Number.isSafeInteger(proof.compare.ahead_by)&&proof.compare.ahead_by>=1;
+}
 function evaluate(doc,snapshot,{observedAt="2026-10-12T17:00:00.000Z"}={}){
   validateManifest(doc);
   if(!snapshot||typeof snapshot!=="object"||!snapshot.pulls||
@@ -98,7 +116,8 @@ function evaluate(doc,snapshot,{observedAt="2026-10-12T17:00:00.000Z"}={}){
      !Number.isFinite(Date.parse(observedAt))){
     fail("missing or untrusted read-only audit inputs");
   }
-  const findings=[],prs=[],checks=[];
+  const findings=[],prs=[],checks=[],warnings=[];
+  const integratedRoot=historicalRootAlreadyIntegrated(doc,snapshot);
   for(let i=0;i<doc.chain.length;i++){
     const node=doc.chain[i];
     const pr=snapshot.pulls[String(node.number)];
@@ -127,8 +146,14 @@ function evaluate(doc,snapshot,{observedAt="2026-10-12T17:00:00.000Z"}={}){
         pr.merged!==true&&pr.merged_at==null;
       if(!status.draft_unmerged)findings.push(finding("PR_STATE_CHANGED",node.number));
       if(pr.mergeable===false){
-        status.mergeability="CONFLICT_REPORTED";
-        findings.push(finding("MERGE_CONFLICT_REVIEW",node.number));
+        if(i===0&&integratedRoot&&status.head_pin_matches&&
+           status.base_ref_matches&&status.draft_unmerged){
+          status.mergeability="HISTORICAL_CONFLICT_EXACT_ANCESTRY_VERIFIED";
+          warnings.push(finding("ROOT_DRAFT_CONFLICTS_WITH_NEWER_MAIN_BUT_IS_IN_CANDIDATE",node.number));
+        }else{
+          status.mergeability="CONFLICT_REPORTED";
+          findings.push(finding("MERGE_CONFLICT_REVIEW",node.number));
+        }
       }else if(pr.mergeable===true){
         status.mergeability="MERGEABLE_AS_REPORTED";
       }else{
@@ -183,6 +208,8 @@ function evaluate(doc,snapshot,{observedAt="2026-10-12T17:00:00.000Z"}={}){
     ),
     stack_integrity_verified:findings.length===0,
     findings,
+    historical_warnings:warnings,
+    historical_root_included_exactly:integratedRoot,
     pull_requests:prs,
     exact_head_workflow_checks:checks,
     all_external_commercial_release_evidence_still_unverified:true,
@@ -226,6 +253,13 @@ function markdown(report){
       (row.ancestry_verified===null?"root":row.ancestry_verified?"ahead":"DRIFT")+" | "+
       row.mergeability+" |");
   }
+  if(report.historical_warnings?.length){
+    lines.push("","## Historical conflict with verified source ancestry","",
+      "An older root draft cannot merge directly to newer main. Its pinned",
+      "commit is an exact ancestor of the current PRIVATE PR #59 head, verified",
+      "by the original GitHub compare API. This is not authorization to release",
+      "or merge that historical PR.","");
+  }
   if(report.findings.length){
     lines.push("","## Hold reasons","");
     for(const f of report.findings){
@@ -243,7 +277,7 @@ async function fetchGithubJson(apiPath,{fetchImpl=fetch,token}={}){
   if(typeof token!=="string"||token.length<15){
     fail("GitHub read-only audit token unavailable");
   }
-  if(!/^\/repos\/P00NSMASHER\/x402-product-factory\/(pulls\/\d+|actions\/runs\?head_sha=[a-f0-9]{40}&per_page=50|compare\/[a-f0-9]{40}\.\.\.[a-f0-9]{40})$/.test(apiPath)){
+  if(!/^\/repos\/P00NSMASHER\/x402-product-factory\/(pulls\/\d+|actions\/runs\?head_sha=[a-f0-9]{40}&per_page=50|compare\/[a-f0-9]{40}\.\.\.[a-f0-9]{40}(?:\?per_page=1&page=2)?)$/.test(apiPath)){
     fail("unapproved GitHub API read path");
   }
   const url="https://api.github.com"+apiPath;
@@ -271,7 +305,7 @@ async function fetchGithubJson(apiPath,{fetchImpl=fetch,token}={}){
   }catch{fail("invalid GitHub metadata response");}
   return data;
 }
-async function collectLive(doc,{fetchImpl=fetch,token}={}){
+async function collectLive(doc,{fetchImpl=fetch,token,candidateHeadSha}={}){
   validateManifest(doc);
   const base="/repos/"+REPOSITORY;
   const pulls={},runs={},comparisons={};
@@ -306,13 +340,34 @@ async function collectLive(doc,{fetchImpl=fetch,token}={}){
       };
     });
   }
-  return {pulls,runs,comparisons};
+  let root_candidate_proof=null;
+  // The event provides the exact SHA being built; never infer it from a stale
+  // PR label or the GitHub Actions synthetic merge ref.
+  if(/^[a-f0-9]{40}$/.test(candidateHeadSha||"")){
+    const candidate=await fetchGithubJson(base+"/pulls/"+CANDIDATE_PR,{fetchImpl,token});
+    let ancestry=null;
+    if(candidate?.head?.sha===candidateHeadSha){
+      ancestry=await fetchGithubJson(base+"/compare/"+
+        doc.chain[0].pinned_head_sha+"..."+candidateHeadSha+"?per_page=1&page=2",{fetchImpl,token});
+    }
+    root_candidate_proof={
+      number:candidate.number,head_ref:candidate.head?.ref,
+      head_sha:candidate.head?.sha,base_ref:candidate.base?.ref,
+      state:candidate.state,draft:candidate.draft,merged:candidate.merged,
+      action_head_sha:candidateHeadSha,
+      ancestor_sha:doc.chain[0].pinned_head_sha,
+      compare:ancestry?{status:ancestry.status,
+        ahead_by:ancestry.ahead_by,behind_by:ancestry.behind_by}:null
+    };
+  }
+  return {pulls,runs,comparisons,root_candidate_proof};
 }
 async function auditLive(doc,{
   fetchImpl=fetch,token=process.env.GITHUB_TOKEN,
+  candidateHeadSha=process.env.CANDIDATE_HEAD_SHA,
   observedAt=new Date().toISOString()
 }={}){
-  const snapshot=await collectLive(doc,{fetchImpl,token});
+  const snapshot=await collectLive(doc,{fetchImpl,token,candidateHeadSha});
   return evaluate(doc,snapshot,{observedAt});
 }
 if(require.main===module){
@@ -332,6 +387,8 @@ if(require.main===module){
       checked_prs:report.upstream_draft_pr_count,
       checked_workflows:report.upstream_workflow_requirements_checked,
       findings:report.findings,
+      historical_warnings:report.historical_warnings,
+      historical_root_included_exactly:report.historical_root_included_exactly,
       release_status:report.release_status,
       production_release_authorized:false,
       product_025_unlocked:false
@@ -349,6 +406,6 @@ if(require.main===module){
 }
 module.exports={
   IDS,CI,PUBLIC,CI_PATH,EVIDENCE_KEYS,NODE_KEYS,
-  validateManifest,latestExactHeadRun,evaluate,markdown,
+  validateManifest,latestExactHeadRun,historicalRootAlreadyIntegrated,evaluate,markdown,
   fetchGithubJson,collectLive,auditLive
 };

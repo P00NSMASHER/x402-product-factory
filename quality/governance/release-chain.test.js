@@ -40,6 +40,99 @@ test("all fourteen integrated-chain PRs have pinned ancestry and exact-head work
   assert.equal(result.human_production_approval,null);
   assert.match(chain.markdown(result),/Production authorization: NONE/);
 });
+function verifiedHistoricalRootProof(){
+  const expected=doc.chain[0].pinned_head_sha;
+  return {
+    number:59,head_ref:"factory/main-synchronized-private-app-candidate-20261015",
+    base_ref:"factory/production-integration-preflight-20261015",head_sha:"f".repeat(40),action_head_sha:"f".repeat(40),
+    state:"open",draft:true,merged:false,ancestor_sha:expected,
+    compare:{status:"ahead",ahead_by:330,behind_by:0}
+  };
+}
+test("historical root conflict is contextual ONLY with exact private ancestry",()=>{
+  const s=snapshot();
+  s.pulls[2].mergeable=false;
+  s.root_candidate_proof=verifiedHistoricalRootProof();
+  const report=chain.evaluate(doc,s);
+  assert.equal(report.stack_integrity_verified,true);
+  assert.equal(report.historical_root_included_exactly,true);
+  assert.equal(report.historical_warnings.length,1);
+  assert.equal(report.historical_warnings[0].pr_number,2);
+  assert.equal(report.findings.length,0);
+  assert.equal(report.pull_requests[0].mergeability,
+    "HISTORICAL_CONFLICT_EXACT_ANCESTRY_VERIFIED");
+  assert.equal(report.production_release_authorized,false);
+  assert.equal(report.product_025_unlocked,false);
+  assert.match(chain.markdown(report),/not authorization to release/);
+});
+test("root conflict stays blocked without exact authenticated ancestry",()=>{
+  const change=[
+    p=>{p.head_sha="e".repeat(40);},
+    p=>{p.action_head_sha="e".repeat(40);},
+    p=>{p.ancestor_sha="0".repeat(40);},
+    p=>{p.compare.behind_by=1;},
+    p=>{p.compare.status="diverged";},
+    p=>{p.compare.ahead_by=0;},
+    p=>{p.state="closed";},
+    p=>{p.draft=false;},
+    p=>{p.merged=true;},
+    p=>{p.base_ref="other";},
+    p=>{p.head_ref="other";},
+    p=>{p.number=58;}
+  ];
+  for(const corrupt of change){
+    const s=snapshot();s.pulls[2].mergeable=false;
+    s.root_candidate_proof=verifiedHistoricalRootProof();corrupt(s.root_candidate_proof);
+    const report=chain.evaluate(doc,s);
+    assert.equal(report.stack_integrity_verified,false);
+    assert.ok(report.findings.some(f=>f.code==="MERGE_CONFLICT_REVIEW"&&f.pr_number===2));
+    assert.equal(report.production_release_authorized,false);
+  }
+  const wrongPR=snapshot();wrongPR.pulls[2].mergeable=false;
+  wrongPR.root_candidate_proof=verifiedHistoricalRootProof();
+  wrongPR.pulls[2].head.sha="f".repeat(40);
+  assert.ok(chain.evaluate(doc,wrongPR).findings.some(f=>f.code==="HEAD_PIN_DRIFT"));
+  const other=snapshot();other.pulls[14].mergeable=false;
+  other.root_candidate_proof=verifiedHistoricalRootProof();
+  assert.ok(chain.evaluate(doc,other).findings.some(f=>f.code==="MERGE_CONFLICT_REVIEW"&&f.pr_number===14));
+});
+test("live readback binds root ancestry to GitHub PR59 and action SHA",async()=>{
+  const s=snapshot();s.pulls[2].mergeable=false;
+  const proof=verifiedHistoricalRootProof(),requests=[];
+  const fake=async(url,opts)=>{
+    assert.equal(opts.method,"GET");requests.push(url);
+    const u=new URL(url),path=u.pathname+u.search;
+    let data;
+    const n=/\/pulls\/(\d+)$/.exec(u.pathname);
+    if(n){
+      data=Number(n[1])===59?
+        {number:59,head:{ref:proof.head_ref,sha:proof.head_sha},
+          base:{ref:"factory/production-integration-preflight-20261015"},state:"open",draft:true,merged:false}:
+        s.pulls[n[1]];
+    }else if(u.pathname.includes("/actions/runs")){
+      const node=doc.chain.find(x=>x.pinned_head_sha===u.searchParams.get("head_sha"));
+      data={workflow_runs:s.runs[node.number]};
+    }else if(u.pathname.includes("/compare/")){
+      const tail=u.pathname.split("/compare/")[1]+u.search;
+      if(tail===doc.chain[0].pinned_head_sha+"..."+proof.head_sha+"?per_page=1&page=2"){
+        data=proof.compare;
+      }else{
+        const node=doc.chain.find(x=>tail.endsWith("..."+x.pinned_head_sha));
+        data=s.comparisons[node.number];
+      }
+    }else throw Error("Unexpected read-only GitHub endpoint");
+    return {ok:true,headers:{get(){return null}},async text(){return JSON.stringify(data)}};
+  };
+  const result=await chain.auditLive(doc,{
+    fetchImpl:fake,token:"TEST_MOCK_GITHUB_TOKEN_DO_NOT_LOG",
+    candidateHeadSha:proof.head_sha,observedAt:"2026-11-02T13:00:00Z"
+  });
+  assert.equal(result.stack_integrity_verified,true);
+  assert.equal(result.historical_warnings.length,1);
+  assert.equal(requests.length,43,"41 existing source checks plus candidate PR and ancestry");
+  assert.ok(requests.some(x=>x.endsWith("/pulls/59")));
+  assert.equal(result.production_release_authorized,false);
+});
 test("upstream PR drift, bad mergeability or changed state blocks release",()=>{
   const changes=[
     [s=>{s.pulls[2].merged=true;}, "PR_STATE_CHANGED"],
@@ -185,6 +278,29 @@ test("mocked GitHub API audit captures parent comparisons and exact-source CI",a
 });
 
 
+test("private ancestry compare uses bounded GitHub page without relaxing size checks",async()=>{
+  const root=doc.chain[0].pinned_head_sha,candidate="f".repeat(40);
+  const url="/repos/P00NSMASHER/x402-product-factory/compare/"+root+"..."+candidate+"?per_page=1&page=2";
+  const result=await chain.fetchGithubJson(url,{
+    token:"TEST_MOCK_GITHUB_TOKEN_DO_NOT_LOG",
+    fetchImpl:async(actual,options)=>{
+      assert.equal(actual,"https://api.github.com"+url);
+      assert.equal(options.method,"GET");
+      return {ok:true,headers:{get(name){return name==="content-length"?"11000":null;}},
+        async text(){return JSON.stringify({status:"ahead",behind_by:0,ahead_by:292});}};
+    }
+  });
+  assert.equal(result.ahead_by,292);
+  for(const wrong of [
+    "/repos/P00NSMASHER/x402-product-factory/compare/"+root+"..."+candidate+"?per_page=100&page=1",
+    "/repos/P00NSMASHER/x402-product-factory/compare/"+root+"..."+candidate+"?per_page=1&page=1"
+  ]){
+    await assert.rejects(chain.fetchGithubJson(wrong,{
+      token:"TEST_MOCK_GITHUB_TOKEN_DO_NOT_LOG",
+      fetchImpl:async()=>{throw Error("unexpected outbound GET");}
+    }),/RELEASE_CHAIN_GATE/);
+  }
+});
 test("latest five source and cache safety PRs cannot lose exact-head green checks",()=>{
   for(const id of [16,17,19,20,21]){
     const broken=snapshot();

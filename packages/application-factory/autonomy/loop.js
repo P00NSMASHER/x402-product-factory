@@ -1,6 +1,7 @@
 'use strict';
 // Bounded unattended local candidate manufacturing. No charge, publish, contact or model API use.
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+const {immutablePrivateJson}=require('../manufacturing/shared-contracts');
 const {buildCandidateCatalog}=require('./catalog');
 const {loadIdeaBacklog}=require('./ideas');
 const {loadScoutedLeads}=require('./scout');
@@ -45,7 +46,14 @@ function safeOutput(root){
  return resolved;
 }
 function validReceipt(value,plan){
- return value&&value.schemaVersion===1&&value.cycle===plan.cycle&&value.batchSize===plan.batchSize&&
+ const scheduledFor=new Date(EPOCH+plan.cycle*INTERVAL).toISOString();
+ const legacy=value?.scheduledFor===undefined&&value?.executedAt===undefined&&
+   value?.recoveredLate===undefined&&value?.executionKind===undefined;
+ const timed=canonicalDate(value?.scheduledFor)&&canonicalDate(value?.executedAt)&&
+   value.scheduledFor===scheduledFor&&value.executionKind==='initial-execution'&&
+   value.recoveredLate===(Date.parse(value.executedAt)>=Date.parse(scheduledFor)+INTERVAL);
+ return value&&value.schemaVersion===1&&value.kind==='autonomous-factory-cycle'&&
+   value.cycle===plan.cycle&&value.batchSize===plan.batchSize&&(legacy||timed)&&
    Array.isArray(value.identities)&&value.identities.length===plan.recipes.length&&
    value.identities.every((x,i)=>x&&x.id===plan.recipes[i].id&&/^[0-9a-f]{64}$/.test(x.digest))&&
    typeof value.digest==='string'&&/^[0-9a-f]{64}$/.test(value.digest)&&
@@ -59,13 +67,9 @@ function savedReceipt(filename,plan){
  return row;
 }
 function persistReceipt(filename,data){
- const payload={...data},tmp=filename+'.'+crypto.randomBytes(8).toString('hex')+'.tmp';
+ const payload={...data};
  payload.digest=hash(JSON.stringify({...payload,digest:undefined}));
- try{
-  const fd=fs.openSync(tmp,'wx',0o600);
-  try{fs.writeFileSync(fd,JSON.stringify(payload,null,2)+'\n');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
-  fs.renameSync(tmp,filename);
- }finally{if(fs.existsSync(tmp))fs.unlinkSync(tmp);}
+ immutablePrivateJson(filename,payload,{code:'CYCLE_RECEIPT_IMMUTABLE'});
 }
 function runCycle({at=new Date().toISOString(),batchSize=1,outputRoot,accept,blueprintDirectory}={}){
  const plan=planCycle({at,batchSize,blueprintDirectory}),output=safeOutput(outputRoot);
@@ -87,15 +91,20 @@ function runCycle({at=new Date().toISOString(),batchSize=1,outputRoot,accept,blu
        recipes:plan.recipes,outputRoot:output,maxAttempts:2,retryFailed:false},
        ...(accept?{accept}:{} )
      });
+  const executedAt=new Date().toISOString(),scheduledFor=new Date(EPOCH+plan.cycle*INTERVAL).toISOString();
   const report={schemaVersion:1,kind:'autonomous-factory-cycle',cycle:plan.cycle,
     scheduleHours:6,batchSize,planned:plan.recipes.length,ideaDigest:plan.ideaDigest,
+    scheduledFor,executedAt,
+    recoveredLate:Date.parse(executedAt)>=Date.parse(scheduledFor)+INTERVAL,
+    executionKind:prior?'independent-recheck':'initial-execution',
+    ...(prior?{originalReceiptDigest:prior.digest}:{}),
     accepted:result.accepted,failed:result.failed,reused:result.reused,
     exhausted:plan.exhausted,nextAction:result.failed?'inspect_quarantined_candidate':plan.nextAction,
     identities,artifacts:result.results,verification:result.verification,
     marketValidated:false,sourceEvidence:'curated_workflow_hypotheses_not_buyer_verified',
     mode:'synthetic-candidate-only',transmittedMessages:0,paymentsSent:0,
     realCustomers:null,collectedRevenue:null,releaseApproved:false};
-  persistReceipt(receipt,report);
+  if(!prior)persistReceipt(receipt,report);
   return report;
  }finally{fs.closeSync(handle);fs.unlinkSync(lock);}
 }

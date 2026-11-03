@@ -20,6 +20,36 @@ function expectedManaged(){
   return registry.products.filter(product=>/staging$/.test(product.status));
 }
 
+test("buyer-facing discovery URLs reject credentials, query, fragment and malformed HTTPS",()=>{
+  const bad=[
+    null,"","http://candidate.example","https://",
+    "https://trusted.example@evil.example",
+    "https://@evil.example",
+    "https://candidate.example?checkout=paid",
+    "https://candidate.example#paid",
+    "https://candidate.example/\napi",
+    "https://candidate.example\\@evil.example",
+    "https://candidate.example:broken"
+  ];
+  for(const base of bad){
+    for(const compile of [buildCatalog,buildOpenApi,buildProductIndex,buildLlmsText]){
+      assert.throws(()=>compile(base),TypeError,String(base));
+    }
+  }
+});
+
+test("valid HTTPS reverse-proxy prefixes normalize trailing slashes across surfaces",()=>{
+  const base="https://candidate.example/factory///";
+  const normalized="https://candidate.example/factory";
+  assert.equal(buildProductIndex(base).base_url,normalized);
+  assert.equal(buildOpenApi(base).servers[0].url,normalized);
+  assert.match(buildLlmsText(base),/^Base URL: https:\/\/candidate\.example\/factory$/m);
+  for(const resource of buildCatalog(base).resources){
+    assert.ok(resource.resource.startsWith(normalized+"/api/"),resource.resource);
+    assert.equal(new URL(resource.resource).hostname,"candidate.example");
+  }
+});
+
 test("compiler includes every staging product exactly once",()=>{
   const products=managedProducts();
   const expected=expectedManaged();

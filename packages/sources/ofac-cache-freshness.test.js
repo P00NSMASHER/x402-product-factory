@@ -34,9 +34,9 @@ function adapter(source,clock,ttl=1000){
 test("one-hour default, six-hour maximum and bounded cache configuration",()=>{
   assert.equal(DEFAULT_OFAC_CACHE_TTL_MS,3600000);
   assert.equal(MAX_OFAC_CACHE_TTL_MS,21600000);
-  for(const cacheTtlMs of [-1,0,1.25,Infinity,MAX_OFAC_CACHE_TTL_MS+1]){
+  for(const cacheTtlMs of [-1,0,999,1.25,Infinity,MAX_OFAC_CACHE_TTL_MS+1]){
     assert.throws(()=>createOfacNameAdapter({cacheTtlMs}),
-      e=>e.code==="ADAPTER_CONTRACT_INVALID");
+      e=>e.code==="INVALID_INPUT");
   }
   assert.throws(()=>createOfacNameAdapter({now:Date.now()}),
     e=>e.code==="ADAPTER_CONTRACT_INVALID");
@@ -164,10 +164,26 @@ test("expiry during scoring refuses a too-old response rather than claiming fres
   // it expire while the response is assembled.
   let reads=0;
   const rapid=createOfacNameAdapter({
-    fetchImpl:source.fetchImpl,cacheTtlMs:100,
-    now:()=>T0+(++reads===3?101:reads>3?101:0)
+    fetchImpl:source.fetchImpl,cacheTtlMs:1000,
+    now:()=>T0+(++reads===3?1001:reads>3?1001:0)
   });
   await assert.rejects(()=>rapid.lookup({name:"EXAMPLE COMPANY"}),
     e=>e.code==="SOURCE_CONTRACT_INVALID");
   assert.equal(source.events.length,4);
+});
+
+test("historic nowMs clock alias is supported without reducing evidence controls",async()=>{
+  const source=fixtureSource(),clock={ms:T0};
+  const a=createOfacNameAdapter({
+    fetchImpl:source.fetchImpl,cacheTtlMs:1000,nowMs:()=>clock.ms
+  });
+  await a.lookup({name:"EXAMPLE COMPANY"});
+  source.state.sdn=SDN_TWO;source.state.alt="";clock.ms+=1000;
+  const changed=await a.lookup({name:"SECOND COMPANY"});
+  assert.equal(changed.totalCandidatesAboveThreshold,1);
+  assert.equal(changed.provenance.localDatasetRetrievedAtUtc,
+    new Date(clock.ms).toISOString());
+  assert.deepEqual(source.events,["SDN","ALT","SDN","ALT"]);
+  assert.throws(()=>createOfacNameAdapter({nowMs:123}),
+    e=>e.code==="INVALID_INPUT");
 });
