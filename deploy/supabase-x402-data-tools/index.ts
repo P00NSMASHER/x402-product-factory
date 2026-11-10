@@ -133,7 +133,11 @@ async function settleSamePayment(paymentPayload: unknown) {
     if (wait) await new Promise((resolve) => setTimeout(resolve, wait));
     try {
       const result = await facilitator("settle", paymentPayload);
-      if (result.body?.success === true) return { ok: true, receipt: result.body };
+      if (
+        result.status >= 200 &&
+        result.status < 300 &&
+        result.body?.success === true
+      ) return { ok: true, receipt: result.body };
       const reason = String(
         result.body?.errorReason ||
           (result.status === 429
@@ -1030,8 +1034,13 @@ async function handlePaid(
   try {
     const verification = await facilitator("verify", paymentPayload);
     if (
-      verification.body?.isValid !== true &&
-      verification.body?.success !== true
+      verification.status === 429 ||
+      verification.status >= 500
+    ) throw new Error("facilitator_unavailable");
+    if (
+      verification.status < 200 ||
+      verification.status >= 300 ||
+      verification.body?.isValid !== true
     ) {
       return paymentRequired(
         route,
