@@ -1,0 +1,26 @@
+name: Supabase facilitator verdict regression (nondeploying)
+
+on:
+  push:
+    branches:
+      - factory/supabase-facilitator-verdicts-20261110
+    paths:
+      - 'deploy/supabase-x402-data-tools/index.ts'
+      - 'deploy/supabase-x402-data-tools/facilitator-verdict.test.cjs'
+      - '.github/workflows/supabase-facilitator-verdict-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  supabase-facilitator-verdicts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Runtime
+        run: node --version
+      - name: Canonical Supabase payment guards and adversarial red-green tests
+        run: node --test deploy/supabase-x402-data-tools/facilitator-verdict.test.cjs
+      - name: Full discovered factory regression suite
+        run: node scripts/run-all-tests.js
