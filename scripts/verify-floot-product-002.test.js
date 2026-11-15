@@ -53,6 +53,7 @@ function readyTransport({
   mutateChallenge,
   includeCors = true,
   omitPreservedCatalog = null,
+  catalogContentType = "application/json",
 } = {}) {
   let paymentHeaders = 0;
   const fetchImpl = async (url, init = {}) => {
@@ -80,7 +81,7 @@ function readyTransport({
           mutateCatalog ? mutateCatalog(resource) : resource,
           ...preservedResources,
         ],
-      }, { "content-type": "application/json" });
+      }, { "content-type": catalogContentType });
     }
     if (parsed.pathname === "/openapi.json") {
       return response(200, {
@@ -257,5 +258,24 @@ test("Floot audit blocks readiness when an existing PA catalog route disappears"
   assert.equal(result.deployed, false);
   assert.equal(result.ready, false);
   assert.ok(result.problems.includes("preserved_pa:pa_entity_one:catalog_missing"));
+  assert.equal(transport.stats().paymentHeaders, 0);
+});
+
+
+test("Floot audit rejects a JSON catalog mislabeled as octet-stream", async () => {
+  const transport = readyTransport({ catalogContentType: "application/octet-stream" });
+  const result = await verifyFlootProduct002({ base: BASE, fetchImpl: transport.fetchImpl });
+  assert.equal(result.observations.catalogStatus, 200);
+  assert.equal(result.observations.catalogContentType, "application/octet-stream");
+  assert.equal(result.ready, false);
+  assert.ok(result.deploymentProblems.includes("catalog_content_type"));
+  assert.equal(transport.stats().paymentHeaders, 0);
+});
+
+test("Floot audit accepts JSON catalog media type with charset", async () => {
+  const transport = readyTransport({ catalogContentType: "application/json; charset=utf-8" });
+  const result = await verifyFlootProduct002({ base: BASE, fetchImpl: transport.fetchImpl });
+  assert.equal(result.ready, true, JSON.stringify(result.problems));
+  assert.equal(result.observations.catalogContentType, "application/json; charset=utf-8");
   assert.equal(transport.stats().paymentHeaders, 0);
 });

@@ -87,8 +87,14 @@ async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
     { headers: { accept: "application/json" } }
   );
   if (catalogResult.error) deploymentProblems.push("catalog_transport");
-  else if (catalogResult.response.status !== 200) {
-    deploymentProblems.push("catalog_status:" + catalogResult.response.status);
+  else {
+    if (catalogResult.response.status !== 200) {
+      deploymentProblems.push("catalog_status:" + catalogResult.response.status);
+    }
+    const catalogContentType = catalogResult.response.headers.get("content-type") || "";
+    if (!/^\s*application\/json\s*(?:;|$)/i.test(catalogContentType)) {
+      deploymentProblems.push("catalog_content_type");
+    }
   }
 
   const resources = Array.isArray(catalogResult.json?.resources)
@@ -299,6 +305,8 @@ async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
     },
     observations: {
       catalogStatus: catalogResult.response?.status ?? null,
+      catalogContentType:
+        catalogResult.response?.headers.get("content-type") ?? null,
       catalogRoutePresent: Boolean(resource),
       openapiStatus: openapiResult.response?.status ?? null,
       openapiRoutePresent: Boolean(operation),
