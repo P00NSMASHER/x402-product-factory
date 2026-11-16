@@ -99,8 +99,14 @@ async function verifyProductionTopology({
   for (const seller of topology.canonical_sellers) {
     const result = await readCatalog(fetchImpl, seller);
     if (result.error) problems.push(seller.id + ":catalog_transport");
-    else if (result.response.status !== 200) {
-      problems.push(seller.id + ":catalog_status:" + result.response.status);
+    else {
+      if (result.response.status !== 200) {
+        problems.push(seller.id + ":catalog_status:" + result.response.status);
+      }
+      const contentType = result.response.headers?.get("content-type") || "";
+      if (!/^\s*application\/json\s*(?:;|$)/i.test(contentType)) {
+        problems.push(seller.id + ":catalog_content_type");
+      }
     }
     if (result.body?.x402Version !== 2 || !Array.isArray(result.body?.resources)) {
       problems.push(seller.id + ":catalog_invalid");
@@ -140,6 +146,7 @@ async function verifyProductionTopology({
       sellerId: seller.id,
       origin: seller.origin,
       status: result.response?.status ?? null,
+      catalogContentType: result.response?.headers?.get("content-type") ?? null,
       canonicalRouteCount: seller.routes.length,
       observedResourceCount: resources.length,
     });
