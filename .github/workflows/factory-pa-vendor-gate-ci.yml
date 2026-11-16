@@ -30,6 +30,9 @@ on:
       - '.github/workflows/factory-pa-vendor-gate-ci.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: factory-product-ci-${{ github.ref }}
   cancel-in-progress: true
