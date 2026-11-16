@@ -259,3 +259,30 @@ test("Floot audit blocks readiness when an existing PA catalog route disappears"
   assert.ok(result.problems.includes("preserved_pa:pa_entity_one:catalog_missing"));
   assert.equal(transport.stats().paymentHeaders, 0);
 });
+
+test("Floot audit rejects extra incompatible payment options even when the first option is valid", async () => {
+  const transport = readyTransport({
+    mutateCatalog(resource) {
+      return {
+        ...resource,
+        accepts: [...resource.accepts, paymentRequirement({ amount: "1" })],
+      };
+    },
+    mutateChallenge(document) {
+      return {
+        ...document,
+        accepts: [...document.accepts, paymentRequirement({ amount: "1" })],
+      };
+    },
+  });
+
+  const result = await verifyFlootProduct002({ base: BASE, fetchImpl: transport.fetchImpl });
+
+  assert.equal(result.deployed, false);
+  assert.equal(result.ready, false);
+  assert.ok(result.problems.includes("catalog_accept[1]:amount"));
+  assert.ok(result.problems.includes("unpaid_accept[1]:amount"));
+  assert.ok(result.problems.includes("payment_required_accept[1]:amount"));
+  assert.equal(result.observations.unpaidStatus, 402);
+  assert.equal(transport.stats().paymentHeaders, 0);
+});
