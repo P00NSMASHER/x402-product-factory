@@ -75,6 +75,19 @@ function requirementProblems(prefix, accept, expectedAmount = AMOUNT) {
   return problems;
 }
 
+function acceptanceProblems(prefix, accepts, expectedAmount = AMOUNT) {
+  if (!Array.isArray(accepts) || accepts.length === 0) {
+    return [prefix + ":missing"];
+  }
+  return accepts.flatMap((accept, index) =>
+    requirementProblems(
+      index === 0 ? prefix : prefix + "[" + index + "]",
+      accept,
+      expectedAmount
+    )
+  );
+}
+
 async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
   const normalizedBase = base.replace(/\/$/, "");
   const routeUrl = normalizedBase + RESOURCE_PATH;
@@ -100,7 +113,7 @@ async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
   } else {
     if (resource.price !== PRICE) deploymentProblems.push("catalog_price");
     deploymentProblems.push(
-      ...requirementProblems("catalog_accept", resource.accepts?.[0])
+      ...acceptanceProblems("catalog_accept", resource.accepts)
     );
     if (!resource.extensions?.bazaar) {
       deploymentProblems.push("catalog_bazaar_missing");
@@ -120,9 +133,9 @@ async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
         deploymentProblems.push(prefix + ":catalog_price");
       }
       deploymentProblems.push(
-        ...requirementProblems(
+        ...acceptanceProblems(
           prefix + ":catalog_accept",
-          catalogEntry.accepts?.[0],
+          catalogEntry.accepts,
           preserved.amount
         )
       );
@@ -146,9 +159,9 @@ async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
         deploymentProblems.push(prefix + ":unpaid_price");
       }
       deploymentProblems.push(
-        ...requirementProblems(
+        ...acceptanceProblems(
           prefix + ":unpaid_accept",
-          unpaid.json?.accepts?.[0],
+          unpaid.json?.accepts,
           preserved.amount
         )
       );
@@ -162,9 +175,9 @@ async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
           deploymentProblems.push(prefix + ":payment_required_resource");
         }
         deploymentProblems.push(
-          ...requirementProblems(
+          ...acceptanceProblems(
             prefix + ":payment_required_accept",
-            headerDocument.accepts?.[0],
+            headerDocument.accepts,
             preserved.amount
           )
         );
@@ -229,7 +242,7 @@ async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
       deploymentProblems.push("unpaid_x402_version");
     }
     deploymentProblems.push(
-      ...requirementProblems("unpaid_accept", unpaidResult.json?.accepts?.[0])
+      ...acceptanceProblems("unpaid_accept", unpaidResult.json?.accepts)
     );
     const headerDocument = decodeBase64Json(
       unpaidResult.response.headers.get("payment-required")
@@ -241,9 +254,9 @@ async function verifyFlootProduct002({ base = BASE, fetchImpl = fetch } = {}) {
         deploymentProblems.push("payment_required_resource");
       }
       deploymentProblems.push(
-        ...requirementProblems(
+        ...acceptanceProblems(
           "payment_required_accept",
-          headerDocument.accepts?.[0]
+          headerDocument.accepts
         )
       );
       if (!headerDocument.extensions?.bazaar) {
