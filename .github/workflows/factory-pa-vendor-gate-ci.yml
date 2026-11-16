@@ -15,7 +15,23 @@ on:
       - 'scripts/**'
       - 'runtime/**'
       - '.github/workflows/factory-pa-vendor-gate-ci.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'product-registry.json'
+      - 'production-topology.json'
+      - 'MIGRATION_MANIFEST.json'
+      - 'products/**'
+      - 'packages/**'
+      - 'deploy/floot-pa-vendor-gate/**'
+      - 'scripts/**'
+      - 'runtime/**'
+      - '.github/workflows/factory-pa-vendor-gate-ci.yml'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: factory-product-ci-${{ github.ref }}
