@@ -8,9 +8,10 @@ const {
   verifyProductionTopology,
 } = require("./verify-production-topology");
 
-function response(status, body) {
+function response(status, body, contentType = "application/json") {
   return {
     status,
+    headers: new Headers({ "content-type": contentType }),
     async text() {
       return JSON.stringify(body);
     },
@@ -24,7 +25,11 @@ function catalog(seller, routes) {
   };
 }
 
-function transport(topology, { includeShadows = false, omitRoute = null } = {}) {
+function transport(topology, {
+  includeShadows = false,
+  omitRoute = null,
+  flootContentType = "application/json",
+} = {}) {
   let paymentHeaders = 0;
   const fetchImpl = async (url, init = {}) => {
     for (const [name, value] of Object.entries(init.headers || {})) {
@@ -41,7 +46,11 @@ function transport(topology, { includeShadows = false, omitRoute = null } = {}) 
       );
       routes.push(...(shadow?.routes || []));
     }
-    return response(200, catalog(seller, routes));
+    return response(
+      200,
+      catalog(seller, routes),
+      seller.id === "floot_pa" ? flootContentType : "application/json"
+    );
   };
   return { fetchImpl, stats: () => ({ paymentHeaders }) };
 }
@@ -103,5 +112,24 @@ test("missing canonical Supabase route fails even if shadows are present", async
       "supabase_data_tools:canonical_route_missing:sec-filings"
     )
   );
+  assert.equal(mock.stats().paymentHeaders, 0);
+});
+
+test("topology rejects a canonical Floot catalog mislabeled as octet-stream", async () => {
+  const topology = loadTopology();
+  const mock = transport(topology, { flootContentType: "application/octet-stream" });
+  const result = await verifyProductionTopology({ topology, fetchImpl: mock.fetchImpl });
+  assert.equal(result.ok, false);
+  assert.ok(result.problems.includes("floot_pa:catalog_content_type"));
+  assert.equal(result.observations[0].catalogContentType, "application/octet-stream");
+  assert.equal(mock.stats().paymentHeaders, 0);
+});
+
+test("topology accepts JSON catalogs with charset parameters", async () => {
+  const topology = loadTopology();
+  const mock = transport(topology, { flootContentType: "application/json; charset=utf-8" });
+  const result = await verifyProductionTopology({ topology, fetchImpl: mock.fetchImpl });
+  assert.equal(result.ok, true, JSON.stringify(result.problems));
+  assert.equal(result.observations[0].catalogContentType, "application/json; charset=utf-8");
   assert.equal(mock.stats().paymentHeaders, 0);
 });
