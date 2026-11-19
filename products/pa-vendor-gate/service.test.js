@@ -123,6 +123,28 @@ test("required-source transport failure is non-chargeable", async () => {
   assert.ok(result.reviewTriggers.includes("RDAP_EVIDENCE_UNAVAILABLE"));
 });
 
+test("fulfilled but unavailable required source evidence is non-chargeable", async () => {
+  const cases = [
+    ["registry", "lookup", "pa_registry"],
+    ["address", "compare", "census_address"],
+    ["ofac", "lookup", "ofac_sdn"],
+    ["rdap", "lookup", "rdap"],
+  ];
+  for (const [adapter, method, source] of cases) {
+    const sourceAdapters = adapters();
+    sourceAdapters[adapter][method] = async () => ({
+      available: false,
+      detail: "SOURCE_RETURNED_UNAVAILABLE",
+    });
+    const result = await createVendorIntakeService(sourceAdapters).check(INPUT);
+    assert.equal(result.decision, "human_review", adapter);
+    assert.equal(result.chargeable, false, adapter);
+    assert.deepEqual(result.sourceFailures, [
+      { source, detail: "SOURCE_RETURNED_UNAVAILABLE" },
+    ], adapter);
+  }
+});
+
 test("uncertain registry identity skips dependent checks deterministically", async () => {
   const sourceAdapters = adapters();
   let dependentCalls = 0;
