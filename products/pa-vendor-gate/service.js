@@ -174,8 +174,19 @@ function createVendorIntakeService({
         "ofac_sdn",
         Boolean(legalName)
       );
+      // An available OFAC response without a candidate list cannot support a negative screen.
+      const ofacCandidatesValid =
+        rawOfacEvidence.available !== true ||
+        Array.isArray(rawOfacEvidence.candidates);
+      if (!ofacCandidatesValid) {
+        sourceFailures.push({
+          source: "ofac_sdn",
+          detail: "SOURCE_CONTRACT_INVALID",
+        });
+      }
       const ofacEvidence = {
         ...rawOfacEvidence,
+        available: rawOfacEvidence.available === true && ofacCandidatesValid,
         candidates: Array.isArray(rawOfacEvidence.candidates)
           ? rawOfacEvidence.candidates.map((candidate) => ({
               ...candidate,
