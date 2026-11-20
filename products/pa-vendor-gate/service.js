@@ -99,6 +99,17 @@ function createVendorIntakeService({
         registryEvidence = sourceUnavailable("pa_registry", detail);
       }
 
+      // A fulfilled adapter call may still explicitly report unavailable evidence.
+      if (
+        registryEvidence.available !== true &&
+        !sourceFailures.some((failure) => failure.source === "pa_registry")
+      ) {
+        sourceFailures.push({
+          source: "pa_registry",
+          detail: registryEvidence.detail || "adapter_unavailable",
+        });
+      }
+
       const legalName =
         registryEvidence.available === true &&
         registryEvidence.strongMatch === true &&
@@ -137,19 +148,45 @@ function createVendorIntakeService({
       const [addressResult, ofacResult, rdapResult] =
         await Promise.allSettled([addressWork, ofacWork, rdapWork]);
 
-      function evidenceFrom(result, source) {
+      function evidenceFrom(result, source, queried = true) {
         if (result.status === "fulfilled") {
-          return normalizedEvidence(source, result.value);
+          const evidence = normalizedEvidence(source, result.value);
+          if (queried && evidence.available !== true) {
+            sourceFailures.push({
+              source,
+              detail: evidence.detail || "adapter_unavailable",
+            });
+          }
+          return evidence;
         }
         const detail = failureDetail(result.reason);
         sourceFailures.push({ source, detail });
         return sourceUnavailable(source, detail);
       }
 
-      const addressEvidence = evidenceFrom(addressResult, "census_address");
-      const rawOfacEvidence = evidenceFrom(ofacResult, "ofac_sdn");
+      const addressEvidence = evidenceFrom(
+        addressResult,
+        "census_address",
+        Boolean(legalName && registeredAddress)
+      );
+      const rawOfacEvidence = evidenceFrom(
+        ofacResult,
+        "ofac_sdn",
+        Boolean(legalName)
+      );
+      // An available OFAC response without a candidate list cannot support a negative screen.
+      const ofacCandidatesValid =
+        rawOfacEvidence.available !== true ||
+        Array.isArray(rawOfacEvidence.candidates);
+      if (!ofacCandidatesValid) {
+        sourceFailures.push({
+          source: "ofac_sdn",
+          detail: "SOURCE_CONTRACT_INVALID",
+        });
+      }
       const ofacEvidence = {
         ...rawOfacEvidence,
+        available: rawOfacEvidence.available === true && ofacCandidatesValid,
         candidates: Array.isArray(rawOfacEvidence.candidates)
           ? rawOfacEvidence.candidates.map((candidate) => ({
               ...candidate,
