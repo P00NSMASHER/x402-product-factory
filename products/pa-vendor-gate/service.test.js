@@ -205,3 +205,17 @@ test("input validation normalizes whitespace and a trailing DNS dot", () => {
     }
   );
 });
+
+test("available OFAC evidence without a candidate array fails closed", async () => {
+  for (const candidates of [undefined, null, "malformed"]) {
+    const sourceAdapters = adapters();
+    sourceAdapters.ofac.lookup = async () => ({ available: true, candidates });
+    const result = await createVendorIntakeService(sourceAdapters).check(INPUT);
+    assert.equal(result.decision, "human_review");
+    assert.equal(result.chargeable, false);
+    assert.deepEqual(result.sourceFailures, [
+      { source: "ofac_sdn", detail: "SOURCE_CONTRACT_INVALID" },
+    ]);
+    assert.ok(result.reviewTriggers.includes("OFAC_EVIDENCE_UNAVAILABLE"));
+  }
+});
